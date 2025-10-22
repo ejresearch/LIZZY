@@ -34,11 +34,19 @@ git clone https://github.com/ejresearch/LIZZY.git
 cd LIZZY
 
 # Install dependencies
-pip install openai lightrag-hku rich fastapi uvicorn pyvis
+pip install openai lightrag-hku rich fastapi uvicorn pyvis cohere
 
-# Set API key
-export OPENAI_API_KEY="sk-..."
+# Configure API keys (interactive setup)
+./setup_keys.sh
+
+# Or manually create .env file:
+cp .env.example .env
+# Then edit .env with your actual keys
 ```
+
+**API Keys Needed:**
+- **OpenAI** (required): Get from https://platform.openai.com/api-keys
+- **Cohere** (optional): Get from https://dashboard.cohere.com/api-keys
 
 ### Create Your First Screenplay
 
