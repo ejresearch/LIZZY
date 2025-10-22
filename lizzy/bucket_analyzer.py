@@ -346,8 +346,9 @@ class BucketAnalyzer:
 
 def main():
     """CLI for bucket analyzer."""
-    from rich.prompt import Prompt
+    from rich.prompt import Prompt, Confirm
     import sys
+    import webbrowser
 
     # List available buckets
     bucket_dir = Path("./rag_buckets")
@@ -401,9 +402,10 @@ def main():
         console.print("[2] View top entities")
         console.print("[3] Search entities")
         console.print("[4] View entity details")
-        console.print("[5] Exit")
+        console.print("[5] Create interactive visualization")
+        console.print("[6] Exit")
 
-        choice = Prompt.ask("\nChoose an option", choices=["1", "2", "3", "4", "5"], default="1")
+        choice = Prompt.ask("\nChoose an option", choices=["1", "2", "3", "4", "5", "6"], default="1")
 
         if choice == "1":
             analyzer.display_statistics()
@@ -430,6 +432,41 @@ def main():
             analyzer.display_entity_details(entity_id)
 
         elif choice == "5":
+            try:
+                from lizzy.graph_visualizer import GraphVisualizer
+
+                console.print("\n[cyan]Creating interactive visualization...[/cyan]")
+
+                # Get visualization options
+                max_nodes = None
+                entities = analyzer.load_entities()
+                if len(entities) > 500:
+                    if Confirm.ask(f"Graph has {len(entities):,} nodes. Limit for performance?", default=True):
+                        max_nodes = int(Prompt.ask("Max nodes to display", default="200"))
+
+                min_connections = 0
+                if Confirm.ask("Filter by minimum connections?", default=False):
+                    min_connections = int(Prompt.ask("Minimum connections", default="2"))
+
+                output_path = Prompt.ask("Output filename", default=f"{bucket.name}_graph.html")
+
+                # Create visualization
+                visualizer = GraphVisualizer(bucket)
+                result = visualizer.create_visualization(
+                    output_path=output_path,
+                    max_nodes=max_nodes,
+                    min_connections=min_connections,
+                    physics_enabled=True
+                )
+
+                if result and Confirm.ask("\nOpen in browser?", default=True):
+                    webbrowser.open(f"file://{result}")
+
+            except ImportError:
+                console.print("[red]Error: pyvis not installed[/red]")
+                console.print("Install with: [cyan]pip install pyvis[/cyan]")
+
+        elif choice == "6":
             console.print("\n[dim]Goodbye![/dim]")
             break
 

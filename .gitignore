@@ -27,6 +27,11 @@ wheels/
 projects/
 rag_buckets/
 
+# Generated visualizations
+*_graph.html
+example_*.html
+test_*.html
+
 # IDE
 .vscode/
 .idea/

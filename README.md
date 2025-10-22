@@ -25,13 +25,15 @@ Long-form creative writing with AI faces four key challenges:
 
 ```
 lizzy/
-├── config.py          # System configuration
-├── database.py        # SQL-based structured memory
-├── lightrag.py        # Graph/vector-based document retrieval
-├── start.py           # Project initialization module
-├── intake.py          # Metadata capture module
-├── brainstorm.py      # RAG-powered ideation module
-└── write.py           # Draft synthesis module
+├── config.py             # System configuration
+├── database.py           # SQL-based structured memory
+├── lightrag.py           # Graph/vector-based document retrieval
+├── start.py              # Project initialization module
+├── intake.py             # Metadata capture module
+├── brainstorm.py         # RAG-powered ideation module
+├── write.py              # Draft synthesis module
+├── bucket_analyzer.py    # Knowledge graph exploration
+└── graph_visualizer.py   # Neo4j-style interactive visualization
 ```
 
 ### The Four-Module Pipeline
@@ -65,7 +67,7 @@ Graph/vector-based retrieval ensures semantically relevant context informs each 
 cd /Users/elle_jansick/LIZZY_ROMCOM
 
 # Install dependencies
-pip install lightrag-hku openai rich
+pip install lightrag-hku openai rich pyvis
 
 # Configure API key
 export OPENAI_API_KEY="your-openai-key"
@@ -85,6 +87,10 @@ python -m lizzy.brainstorm "My Romantic Comedy" --tone "Romantic Dramedy"
 
 # 4. Synthesize final draft
 python -m lizzy.write "My Romantic Comedy"
+
+# Optional: Visualize knowledge graphs
+python -m lizzy.graph_visualizer  # Interactive Neo4j-style visualization
+python -m lizzy.bucket_analyzer   # Explore entities and relationships
 ```
 
 ## Experimental Design
@@ -135,6 +141,7 @@ Compared to direct LLM prompting.
 2. **Dynamic RAG** - Context-aware retrieval from thematic source buckets
 3. **Modular Refinement** - Iterative brainstorm → write → revise loop
 4. **Genre-Agnostic Architecture** - Initial romcom focus, designed for extensibility
+5. **Knowledge Graph Visualization** - Interactive Neo4j-style exploration of RAG buckets
 
 ## Research Context
 
