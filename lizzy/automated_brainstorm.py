@@ -548,7 +548,7 @@ Provide a tight, bullet-point summary (250 tokens max) focusing on CHANGES and M
         surrounding = self.get_surrounding_context(scene)
 
         # Compressed golden-age romcom definition (~100 tokens)
-        golden_age_definition = """GOLDEN-AGE ROMCOM: 1930s-50s screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby."""
+        golden_age_definition = """GOLDEN AGE ROMCOM: Nineteen-thirties to nineteen-fifties screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby."""
 
         # Metadata header
         from datetime import datetime
@@ -557,7 +557,7 @@ SCENE_ID: {scene['id']}
 SCENE_NUMBER: {scene['scene_number']}
 ACT: {scene.get('act', 'Unknown')}
 BUCKET: {bucket_name}
-MODEL: gpt-4o-mini (LightRAG)
+MODEL: "gpt-4o-mini (LightRAG)"
 VERSION: 2.0
 PROJECT: {self.project['name'] if self.project else 'Unknown'}
 TIMESTAMP: {datetime.now().isoformat()}
@@ -587,11 +587,11 @@ You are a SCREENPLAY STRUCTURE AND CRAFT EXPERT consulting on a golden-age roman
 
 {context_section}
 
-As a structure expert, PROPOSE how to architect this scene's dramatic structure.
+As a structure expert, PROPOSE how to architect this scene dramatic structure.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- 5-7 bullets per section
+- five to seven bullets per section
 - Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
@@ -632,11 +632,11 @@ You are a CLASSICAL DRAMATIC THEORY EXPERT consulting on a golden-age romantic c
 
 {context_section}
 
-As a dramatic theory expert, PROPOSE how to craft this scene's theatrical dimensions.
+As a dramatic theory expert, PROPOSE how to craft this scene theatrical dimensions.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- 5-7 bullets per section
+- five to seven bullets per section
 - Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
@@ -651,7 +651,7 @@ Advise how to construct dialogue and subtext:
 
 ## CHARACTER_PSYCHOLOGY
 Propose character objectives and tactics:
-- Each character's scene objective (what they want)
+- Each character scene objective (what they want)
 - Tactics to achieve objectives (how they pursue it)
 - Obstacles (internal fears, external blocks)
 - How characters mask or reveal true feelings
@@ -665,7 +665,7 @@ Recommend dramatic tools to deploy:
 
 ## EMOTIONAL_ARCHITECTURE
 Map the emotional journey:
-- Each character's emotional trajectory through scene
+- Each character emotional trajectory through scene
 - How to guide audience emotions beat by beat
 - Vulnerability or truth to be revealed
 - How this deepens character relationships
@@ -676,7 +676,7 @@ Specify physical actions and business:
 - Body language that contradicts or supports dialogue
 - Props or setting elements with symbolic weight
 
-Provide concrete theatrical guidance.
+Provide concrete theatrical guidance."""
 
         elif bucket_name == "scripts":
             return f"""{metadata}
@@ -691,7 +691,7 @@ As an execution expert, ADVISE how to execute this scene cinematically.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- 5-7 bullets per section
+- five to seven bullets per section
 - Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
@@ -832,30 +832,32 @@ SCENE_ID: {scene['id']}
 SCENE_NUMBER: {scene['scene_number']}
 ACT: {scene.get('act', 'Unknown')}
 BUCKET: synthesis
-MODEL: gpt-4o
+MODEL: "gpt-4o"
 VERSION: 2.0
 PROJECT: {self.project['name'] if self.project else 'Unknown'}
 TIMESTAMP: {datetime.now().isoformat()}
 ---"""
 
+        golden_age_desc = "GOLDEN AGE ROMCOM: Nineteen-thirties to nineteen-fifties screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby."
+
         system_prompt = f"""{metadata}
 
 You are a MASTER SCREENPLAY CONSULTANT synthesizing expert advice for a golden-age romantic comedy.
 
-GOLDEN-AGE ROMCOM: 1930s-50s screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby.
+{golden_age_desc}
 
 STORY CONTEXT:
 {story_outline}
 
 SCENE TO SYNTHESIZE:
-Scene {scene['scene_number']}: {scene['title']}
-Act: {scene.get('act', 'Unknown')}
-Description: {scene['description']}
-Characters: {scene.get('characters', 'main characters')}
+Scene {scene["scene_number"]}: {scene["title"]}
+Act: {scene.get("act", "Unknown")}
+Description: {scene["description"]}
+Characters: {scene.get("characters", "main characters")}
 
 SURROUNDING SCENES:
-Previous: {surrounding['previous'] or 'N/A'}
-Next: {surrounding['next'] or 'N/A'}
+Previous: {surrounding["previous"] or "N/A"}
+Next: {surrounding["next"] or "N/A"}
 
 THREE EXPERT CONSULTATIONS:
 1. **BOOKS (Structure Expert)** - Screenplay craft, beat engineering, act mechanics
@@ -868,7 +870,7 @@ Synthesize all three perspectives into ONE comprehensive, actionable scene bluep
 **SYNTHESIS DIRECTIVE:**
 - If experts disagree, prioritize cinematic clarity and character truth
 - Reference expert insights directly (e.g., "Books expert notes...", "Scripts suggests...")
-- Bullet points only (5-7 per section)
+- Bullet points only (five to seven per section)
 - Target length: 800-1200 tokens total
 
 OUTPUT FORMAT (use these exact sections):
@@ -876,7 +878,7 @@ OUTPUT FORMAT (use these exact sections):
 ## SCENE_BLUEPRINT
 
 ### EXECUTIVE_SUMMARY
-[3-5 sentence overview of this scene's purpose and execution approach]
+[Three to five sentence overview of this scene purpose and execution approach]
 
 ### STRUCTURAL_FUNCTION
 - What this scene accomplishes in overall story
@@ -886,7 +888,7 @@ OUTPUT FORMAT (use these exact sections):
 ### DRAMATIC_BEATS
 - Opening state/situation
 - Key turning points within scene
-- Closing state/what's changed
+- Closing state and what has changed
 - Transition to next scene
 
 ### DIALOGUE_AND_SUBTEXT
@@ -902,7 +904,7 @@ OUTPUT FORMAT (use these exact sections):
 - Setting/location utilization
 
 ### CHARACTER_PSYCHOLOGY
-- Each character's objective and tactics
+- Each character objective and tactics
 - Emotional journey through scene
 - Vulnerability or growth moments
 - Relationship dynamics

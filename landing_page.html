@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lizzy 2.0 - AI Screenplay Writing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #f5f1e8;
+            min-height: 100vh;
+            padding: 0;
+            color: #2d2d2d;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: #f5f1e8;
+        }
+
+        .header {
+            text-align: center;
+            padding: 80px 40px 60px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header h1 {
+            font-size: 6em;
+            color: #b83e3e;
+            margin-bottom: 30px;
+            font-weight: 700;
+            letter-spacing: -1px;
+            line-height: 1;
+            font-family: 'Georgia', serif;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 400;
+            font-style: italic;
+        }
+
+        .header .tagline {
+            font-size: 1em;
+            color: #b83e3e;
+            font-style: italic;
+        }
+
+        /* Project Selector */
+        .project-selector {
+            max-width: 1400px;
+            margin: 0 auto 40px;
+            padding: 0 40px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #project-dropdown {
+            flex: 1;
+            max-width: 500px;
+            padding: 16px 24px;
+            font-family: 'Georgia', serif;
+            font-size: 1.1em;
+            border: 3px solid #b83e3e;
+            border-radius: 30px;
+            background: white;
+            color: #2d2d2d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #project-dropdown:hover {
+            background: #fef5f5;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(184, 62, 62, 0.2);
+        }
+
+        #project-dropdown:focus {
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(184, 62, 62, 0.2);
+        }
+
+        .btn-new-project {
+            padding: 16px 32px;
+            font-family: 'Georgia', serif;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: #b83e3e;
+            color: white;
+            border: 3px solid #b83e3e;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-new-project:hover {
+            background: #a03535;
+            border-color: #a03535;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(184, 62, 62, 0.3);
+        }
+
+        /* Pipeline visualization */
+        .pipeline {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            padding: 60px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .step {
+            background: white;
+            padding: 40px 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 3px solid #b83e3e;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .step:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(184, 62, 62, 0.2);
+        }
+
+        .step:hover .step-action {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .step-number {
+            font-size: 4em;
+            color: #b83e3e;
+            font-weight: 700;
+            margin-bottom: 20px;
+            font-family: 'Georgia', serif;
+        }
+
+        .step-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #b83e3e;
+            margin-bottom: 15px;
+            font-family: 'Georgia', serif;
+        }
+
+        .step-description {
+            font-size: 0.95em;
+            color: #666;
+            line-height: 1.7;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .step-action {
+            display: inline-block;
+            padding: 12px 30px;
+            background: white;
+            color: #b83e3e;
+            border: 2px solid #b83e3e;
+            font-size: 0.95em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 30px;
+            font-family: 'Georgia', serif;
+        }
+
+        .step-action:hover {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .step.completed {
+            background: #fef5f5;
+            border-color: #b83e3e;
+        }
+
+        .step.completed::after {
+            content: '✓';
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            color: #b83e3e;
+            font-weight: bold;
+        }
+
+        /* Info section */
+        .info {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 40px auto;
+            text-align: center;
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+        }
+
+        .info p {
+            color: #666;
+            line-height: 1.8;
+            font-size: 1.2em;
+            font-style: italic;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 80px;
+            padding: 40px;
+            text-align: center;
+            background: white;
+            color: #666;
+            font-size: 0.95em;
+            border-top: 3px solid #b83e3e;
+        }
+
+        .footer p {
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .footer a {
+            color: #b83e3e;
+            text-decoration: none;
+            font-weight: 600;
+            transition: opacity 0.3s ease;
+        }
+
+        .footer a:hover {
+            opacity: 0.7;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .pipeline {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header h1 {
+                font-size: 4.5em;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .pipeline {
+                grid-template-columns: 1fr;
+                gap: 20px;
+                padding: 40px 20px;
+            }
+
+            .header {
+                padding: 60px 20px 40px;
+            }
+
+            .header h1 {
+                font-size: 3em;
+            }
+
+            .step {
+                padding: 30px 20px;
+            }
+
+            .step-title {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Lizzy 2.0</h1>
+            <p>AI-Assisted Screenplay Writing Framework</p>
+            <p class="tagline">From concept to finished screenplay in 4 simple steps</p>
+        </div>
+
+        <!-- Project Selector -->
+        <div class="project-selector">
+            <select id="project-dropdown" onchange="selectProject()">
+                <option value="">Select a project...</option>
+            </select>
+            <button class="btn-new-project" onclick="createNewProject()">+ New Project</button>
+        </div>
+
+        <div class="pipeline">
+            <div class="step" id="step-1">
+                <div onclick="navigateTo('manager')" style="cursor: pointer;">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Manager</div>
+                    <div class="step-description">
+                        Create and manage your project: settings, characters, scenes, notes, and brainstorms
+                    </div>
+                </div>
+                <button class="step-action" onclick="navigateTo('manager'); event.stopPropagation();">Manage Project</button>
+            </div>
+
+            <div class="step" id="step-2">
+                <div onclick="navigateTo('brainstorm')" style="cursor: pointer;">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Brainstorm</div>
+                    <div class="step-description">
+                        Generate scene brainstorms using 3 expert AI knowledge graphs
+                    </div>
+                </div>
+                <button class="step-action" onclick="navigateTo('brainstorm'); event.stopPropagation();">Generate Brainstorms</button>
+            </div>
+
+            <div class="step" id="step-3">
+                <div onclick="navigateTo('write')" style="cursor: pointer;">
+                    <div class="step-number">3</div>
+                    <div class="step-title">Write</div>
+                    <div class="step-description">
+                        Convert brainstorms to 700-900 word screenplay prose with golden-era romcom tone
+                    </div>
+                </div>
+                <button class="step-action" onclick="navigateTo('write'); event.stopPropagation();">Write Scenes</button>
+            </div>
+
+            <div class="step" id="step-4">
+                <div onclick="navigateTo('export')" style="cursor: pointer;">
+                    <div class="step-number">4</div>
+                    <div class="step-title">Export</div>
+                    <div class="step-description">
+                        Compile to professional screenplay formats (.txt, .md, .fountain, .fdx)
+                    </div>
+                </div>
+                <button class="step-action" onclick="navigateTo('export'); event.stopPropagation();">Export Screenplay</button>
+            </div>
+        </div>
+
+        <div class="info">
+            <p>Complete 30-scene screenplay in 4 simple steps for $0.60</p>
+        </div>
+
+        <div class="footer">
+            <p>Built with OpenAI GPT-4o and LightRAG</p>
+            <p><a href="https://github.com/ejresearch/LIZZY" target="_blank">Documentation</a> •
+               <a href="#" onclick="showPromptStudio()">Prompt Studio</a> •
+               <a href="#" onclick="showProjects()">My Projects</a></p>
+        </div>
+    </div>
+
+    <script>
+        // Track project status
+        let projectStatus = {
+            currentProject: null,
+            steps: {
+                start: false,
+                intake: false,
+                brainstorm: false,
+                write: false,
+                export: false
+            }
+        };
+
+        // Load projects into dropdown
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+
+                const dropdown = document.getElementById('project-dropdown');
+                const currentProject = localStorage.getItem('currentProject');
+
+                // Clear existing options except first
+                dropdown.innerHTML = '<option value="">Select a project...</option>';
+
+                // Add projects
+                data.projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.name;
+                    option.textContent = project.name;
+                    if (project.name === currentProject) {
+                        option.selected = true;
+                    }
+                    dropdown.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading projects:', error);
+            }
+        }
+
+        // Select a project
+        function selectProject() {
+            const dropdown = document.getElementById('project-dropdown');
+            const projectName = dropdown.value;
+
+            if (projectName) {
+                localStorage.setItem('currentProject', projectName);
+                projectStatus.currentProject = projectName;
+                console.log('Selected project:', projectName);
+            } else {
+                localStorage.removeItem('currentProject');
+                projectStatus.currentProject = null;
+            }
+        }
+
+        // Create new project
+        function createNewProject() {
+            window.location.href = '/manager';
+        }
+
+        // Load status from localStorage
+        function loadStatus() {
+            const saved = localStorage.getItem('lizzy_status');
+            if (saved) {
+                projectStatus = JSON.parse(saved);
+                updateUI();
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+            loadStatus();
+        });
+
+        // Save status to localStorage
+        function saveStatus() {
+            localStorage.setItem('lizzy_status', JSON.stringify(projectStatus));
+        }
+
+        // Update UI based on completion status
+        function updateUI() {
+            Object.keys(projectStatus.steps).forEach((step, index) => {
+                const stepElement = document.getElementById(`step-${index + 1}`);
+                if (projectStatus.steps[step]) {
+                    stepElement.classList.add('completed');
+                }
+            });
+        }
+
+        // Navigation
+        function navigateTo(module) {
+            console.log(`Navigating to: ${module}`);
+            const currentProject = localStorage.getItem('currentProject');
+
+            if (module === 'manager') {
+                window.location.href = '/manager';
+            } else if (module === 'brainstorm') {
+                if (currentProject) {
+                    window.location.href = `/brainstorm?project=${encodeURIComponent(currentProject)}`;
+                } else {
+                    alert('Please select a project in Manager first');
+                    window.location.href = '/manager';
+                }
+            } else {
+                // For other modules, show CLI commands for now
+                const commands = {
+                    'write': 'python3 -m lizzy.automated_write',
+                    'export': 'python3 -m lizzy.export'
+                };
+
+                alert(`Run this command in your terminal:\n\n${commands[module]}\n\n(Web interface coming soon!)`);
+            }
+        }
+
+        function showPromptStudio() {
+            alert('Run this command in your terminal:\n\n./start_prompt_studio.sh\n\nThen open: http://localhost:8001');
+        }
+
+        function showProjects() {
+            alert('Project browser coming soon!\n\nFor now, check: projects/ directory');
+        }
+    </script>
+</body>
+</html>

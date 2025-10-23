@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainstorm - Lizzy 2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #f5f1e8;
+            min-height: 100vh;
+            padding: 0;
+            color: #2d2d2d;
+        }
+
+        .header {
+            background: white;
+            padding: 30px 40px;
+            border-bottom: 3px solid #b83e3e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #b83e3e;
+            font-weight: 700;
+        }
+
+        .header a {
+            color: #b83e3e;
+            text-decoration: none;
+            font-style: italic;
+        }
+
+        .header a:hover {
+            opacity: 0.7;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .intro-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .intro-section h2 {
+            font-size: 2.2em;
+            color: #b83e3e;
+            margin-bottom: 16px;
+        }
+
+        .intro-section p {
+            font-size: 1.1em;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Mode Tabs */
+        .mode-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .mode-tab {
+            padding: 16px 48px;
+            border: 3px solid #b83e3e;
+            background: white;
+            color: #b83e3e;
+            font-family: 'Georgia', serif;
+            font-size: 1.2em;
+            cursor: pointer;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .mode-tab:hover {
+            background: #fef5f5;
+        }
+
+        .mode-tab.active {
+            background: #b83e3e;
+            color: white;
+        }
+
+        /* Mode Content */
+        .mode-content {
+            display: none;
+        }
+
+        .mode-content.active {
+            display: block;
+        }
+
+        /* Chat Mode Styles */
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            background: #b83e3e;
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 1.6em;
+        }
+
+        .scene-focus {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 32px;
+            background: #fefbf8;
+        }
+
+        .message {
+            margin-bottom: 28px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.user .message-content {
+            background: #b83e3e;
+            color: white;
+            display: inline-block;
+            padding: 14px 20px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 70%;
+            text-align: left;
+        }
+
+        .message.assistant .message-label {
+            font-weight: 600;
+            color: #b83e3e;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .message.assistant .expert-response {
+            background: white;
+            border: 2px solid #e8d5d5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .expert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #b83e3e;
+        }
+
+        .expert-header .icon {
+            font-size: 1.4em;
+        }
+
+        .expert-content {
+            color: #2d2d2d;
+            line-height: 1.7;
+        }
+
+        .expert-content ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .expert-content li {
+            margin-bottom: 6px;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border: 2px solid #b83e3e;
+            background: white;
+            color: #b83e3e;
+            border-radius: 20px;
+            font-family: 'Georgia', serif;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-small:hover {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 24px 32px;
+            border-top: 2px solid #f0e8e8;
+            background: white;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e8d5d5;
+            border-radius: 25px;
+            font-family: 'Georgia', serif;
+            font-size: 1em;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #b83e3e;
+            box-shadow: 0 0 0 3px rgba(184, 62, 62, 0.1);
+        }
+
+        .btn-send {
+            padding: 14px 32px;
+            background: #b83e3e;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-family: 'Georgia', serif;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-send:hover {
+            background: #9a3232;
+        }
+
+        .btn-send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .commands-hint {
+            margin-top: 16px;
+            padding: 16px;
+            background: #fef5f5;
+            border-radius: 12px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .commands-hint strong {
+            color: #b83e3e;
+        }
+
+        /* Batch Mode Styles */
+        .batch-header {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .batch-header h3 {
+            font-size: 1.8em;
+            color: #b83e3e;
+            margin-bottom: 16px;
+        }
+
+        .progress-bar {
+            background: #e8d5d5;
+            height: 32px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #b83e3e, #d85858);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 14px 32px;
+            border: 2px solid #b83e3e;
+            background: white;
+            color: #b83e3e;
+            border-radius: 25px;
+            font-family: 'Georgia', serif;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .btn-primary {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #9a3232;
+        }
+
+        .scenes-list {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+            overflow: hidden;
+        }
+
+        .scenes-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .scenes-table th {
+            background: #b83e3e;
+            color: white;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .scenes-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0e8e8;
+        }
+
+        .scenes-table tbody tr:nth-child(even) {
+            background: #fefbf8;
+        }
+
+        .scenes-table tbody tr:hover {
+            background: #fef5f5;
+        }
+
+        .status-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .status-done { color: #48bb78; }
+        .status-processing { color: #f59e0b; }
+        .status-pending { color: #ccc; }
+
+        .scene-title {
+            font-weight: 600;
+            color: #b83e3e;
+        }
+
+        /* Message Container */
+        #message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 500px;
+        }
+
+        .message-alert {
+            padding: 20px 28px;
+            border-radius: 12px;
+            font-size: 1em;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .message-alert.success {
+            background: #d4edda;
+            border: 3px solid #48bb78;
+            color: #155724;
+        }
+
+        .message-alert.error {
+            background: #f8d7da;
+            border: 3px solid #dc3545;
+            color: #721c24;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f0e8e8;
+            border-top-color: #b83e3e;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-message {
+            display: none;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .loading-message.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Brainstorm</h1>
+        <a href="/">← Back to Home</a>
+    </div>
+
+    <div class="container">
+        <div class="intro-section">
+            <h2>Generate Scene Blueprints</h2>
+            <p>Query expert knowledge graphs or batch-process all 30 scenes</p>
+        </div>
+
+        <!-- Mode Tabs -->
+        <div class="mode-tabs">
+            <button class="mode-tab active" onclick="switchMode('chat')">Chat Mode</button>
+            <button class="mode-tab" onclick="switchMode('batch')">Batch Mode</button>
+        </div>
+
+        <!-- Chat Mode -->
+        <div id="chat-mode" class="mode-content active">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Chat with Expert Knowledge Graphs</h3>
+                    <div class="scene-focus" id="scene-focus-badge">No scene focused</div>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="loading-message" id="chat-loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading conversation...</p>
+                    </div>
+                    <!-- Messages will be added here dynamically -->
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input
+                            type="text"
+                            class="chat-input"
+                            id="chat-input"
+                            placeholder="Ask the experts anything about your screenplay..."
+                            onkeypress="handleChatKeyPress(event)"
+                        />
+                        <button class="btn-send" onclick="sendMessage()" id="send-btn">Send</button>
+                    </div>
+                    <div class="commands-hint">
+                        <strong>Commands:</strong> /focus N (focus on scene) • /compare (compare experts) • /export N (save to scene) • /history (show queries)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch Mode -->
+        <div id="batch-mode" class="mode-content">
+            <div class="batch-header">
+                <h3>Batch Process All Scenes</h3>
+                <p style="color: #666; font-style: italic; margin-bottom: 20px;">
+                    Generate blueprints for all 30 scenes using the 3 expert knowledge graphs
+                </p>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="batch-progress" style="width: 0%">0/30 scenes</div>
+                </div>
+
+                <div class="batch-actions">
+                    <button class="btn btn-primary" onclick="startBatchProcess()">
+                        Generate All Blueprints
+                    </button>
+                    <button class="btn" onclick="loadBatchScenes()">
+                        Refresh Status
+                    </button>
+                </div>
+            </div>
+
+            <div class="scenes-list">
+                <table class="scenes-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Status</th>
+                            <th style="width: 60px;">#</th>
+                            <th>Scene</th>
+                            <th style="width: 200px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batch-scenes-list">
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px; color: #999;">
+                                Loading scenes...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Container -->
+    <div id="message-container"></div>
+
+    <script>
+        let currentMode = 'chat';
+        let currentProject = null;
+        let chatHistory = [];
+        let focusedScene = null;
+
+        // Initialize page
+        async function init() {
+            // Get current project from URL params or localStorage
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectName = urlParams.get('project') || localStorage.getItem('currentProject');
+
+            if (!projectName) {
+                showMessage('No project selected. Please select a project from Setup.', 'error');
+                setTimeout(() => window.location.href = '/setup', 2000);
+                return;
+            }
+
+            currentProject = projectName;
+            localStorage.setItem('currentProject', projectName);
+
+            // Load initial data
+            loadChatHistory();
+            loadBatchScenes();
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+
+            // Update tab styling
+            document.querySelectorAll('.mode-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.mode-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(mode + '-mode').classList.add('active');
+
+            // Load data for active mode
+            if (mode === 'batch') {
+                loadBatchScenes();
+            }
+        }
+
+        // ===== CHAT MODE =====
+
+        async function loadChatHistory() {
+            const loading = document.getElementById('chat-loading');
+            const messagesContainer = document.getElementById('chat-messages');
+
+            loading.classList.add('active');
+
+            try {
+                const response = await fetch(`/api/brainstorm/chat/history?project=${currentProject}`);
+                const data = await response.json();
+
+                chatHistory = data.messages || [];
+                renderChatMessages();
+            } catch (error) {
+                console.error('Error loading chat history:', error);
+            } finally {
+                loading.classList.remove('active');
+            }
+        }
+
+        function renderChatMessages() {
+            const container = document.getElementById('chat-messages');
+            const loading = document.getElementById('chat-loading');
+
+            if (chatHistory.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; color: #999;">
+                        <p style="font-size: 1.2em; margin-bottom: 12px;">Start a conversation</p>
+                        <p style="font-style: italic;">Ask the expert knowledge graphs anything about your screenplay</p>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            chatHistory.forEach(msg => {
+                if (msg.role === 'user') {
+                    html += `
+                        <div class="message user">
+                            <div class="message-content">${escapeHtml(msg.content)}</div>
+                        </div>
+                    `;
+                } else if (msg.role === 'assistant') {
+                    html += renderAssistantMessage(msg);
+                }
+            });
+
+            container.innerHTML = loading.outerHTML + html;
+
+            // Scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderAssistantMessage(msg) {
+            const experts = msg.experts || [];
+
+            let expertsHtml = '';
+            experts.forEach(expert => {
+                const bucketName = expert.bucket === 'books' ? 'Books Expert' :
+                                  expert.bucket === 'plays' ? 'Plays Expert' : 'Scripts Expert';
+
+                expertsHtml += `
+                    <div class="expert-response">
+                        <div class="expert-header">
+                            <span>${bucketName}</span>
+                        </div>
+                        <div class="expert-content">
+                            ${formatExpertContent(expert.content)}
+                        </div>
+                    </div>
+                `;
+            });
+
+            return `
+                <div class="message assistant">
+                    ${expertsHtml}
+                    <div class="message-actions">
+                        <button class="btn-small" onclick="saveToScene(${msg.id})">Save to Scene</button>
+                        <button class="btn-small" onclick="copyResponse(${msg.id})">Copy</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function formatExpertContent(content) {
+            // Convert bullet points to HTML list
+            const lines = content.split('\n');
+            let html = '';
+            let inList = false;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (line.startsWith('•') || line.startsWith('-')) {
+                    if (!inList) {
+                        html += '<ul>';
+                        inList = true;
+                    }
+                    html += `<li>${escapeHtml(line.substring(1).trim())}</li>`;
+                } else if (line) {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    html += `<p>${escapeHtml(line)}</p>`;
+                }
+            });
+
+            if (inList) html += '</ul>';
+            return html;
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const sendBtn = document.getElementById('send-btn');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            // Disable input
+            input.disabled = true;
+            sendBtn.disabled = true;
+
+            // Add user message to history
+            chatHistory.push({
+                role: 'user',
+                content: message
+            });
+
+            // Clear input
+            input.value = '';
+
+            // Render immediately
+            renderChatMessages();
+
+            try {
+                // Send to backend
+                const response = await fetch('/api/brainstorm/chat/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        query: message,
+                        focused_scene: focusedScene
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Add assistant response
+                    chatHistory.push({
+                        role: 'assistant',
+                        id: data.message_id,
+                        experts: data.experts
+                    });
+
+                    renderChatMessages();
+                } else {
+                    showMessage(data.error || 'Failed to get response', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showMessage('Error: ' + error.message, 'error');
+            } finally {
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+
+        // ===== BATCH MODE =====
+
+        async function loadBatchScenes() {
+            const tbody = document.getElementById('batch-scenes-list');
+
+            try {
+                const response = await fetch(`/api/brainstorm/batch/status?project=${currentProject}`);
+                const data = await response.json();
+
+                if (!data.scenes || data.scenes.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 40px; color: #999;">
+                                No scenes found. Please set up your project first.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                // Update progress bar
+                const completed = data.scenes.filter(s => s.status === 'done').length;
+                const total = data.scenes.length;
+                const percentage = Math.round((completed / total) * 100);
+
+                const progressFill = document.getElementById('batch-progress');
+                progressFill.style.width = percentage + '%';
+                progressFill.textContent = `${completed}/${total} scenes`;
+
+                // Render scenes
+                tbody.innerHTML = data.scenes.map(scene => {
+                    const statusText = scene.status === 'done' ? 'Done' :
+                                      scene.status === 'processing' ? 'Processing' : 'Pending';
+                    const statusClass = scene.status === 'done' ? 'status-done' :
+                                       scene.status === 'processing' ? 'status-processing' : 'status-pending';
+
+                    return `
+                        <tr>
+                            <td>
+                                <span class="status-icon ${statusClass}">${statusText}</span>
+                            </td>
+                            <td><strong>${scene.scene_number}</strong></td>
+                            <td>
+                                <div class="scene-title">${scene.title}</div>
+                                <div style="font-size: 0.9em; color: #666; font-style: italic; margin-top: 4px;">
+                                    ${scene.description ? scene.description.substring(0, 80) + '...' : 'No description'}
+                                </div>
+                            </td>
+                            <td>
+                                ${scene.status === 'done' ?
+                                    `<button class="btn-small" onclick="viewBlueprint(${scene.scene_number})">View Blueprint</button>` :
+                                    `<button class="btn-small" onclick="generateScene(${scene.scene_number})">Generate</button>`
+                                }
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading scenes:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; color: #dc3545;">
+                            Error loading scenes: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        async function startBatchProcess() {
+            if (!confirm('Generate blueprints for all 30 scenes? This may take several minutes.')) {
+                return;
+            }
+
+            showMessage('Starting batch process...', 'success');
+
+            try {
+                const response = await fetch('/api/brainstorm/batch/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ project: currentProject })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage('Batch process started! Generating blueprints...', 'success');
+                    // Poll for updates
+                    pollBatchProgress();
+                } else {
+                    showMessage(data.error || 'Failed to start batch process', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function pollBatchProgress() {
+            const interval = setInterval(async () => {
+                await loadBatchScenes();
+
+                // Check if complete
+                const progressFill = document.getElementById('batch-progress');
+                if (progressFill.textContent.startsWith('30/30')) {
+                    clearInterval(interval);
+                    showMessage('All scenes completed!', 'success');
+                }
+            }, 3000);
+        }
+
+        async function generateScene(sceneNumber) {
+            showMessage(`Generating blueprint for Scene ${sceneNumber}...`, 'success');
+
+            try {
+                const response = await fetch('/api/brainstorm/batch/generate-scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        scene_number: sceneNumber
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showMessage(`Scene ${sceneNumber} blueprint generated!`, 'success');
+                    loadBatchScenes();
+                } else {
+                    showMessage(data.error || 'Failed to generate scene', 'error');
+                }
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+
+        function viewBlueprint(sceneNumber) {
+            // Navigate to blueprint view (to be implemented)
+            alert(`View blueprint for Scene ${sceneNumber} - Feature coming soon!`);
+        }
+
+        // ===== UTILITY FUNCTIONS =====
+
+        function showMessage(text, type) {
+            const container = document.getElementById('message-container');
+            container.innerHTML = `<div class="message-alert ${type}">${escapeHtml(text)}</div>`;
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 4000);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function saveToScene(messageId) {
+            alert('Save to scene - Feature coming soon!');
+        }
+
+        function copyResponse(messageId) {
+            alert('Copy response - Feature coming soon!');
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

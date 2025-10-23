@@ -48,6 +48,15 @@ cp .env.example .env
 - **OpenAI** (required): Get from https://platform.openai.com/api-keys
 - **Cohere** (optional): Get from https://dashboard.cohere.com/api-keys
 
+### Launch Landing Page (Optional)
+
+```bash
+./start_landing.sh
+# Opens http://localhost:8002
+```
+
+Visual interface showing the entire 5-step pipeline with progress tracking!
+
 ### Create Your First Screenplay
 
 ```bash
@@ -60,13 +69,16 @@ python3 -m lizzy.intake "My Screenplay"
 # 3. Generate scene blueprints (optional but recommended)
 python3 -m lizzy.automated_brainstorm
 
-# 4. Write screenplay prose
-python3 -m lizzy.write
+# 4. Write screenplay prose (batch process all scenes)
+python3 -m lizzy.automated_write
 
-# That's it! Your drafts are in the database.
+# 5. Export to screenplay format
+python3 -m lizzy.export
+
+# That's it! You have a complete screenplay.
 ```
 
-**Total time:** ~30 minutes setup, ~10 minutes per scene
+**Total time:** ~30 minutes setup, ~45 minutes for 30 scenes, ready to edit!
 
 ---
 
@@ -91,11 +103,20 @@ python3 -m lizzy.write
 - Queries expert knowledge buckets
 - Saves blueprints to database
 
-**4. WRITE** - Prose generation
+**4. WRITE** - Prose generation (2 modes)
+- **Automated:** Batch process all 30 scenes at once
+- **Interactive:** Write individual scenes with manual control
 - Converts blueprints → 700-900 word scenes
 - Golden-era romcom tone (When Harry Met Sally style)
 - Maintains continuity across scenes
 - Version control for drafts
+
+**5. EXPORT** - Screenplay compilation
+- Compiles all scene drafts into complete screenplay
+- Multiple formats: .txt, .md, .fountain, .fdx
+- Fountain format compatible with Final Draft, Highland, Fade In
+- Final Draft XML for direct import
+- Automatic title page and act breaks
 
 ### Prompt Studio System
 
@@ -214,7 +235,26 @@ python3 -m lizzy.interactive_brainstorm
 
 ### Phase 4: Prose Generation
 
-#### Generate Scene Drafts
+You have **two options** for writing:
+
+#### Option A: Automated Write (Fast - batch processing)
+```bash
+python3 -m lizzy.automated_write
+```
+
+**Process:**
+- Select project
+- Choose scene range (all 30, by act, or custom)
+- Choose model (gpt-4o or gpt-4o-mini)
+- System processes all scenes sequentially
+- Each scene gets previous scene's draft for continuity
+- Saves all drafts to database
+
+**Time:** ~45 minutes for all 30 scenes (with gpt-4o)
+**Cost:** ~$0.45 for all 30 scenes
+**Best for:** First drafts of entire screenplay
+
+#### Option B: Interactive Write (Manual control)
 ```bash
 python3 -m lizzy.write
 ```
@@ -231,11 +271,41 @@ python3 -m lizzy.write
    - See all versions with metadata
    - View any version
 
+**Best for:** Revisions, specific scene rewrites, version control
+
 **Output:** `scene_drafts` table with versioned prose
 
 ---
 
-### Phase 5: Prompt Studio (Advanced)
+### Phase 5: Export Screenplay
+
+#### Compile to Screenplay Format
+```bash
+python3 -m lizzy.export
+```
+
+**Process:**
+- Select project
+- Choose version strategy (latest or specific version)
+- Choose export format(s):
+  - **Plain Text (.txt)** - Simple readable format
+  - **Markdown (.md)** - With act headers and formatting
+  - **Fountain (.fountain)** - Industry-standard screenplay markup
+  - **Final Draft XML (.fdx)** - Direct import to Final Draft
+  - **All formats** - Export to all 4 formats at once
+
+**Output:** Compiled screenplay in `projects/{name}/exports/`
+
+**Fountain Format:** Can be opened in Final Draft, Highland, Fade In, WriterDuet, and other professional screenwriting software
+
+**Stats Shown:**
+- Total scenes compiled
+- Total word count
+- Estimated page count (250 words/page)
+
+---
+
+### Optional: Prompt Studio (Advanced)
 
 #### Launch Web Interface
 ```bash
@@ -278,7 +348,9 @@ LIZZY_ROMCOM/
 │   ├── intake.py                   # 2. Data collection
 │   ├── automated_brainstorm.py     # 3a. Automated blueprints
 │   ├── interactive_brainstorm.py   # 3b. Interactive blueprints
-│   ├── write.py                    # 4. Prose generation
+│   ├── automated_write.py          # 4a. Batch prose generation
+│   ├── write.py                    # 4b. Interactive prose generation
+│   ├── export.py                   # 5. Screenplay compilation
 │   ├── bucket_manager.py           # RAG bucket CRUD
 │   ├── graph_visualizer.py         # Graph visualization
 │   ├── database.py                 # SQLite utilities
@@ -324,7 +396,9 @@ LIZZY_ROMCOM/
 | `python3 -m lizzy.intake "Name"` | Collect story data | Populated database |
 | `python3 -m lizzy.automated_brainstorm` | Batch blueprints | brainstorm_sessions |
 | `python3 -m lizzy.interactive_brainstorm` | Chat-based exploration | brainstorm_sessions |
-| `python3 -m lizzy.write` | Generate prose | scene_drafts |
+| `python3 -m lizzy.automated_write` | Batch prose generation | scene_drafts (all 30) |
+| `python3 -m lizzy.write` | Interactive prose generation | scene_drafts (single) |
+| `python3 -m lizzy.export` | Compile screenplay | .txt/.md/.fountain/.fdx |
 
 ### Utilities
 
@@ -346,21 +420,28 @@ LIZZY_ROMCOM/
 - Interactive: ~$0.005-$0.015 (varies)
 
 **Write:**
-- Draft generation: ~$0.015 (GPT-4o)
+- Automated (gpt-4o): ~$0.015 per scene
+- Automated (gpt-4o-mini): ~$0.001 per scene
+- Interactive (gpt-4o): ~$0.015 per scene
 
-**Total per scene:** ~$0.02
+**Total per scene:** ~$0.02 (with gpt-4o)
 
 ### Full 30-Scene Screenplay
 
-**First draft:**
+**First draft (automated pipeline):**
+- Brainstorm (all 30 scenes): ~$0.15
+- Write (all 30 scenes, gpt-4o): ~$0.45
+- **Total: ~$0.60**
+
+**Budget option (gpt-4o-mini for writing):**
 - Brainstorm: $0.15
-- Write: $0.45
-- **Total: $0.60**
+- Write (gpt-4o-mini): ~$0.03
+- **Total: ~$0.18**
 
 **With revisions (3 drafts per scene):**
 - **Total: ~$1.80**
 
-**Extremely affordable!**
+**Extremely affordable!** Complete screenplay from concept to finished draft for less than $2.
 
 ---
 
@@ -499,13 +580,11 @@ python3 -m lizzy.automated_brainstorm
 # Wait ~2 minutes
 # Blueprints saved
 
-# 5. Write scenes 1-5
-python3 -m lizzy.write
-# For each scene:
-#   - Select scene number
-#   - Generate draft
-#   - Review output
-#   - Save
+# 5. Write scenes 1-5 (automated)
+python3 -m lizzy.automated_write
+# Select scenes 1-5
+# Wait ~2 minutes
+# All drafts saved
 
 # 6. Use Prompt Studio for scene 6 (complex scene)
 ./start_prompt_studio.sh
@@ -525,11 +604,21 @@ python3 -m lizzy.interactive_brainstorm
 
 # 8. Write scene 6
 python3 -m lizzy.write
-# Generate draft
+# Generate draft for scene 6
 # Review
 # Revise if needed (creates v2, v3...)
 
-# Repeat for remaining scenes...
+# 9. Complete remaining scenes (automated)
+python3 -m lizzy.automated_write
+# Select scenes 7-30
+# Wait ~40 minutes
+# All remaining drafts saved
+
+# 10. Export final screenplay
+python3 -m lizzy.export
+# Choose "All formats"
+# Get .txt, .md, .fountain, .fdx files
+# Ready to edit in Final Draft or other software!
 ```
 
 ---
@@ -608,20 +697,24 @@ Creates interactive HTML visualizations showing:
 
 ---
 
-## 🚧 Future Features (Not Yet Built)
+## 🚧 Future Features (Roadmap)
 
-From white paper specs:
+**✅ Core Pipeline Complete:**
+- Batch WRITE module
+- Export to multiple formats (.txt, .md, .fountain, .fdx)
 
-1. **Batch WRITE** - Process all 30 scenes automatically
-2. **Export Module** - Compile to .txt, .md, screenplay format
-3. **Advanced Continuity** - Cross-reference arcs and motifs
-4. **Multiple Tones** - Beyond romcom (thriller, drama, etc.)
-5. **Revision System** - Side-by-side version comparison
-6. **Quality Metrics** - Dialogue balance, pacing analysis
-7. **Web UI for WRITE** - Like Prompt Studio but for drafting
-8. **Collaborative Editing** - Multi-user support
+**🔜 Next Priorities:**
 
-**Current focus:** Core pipeline (✅ complete)
+1. **Advanced Continuity** - Cross-reference character arcs and motifs across scenes
+2. **Multiple Tones** - Support beyond romcom (thriller, drama, sci-fi, etc.)
+3. **Revision System** - Side-by-side version comparison UI
+4. **Quality Metrics** - Dialogue balance, pacing analysis, beat adherence
+5. **Web UI for WRITE** - Like Prompt Studio but for drafting and revisions
+6. **Collaborative Editing** - Multi-user support for writing teams
+7. **Character Voice Consistency** - AI analysis of dialogue patterns
+8. **Scene-to-Scene Transitions** - Automated flow analysis
+
+**Current status:** Production-ready for golden-era romcom screenplays!
 
 ---
 
@@ -795,7 +888,8 @@ export OPENAI_API_KEY="sk-..."
 python3 -m lizzy.start
 python3 -m lizzy.intake "Project"
 python3 -m lizzy.automated_brainstorm
-python3 -m lizzy.write
+python3 -m lizzy.automated_write
+python3 -m lizzy.export
 
 # Prompt Studio
 ./start_prompt_studio.sh
@@ -821,7 +915,8 @@ python3 examples_visualize.py
 - START: `lizzy/start.py`
 - INTAKE: `lizzy/intake.py`
 - BRAINSTORM: `lizzy/automated_brainstorm.py` + `lizzy/interactive_brainstorm.py`
-- WRITE: `lizzy/write.py`
+- WRITE: `lizzy/automated_write.py` + `lizzy/write.py`
+- EXPORT: `lizzy/export.py`
 - PROMPT STUDIO: `lizzy/prompt_studio/`
 
 ---
