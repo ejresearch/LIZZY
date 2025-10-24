@@ -44,17 +44,33 @@
             border-radius: 16px;
             overflow: hidden;
             margin: var(--spacing-sm) 0;
+            position: relative;
         }
 
         .progress-fill {
             height: 100%;
             background: linear-gradient(90deg, var(--color-primary), #d85858);
             transition: width 0.5s ease;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        .progress-bar::after {
+            content: attr(data-progress);
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: var(--color-white);
+            color: var(--color-text);
             font-weight: 600;
+            z-index: 2;
+            pointer-events: none;
         }
 
         .batch-actions {
@@ -175,8 +191,8 @@
                     Generate brainstorms for all 30 scenes using the 3 expert knowledge graphs
                 </p>
 
-                <div class="progress-bar">
-                    <div class="progress-fill" id="batch-progress" style="width: 0%">0/30 scenes</div>
+                <div class="progress-bar" id="progress-bar-container" data-progress="0/30 scenes">
+                    <div class="progress-fill" id="batch-progress" style="width: 0%"></div>
                 </div>
 
                 <div class="batch-actions">
@@ -262,8 +278,9 @@
                 const percentage = Math.round((completed / total) * 100);
 
                 const progressFill = document.getElementById('batch-progress');
+                const progressContainer = document.getElementById('progress-bar-container');
                 progressFill.style.width = percentage + '%';
-                progressFill.textContent = `${completed}/${total} scenes`;
+                progressContainer.setAttribute('data-progress', `${completed}/${total} scenes`);
 
                 // Render scenes
                 tbody.innerHTML = data.scenes.map(scene => {
