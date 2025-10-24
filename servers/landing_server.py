@@ -14,6 +14,7 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 from servers.logging_config import get_logger
@@ -35,6 +36,11 @@ app = FastAPI(
     description="Backend API for Lizzy, an AI-assisted romantic comedy screenplay writing framework",
     version="2.0.0"
 )
+
+# Mount static files (CSS, JS, images)
+frontend_dir = root_dir / "frontend"
+app.mount("/styles", StaticFiles(directory=str(frontend_dir / "styles")), name="styles")
+app.mount("/js", StaticFiles(directory=str(frontend_dir / "js")), name="js")
 
 # Include routers
 app.include_router(pages_router)
