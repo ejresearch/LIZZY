@@ -16,6 +16,9 @@ import uvicorn
 
 from lizzy.prompt_studio import AIBlockComposer, BlockRegistry
 from lizzy.prompt_studio.executor import execute_prompt, ExecutionResult as ExecResult
+from lizzy.logging_config import get_logger
+
+logger = get_logger(__name__)
 
 app = FastAPI(title="Prompt Studio Chat", version="1.0")
 
@@ -216,16 +219,16 @@ async def health():
 
 def main():
     """Start the server"""
-    print("\n" + "="*60)
-    print("🚀 Prompt Studio Chat Server")
-    print("="*60)
-    print("\nStarting server at: http://localhost:8001")
-    print("\nEndpoints:")
-    print("  • http://localhost:8001          - Chat UI")
-    print("  • http://localhost:8001/api/chat - Chat API")
-    print("  • http://localhost:8001/docs     - API docs")
-    print("\nPress Ctrl+C to stop")
-    print("="*60 + "\n")
+    logger.info("=" * 60)
+    logger.info("🚀 Prompt Studio Chat Server")
+    logger.info("=" * 60)
+    logger.info("Starting server at: http://localhost:8001")
+    logger.info("Endpoints:")
+    logger.info("  • http://localhost:8001          - Chat UI")
+    logger.info("  • http://localhost:8001/api/chat - Chat API")
+    logger.info("  • http://localhost:8001/docs     - API docs")
+    logger.info("Press Ctrl+C to stop")
+    logger.info("=" * 60)
 
     uvicorn.run(app, host="0.0.0.0", port=8001, log_level="info")
 
