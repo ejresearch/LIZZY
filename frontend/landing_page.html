@@ -4,65 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lizzy 2.0 - AI Screenplay Writing</title>
+    <link rel="stylesheet" href="styles/common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background: #f5f1e8;
-            min-height: 100vh;
-            padding: 0;
-            color: #2d2d2d;
-        }
-
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            background: #f5f1e8;
-        }
-
-        .header {
-            text-align: center;
-            padding: 80px 40px 60px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .header h1 {
-            font-size: 6em;
-            color: #b83e3e;
-            margin-bottom: 30px;
-            font-weight: 700;
-            letter-spacing: -1px;
-            line-height: 1;
-            font-family: 'Georgia', serif;
-        }
-
-        .header p {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 10px;
-            font-weight: 400;
-            font-style: italic;
-        }
-
-        .header .tagline {
-            font-size: 1em;
-            color: #b83e3e;
-            font-style: italic;
-        }
 
         /* Project Selector */
         .project-selector {
             max-width: 1400px;
             margin: 0 auto 40px;
-            padding: 0 40px;
+            padding: 0 var(--spacing-lg);
             display: flex;
-            gap: 20px;
+            gap: var(--spacing-sm);
             align-items: center;
             justify-content: center;
         }
@@ -70,153 +21,110 @@
         #project-dropdown {
             flex: 1;
             max-width: 500px;
-            padding: 16px 24px;
-            font-family: 'Georgia', serif;
-            font-size: 1.1em;
-            border: 3px solid #b83e3e;
-            border-radius: 30px;
-            background: white;
-            color: #2d2d2d;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        #project-dropdown:hover {
-            background: #fef5f5;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(184, 62, 62, 0.2);
-        }
-
-        #project-dropdown:focus {
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(184, 62, 62, 0.2);
-        }
-
-        .btn-new-project {
-            padding: 16px 32px;
-            font-family: 'Georgia', serif;
-            font-size: 1.1em;
-            font-weight: 600;
-            background: #b83e3e;
-            color: white;
-            border: 3px solid #b83e3e;
-            border-radius: 30px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .btn-new-project:hover {
-            background: #a03535;
-            border-color: #a03535;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(184, 62, 62, 0.3);
         }
 
         /* Pipeline visualization */
         .pipeline {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
-            padding: 60px 40px;
+            gap: var(--spacing-md);
+            padding: var(--spacing-xl) var(--spacing-lg);
             max-width: 1400px;
             margin: 0 auto;
         }
 
         .step {
-            background: white;
-            padding: 40px 30px;
+            background: var(--color-white);
+            padding: var(--spacing-lg) var(--spacing-md);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all var(--transition-normal);
             position: relative;
-            border: 3px solid #b83e3e;
-            border-radius: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 3px solid var(--color-primary);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
         }
 
         .step:hover {
             transform: translateY(-8px);
-            box-shadow: 0 12px 24px rgba(184, 62, 62, 0.2);
+            box-shadow: var(--shadow-lg);
         }
 
         .step:hover .step-action {
-            background: #b83e3e;
-            color: white;
+            background: var(--color-primary);
+            color: var(--color-white);
         }
 
         .step-number {
             font-size: 4em;
-            color: #b83e3e;
+            color: var(--color-primary);
             font-weight: 700;
-            margin-bottom: 20px;
-            font-family: 'Georgia', serif;
+            margin-bottom: var(--spacing-sm);
+            font-family: var(--font-serif);
         }
 
         .step-title {
             font-size: 1.8em;
             font-weight: 700;
-            color: #b83e3e;
-            margin-bottom: 15px;
-            font-family: 'Georgia', serif;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+            font-family: var(--font-serif);
         }
 
         .step-description {
             font-size: 0.95em;
-            color: #666;
+            color: var(--color-text-light);
             line-height: 1.7;
-            margin-bottom: 25px;
+            margin-bottom: var(--spacing-md);
             font-style: italic;
         }
 
         .step-action {
             display: inline-block;
             padding: 12px 30px;
-            background: white;
-            color: #b83e3e;
-            border: 2px solid #b83e3e;
+            background: var(--color-white);
+            color: var(--color-primary);
+            border: 2px solid var(--color-primary);
             font-size: 0.95em;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 30px;
-            font-family: 'Georgia', serif;
+            transition: all var(--transition-normal);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-serif);
         }
 
         .step-action:hover {
-            background: #b83e3e;
-            color: white;
+            background: var(--color-primary);
+            color: var(--color-white);
         }
 
         .step.completed {
-            background: #fef5f5;
-            border-color: #b83e3e;
+            background: var(--color-primary-light);
+            border-color: var(--color-primary);
         }
 
         .step.completed::after {
             content: '✓';
             position: absolute;
-            top: 20px;
-            right: 20px;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
             font-size: 2em;
-            color: #b83e3e;
+            color: var(--color-primary);
             font-weight: bold;
         }
 
         /* Info section */
         .info {
-            padding: 40px;
+            padding: var(--spacing-lg);
             max-width: 1200px;
-            margin: 40px auto;
+            margin: var(--spacing-lg) auto;
             text-align: center;
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #b83e3e;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            border: 3px solid var(--color-primary);
         }
 
         .info p {
-            color: #666;
+            color: var(--color-text-light);
             line-height: 1.8;
             font-size: 1.2em;
             font-style: italic;
@@ -225,12 +133,12 @@
         /* Footer */
         .footer {
             margin-top: 80px;
-            padding: 40px;
+            padding: var(--spacing-lg);
             text-align: center;
-            background: white;
-            color: #666;
+            background: var(--color-white);
+            color: var(--color-text-light);
             font-size: 0.95em;
-            border-top: 3px solid #b83e3e;
+            border-top: 3px solid var(--color-primary);
         }
 
         .footer p {
@@ -238,45 +146,22 @@
             font-style: italic;
         }
 
-        .footer a {
-            color: #b83e3e;
-            text-decoration: none;
-            font-weight: 600;
-            transition: opacity 0.3s ease;
-        }
-
-        .footer a:hover {
-            opacity: 0.7;
-        }
-
         /* Responsive */
         @media (max-width: 1200px) {
             .pipeline {
                 grid-template-columns: repeat(2, 1fr);
-            }
-
-            .header h1 {
-                font-size: 4.5em;
             }
         }
 
         @media (max-width: 768px) {
             .pipeline {
                 grid-template-columns: 1fr;
-                gap: 20px;
-                padding: 40px 20px;
-            }
-
-            .header {
-                padding: 60px 20px 40px;
-            }
-
-            .header h1 {
-                font-size: 3em;
+                gap: var(--spacing-sm);
+                padding: var(--spacing-lg) var(--spacing-sm);
             }
 
             .step {
-                padding: 30px 20px;
+                padding: var(--spacing-md) var(--spacing-sm);
             }
 
             .step-title {
@@ -286,7 +171,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container-wide">
         <div class="header">
             <h1>Lizzy 2.0</h1>
             <p>AI-Assisted Screenplay Writing Framework</p>
@@ -295,10 +180,10 @@
 
         <!-- Project Selector -->
         <div class="project-selector">
-            <select id="project-dropdown" onchange="selectProject()">
+            <select id="project-dropdown" class="form-select" onchange="selectProject()">
                 <option value="">Select a project...</option>
             </select>
-            <button class="btn-new-project" onclick="createNewProject()">+ New Project</button>
+            <button class="btn btn-primary" onclick="createNewProject()">+ New Project</button>
         </div>
 
         <div class="pipeline">

@@ -4,73 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Write - Lizzy 2.0</title>
+    <link rel="stylesheet" href="styles/common.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Georgia', 'Times New Roman', serif;
-            background: #f5f1e8;
-            min-height: 100vh;
-            padding: 0;
-            color: #2d2d2d;
-        }
-
-        .header {
-            background: white;
-            padding: 30px 40px;
-            border-bottom: 3px solid #b83e3e;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 2em;
-            color: #b83e3e;
-            font-weight: 700;
-        }
-
-        .header a {
-            color: #b83e3e;
-            text-decoration: none;
-            font-style: italic;
-        }
-
-        .header a:hover {
-            opacity: 0.7;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 40px;
-        }
-
         .intro-section {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: var(--spacing-lg);
         }
 
         .intro-section h2 {
             font-size: 2.2em;
-            color: #b83e3e;
-            margin-bottom: 16px;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
         }
 
         .intro-section p {
             font-size: 1.1em;
-            color: #666;
+            color: var(--color-text-light);
             font-style: italic;
         }
 
         .scenes-list {
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #b83e3e;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            border: 3px solid var(--color-primary);
             overflow: hidden;
         }
 
@@ -80,9 +36,9 @@
         }
 
         .scenes-table th {
-            background: #b83e3e;
-            color: white;
-            padding: 16px 20px;
+            background: var(--color-primary);
+            color: var(--color-white);
+            padding: var(--spacing-sm) var(--spacing-sm);
             text-align: left;
             font-weight: 600;
             position: sticky;
@@ -91,7 +47,7 @@
         }
 
         .scenes-table td {
-            padding: 16px 20px;
+            padding: var(--spacing-sm) var(--spacing-sm);
             border-bottom: 1px solid #f0e8e8;
         }
 
@@ -100,12 +56,12 @@
         }
 
         .scenes-table tbody tr:hover {
-            background: #fef5f5;
+            background: var(--color-primary-light);
         }
 
         .status-icon {
             font-size: 1.2em;
-            margin-right: 8px;
+            margin-right: var(--spacing-xs);
         }
 
         .status-done { color: #48bb78; }
@@ -114,39 +70,7 @@
 
         .scene-title {
             font-weight: 600;
-            color: #b83e3e;
-        }
-
-        .btn {
-            padding: 10px 24px;
-            border: 2px solid #b83e3e;
-            background: white;
-            color: #b83e3e;
-            border-radius: 20px;
-            font-family: 'Georgia', serif;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 600;
-        }
-
-        .btn:hover:not(:disabled) {
-            background: #b83e3e;
-            color: white;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: #b83e3e;
-            color: white;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-            background: #9a3232;
+            color: var(--color-primary);
         }
 
         /* Generation Modal */
@@ -168,45 +92,30 @@
         }
 
         .modal-content {
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
             max-width: 900px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
-            border: 3px solid #b83e3e;
+            border: 3px solid var(--color-primary);
         }
 
         .modal-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: var(--spacing-md);
         }
 
         .modal-header h2 {
-            color: #b83e3e;
+            color: var(--color-primary);
             font-size: 2em;
-            margin-bottom: 12px;
+            margin-bottom: var(--spacing-xs);
         }
 
         .modal-header p {
-            color: #666;
+            color: var(--color-text-light);
             font-style: italic;
-        }
-
-        .spinner {
-            width: 50px;
-            height: 50px;
-            border: 5px solid #f0f0f0;
-            border-top: 5px solid #b83e3e;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
 
         .progress-bar {
@@ -214,14 +123,14 @@
             height: 10px;
             border-radius: 5px;
             overflow: hidden;
-            margin: 20px 0;
+            margin: var(--spacing-sm) 0;
         }
 
         .progress-fill {
-            background: linear-gradient(90deg, #b83e3e, #d45d5d);
+            background: linear-gradient(90deg, var(--color-primary), #d45d5d);
             height: 100%;
             width: 0%;
-            transition: width 0.3s;
+            transition: width var(--transition-normal);
         }
 
         .progress-text {
@@ -233,28 +142,28 @@
 
         .draft-preview {
             background: #f9f9f9;
-            border-radius: 12px;
-            padding: 24px;
-            margin: 24px 0;
+            border-radius: var(--radius-sm);
+            padding: var(--spacing-md);
+            margin: var(--spacing-md) 0;
         }
 
         .draft-preview h4 {
-            color: #b83e3e;
-            margin-bottom: 16px;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
         }
 
         .draft-meta {
             display: flex;
-            gap: 24px;
-            margin-bottom: 16px;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
             font-size: 14px;
-            color: #666;
+            color: var(--color-text-light);
         }
 
         .draft-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+            background: var(--color-white);
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-sm);
             font-family: 'Courier New', monospace;
             font-size: 12px;
             line-height: 1.5;
@@ -265,48 +174,28 @@
 
         .modal-footer {
             text-align: center;
-            margin-top: 24px;
+            margin-top: var(--spacing-md);
         }
 
         /* Message Container */
         #message-container {
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: var(--spacing-sm);
+            right: var(--spacing-sm);
             z-index: 1000;
             max-width: 500px;
-        }
-
-        .message-alert {
-            padding: 20px 28px;
-            border-radius: 12px;
-            font-size: 1em;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-            animation: slideIn 0.3s ease;
         }
 
         @keyframes slideIn {
             from { transform: translateX(400px); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-
-        .message-alert.success {
-            background: #d4edda;
-            border: 3px solid #48bb78;
-            color: #155724;
-        }
-
-        .message-alert.error {
-            background: #f8d7da;
-            border: 3px solid #dc3545;
-            color: #721c24;
-        }
     </style>
 </head>
 <body>
-    <div class="header">
+    <div class="header-simple">
         <h1>Write Scenes</h1>
-        <a href="/">← Back to Home</a>
+        <a href="/" class="link-italic">← Back to Home</a>
     </div>
 
     <div class="container">
