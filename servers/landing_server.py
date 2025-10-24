@@ -8,6 +8,8 @@ Uses routers for endpoints and services for business logic.
 from fastapi import FastAPI
 import uvicorn
 
+from servers.logging_config import get_logger
+
 # Import routers
 from servers.routers import (
     pages_router,
@@ -16,6 +18,8 @@ from servers.routers import (
     generation_router,
     write_router
 )
+
+logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
@@ -33,19 +37,19 @@ app.include_router(write_router)
 
 
 if __name__ == "__main__":
-    print("\n" + "=" * 50)
-    print("Lizzy 2.0 Landing Page Server")
-    print("=" * 50)
-    print("\nStarting server at: http://localhost:8002")
-    print("\nAPI Documentation:")
-    print("  - Interactive API docs: http://localhost:8002/docs")
-    print("  - ReDoc documentation: http://localhost:8002/redoc")
-    print("\nKey Endpoints:")
-    print("  - GET  /                      Landing page")
-    print("  - GET  /api/projects          List projects")
-    print("  - GET  /api/status/{project}  Project status")
-    print("  - POST /api/launch            Launch module")
-    print("  - GET  /api/health            Health check")
-    print("\n" + "=" * 50 + "\n")
+    logger.info("=" * 50)
+    logger.info("Lizzy 2.0 Landing Page Server")
+    logger.info("=" * 50)
+    logger.info("Starting server at: http://localhost:8002")
+    logger.info("API Documentation:")
+    logger.info("  - Interactive API docs: http://localhost:8002/docs")
+    logger.info("  - ReDoc documentation: http://localhost:8002/redoc")
+    logger.info("Key Endpoints:")
+    logger.info("  - GET  /                      Landing page")
+    logger.info("  - GET  /api/projects          List projects")
+    logger.info("  - GET  /api/status/{project}  Project status")
+    logger.info("  - POST /api/launch            Launch module")
+    logger.info("  - GET  /api/health            Health check")
+    logger.info("=" * 50)
 
     uvicorn.run(app, host="0.0.0.0", port=8002)

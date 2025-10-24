@@ -10,7 +10,10 @@ from typing import Dict
 from openai import OpenAI
 
 from ..config import config
+from ..logging_config import get_logger
 from lizzy.write import WriteModule
+
+logger = get_logger(__name__)
 
 
 class GenerationService:
@@ -74,7 +77,7 @@ Create exactly 4-6 well-developed characters and 30 scenes following the standar
             }
 
         except Exception as e:
-            print(f"Error generating random rom-com: {e}")
+            logger.error(f"Error generating random rom-com: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -141,9 +144,7 @@ Create exactly 4-6 well-developed characters and 30 scenes following the standar
             }
 
         except Exception as e:
-            print(f"Error exporting scene: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error exporting scene: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -245,9 +246,7 @@ Create exactly 4-6 well-developed characters and 30 scenes following the standar
             }
 
         except Exception as e:
-            print(f"Error exporting full screenplay: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error exporting full screenplay: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)

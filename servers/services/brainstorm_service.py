@@ -7,9 +7,12 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from ..config import config
+from ..logging_config import get_logger
 from lizzy.database import Database
 from lizzy.interactive_brainstorm import InteractiveBrainstorm
 from lizzy.automated_brainstorm import AutomatedBrainstorm
+
+logger = get_logger(__name__)
 
 
 class BrainstormService:
@@ -123,8 +126,7 @@ class BrainstormService:
                 "experts": experts
             }
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Failed to query: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": f"Failed to query: {str(e)}"

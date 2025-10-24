@@ -7,8 +7,18 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from ..config import config
+from ..logging_config import get_logger
 from lizzy.database import Database
 from lizzy.write import WriteModule
+from lizzy.exceptions import (
+    ProjectNotFoundError,
+    SceneNotFoundError,
+    DraftNotFoundError,
+    ExportError,
+    create_error_response
+)
+
+logger = get_logger(__name__)
 
 
 class WriteService:
@@ -21,7 +31,7 @@ class WriteService:
         """Get database path for a project."""
         db_path = config.get_project_db_path(project_name)
         if not db_path.exists():
-            raise ValueError(f"Project '{project_name}' not found")
+            raise ProjectNotFoundError(project_name)
         return db_path
 
     def get_all_drafts(self, project_name: str) -> Dict:
@@ -77,11 +87,12 @@ class WriteService:
                 "drafts": drafts
             }
 
+        except ProjectNotFoundError as e:
+            logger.warning(f"Project not found: {e.project_name}")
+            return create_error_response(e)
         except Exception as e:
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            logger.error(f"Error getting drafts: {e}", exc_info=True)
+            return create_error_response(e)
 
     async def generate_scene(
         self,
@@ -142,8 +153,7 @@ class WriteService:
             }
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error generating scene: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -251,8 +261,7 @@ class WriteService:
             }
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error exporting scene: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
@@ -352,8 +361,7 @@ class WriteService:
             }
 
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error exporting full screenplay: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": str(e)
