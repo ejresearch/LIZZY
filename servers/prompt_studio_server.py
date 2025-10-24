@@ -6,7 +6,6 @@ Simple FastAPI server for the chat-based prompt composer.
 """
 
 import os
-import sys
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,9 +13,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
-
-# Add parent directory to path so we can import lizzy
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lizzy.prompt_studio import AIBlockComposer, BlockRegistry
 from lizzy.prompt_studio.executor import execute_prompt, ExecutionResult as ExecResult

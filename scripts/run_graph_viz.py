@@ -8,10 +8,11 @@ from pathlib import Path
 import sys
 import webbrowser
 
-# Add lizzy to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add parent directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lizzy.graph_visualizer import GraphVisualizer
+from lizzy.config import config
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -22,7 +23,7 @@ console = Console()
 def visualize_all_buckets():
     """Generate visualizations for all buckets."""
 
-    bucket_dir = Path("./rag_buckets")
+    bucket_dir = config.rag_buckets_dir
 
     if not bucket_dir.exists():
         console.print("[red]No rag_buckets directory found[/red]")

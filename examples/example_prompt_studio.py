@@ -6,10 +6,10 @@ Demonstrates how to compose prompts from blocks.
 """
 
 import sys
-import os
+from pathlib import Path
 
-# Add lizzy to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lizzy.prompt_studio import PromptEngine, assemble_prompt
 from lizzy.prompt_studio.blocks import (

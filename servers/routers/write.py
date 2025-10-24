@@ -4,13 +4,10 @@ Routes for WRITE module - scene draft management.
 
 from fastapi import APIRouter, HTTPException
 from typing import Dict
-import sys
 from pathlib import Path
 import asyncio
 
-# Add parent directory to path for lizzy imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from ..config import config
 from lizzy.write import WriteModule
 
 router = APIRouter(prefix="/api/write", tags=["write"])
@@ -24,7 +21,7 @@ async def get_all_drafts(project_name: str):
 
         # Get all scenes from the project
         import sqlite3
-        db_path = Path("projects") / project_name / f"{project_name}.db"
+        db_path = config.get_project_db_path(project_name)
 
         if not db_path.exists():
             return {"success": True, "drafts": []}

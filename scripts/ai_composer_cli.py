@@ -12,13 +12,14 @@ Examples:
 
 import asyncio
 import sys
-import os
+from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.markdown import Markdown
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lizzy.prompt_studio import AIBlockComposer
 

@@ -4,24 +4,21 @@ Handles AI-powered content generation like random rom-com concepts.
 """
 
 import os
-import sys
 import json
 from pathlib import Path
 from typing import Dict
 from openai import OpenAI
 
-# Add parent directory to path for lizzy imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from ..config import config
 from lizzy.write import WriteModule
 
 
 class GenerationService:
     """Service for AI-powered content generation."""
 
-    def __init__(self, projects_dir: str = "projects"):
+    def __init__(self, projects_dir: Path = None):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.projects_dir = Path(projects_dir)
+        self.projects_dir = projects_dir or config.projects_dir
 
     async def generate_random_romcom(self) -> Dict:
         """Generate a random romantic comedy project using AI."""

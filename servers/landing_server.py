@@ -5,12 +5,6 @@ Clean, modular FastAPI server with separation of concerns.
 Uses routers for endpoints and services for business logic.
 """
 
-import sys
-from pathlib import Path
-
-# Add parent directory to path so we can import lizzy
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from fastapi import FastAPI
 import uvicorn
 

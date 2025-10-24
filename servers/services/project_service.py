@@ -3,22 +3,19 @@ Project management business logic.
 Handles project CRUD operations, status tracking, and data management.
 """
 
-import sys
 from pathlib import Path
+from typing import Dict, List, Optional
 
-# Add parent directory to path for lizzy imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-
+from ..config import config
 from lizzy.database import Database
 from lizzy.start import StartModule
-from typing import Dict, List, Optional
 
 
 class ProjectService:
     """Service for managing screenplay projects."""
 
-    def __init__(self, projects_dir: str = "projects"):
-        self.projects_dir = Path(projects_dir)
+    def __init__(self, projects_dir: Path = None):
+        self.projects_dir = projects_dir or config.projects_dir
 
     def list_projects(self) -> List[Dict]:
         """Get list of all projects."""

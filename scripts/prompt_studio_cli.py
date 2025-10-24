@@ -5,16 +5,16 @@ Prompt Studio CLI
 Simple command-line interface for composing and testing prompts.
 """
 
-import os
 import sys
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.prompt import Prompt, Confirm
 from rich import print as rprint
 
-# Add lizzy to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to Python path
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lizzy.prompt_studio import PromptEngine, BlockRegistry
 from lizzy.prompt_studio.blocks import (
