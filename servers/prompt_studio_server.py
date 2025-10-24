@@ -15,8 +15,8 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import uvicorn
 
-# Add lizzy to path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add parent directory to path so we can import lizzy
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from lizzy.prompt_studio import AIBlockComposer, BlockRegistry
 from lizzy.prompt_studio.executor import execute_prompt, ExecutionResult as ExecResult
@@ -63,7 +63,7 @@ class BlockInfo(BaseModel):
 @app.get("/")
 async def root():
     """Serve the chat UI"""
-    html_path = os.path.join(os.path.dirname(__file__), "prompt_studio_ui.html")
+    html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend/prompt_studio_ui.html")
 
     if os.path.exists(html_path):
         with open(html_path, 'r') as f:

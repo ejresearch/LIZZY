@@ -118,7 +118,7 @@
         /* Pipeline visualization */
         .pipeline {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 30px;
             padding: 60px 40px;
             max-width: 1400px;
@@ -329,26 +329,15 @@
                     <div class="step-number">3</div>
                     <div class="step-title">Write</div>
                     <div class="step-description">
-                        Convert brainstorms to 700-900 word screenplay prose with golden-era romcom tone
+                        Convert brainstorms to screenplay prose and export to professional formats
                     </div>
                 </div>
                 <button class="step-action" onclick="navigateTo('write'); event.stopPropagation();">Write Scenes</button>
             </div>
-
-            <div class="step" id="step-4">
-                <div onclick="navigateTo('export')" style="cursor: pointer;">
-                    <div class="step-number">4</div>
-                    <div class="step-title">Export</div>
-                    <div class="step-description">
-                        Compile to professional screenplay formats (.txt, .md, .fountain, .fdx)
-                    </div>
-                </div>
-                <button class="step-action" onclick="navigateTo('export'); event.stopPropagation();">Export Screenplay</button>
-            </div>
         </div>
 
         <div class="info">
-            <p>Complete 30-scene screenplay in 4 simple steps for $0.60</p>
+            <p>Complete 30-scene screenplay in 3 simple steps for $0.60</p>
         </div>
 
         <div class="footer">
@@ -463,14 +452,26 @@
                     alert('Please select a project in Manager first');
                     window.location.href = '/manager';
                 }
+            } else if (module === 'write') {
+                // Open dedicated Write page
+                if (currentProject) {
+                    window.location.href = `/write?project=${encodeURIComponent(currentProject)}`;
+                } else {
+                    alert('Please select a project in Manager first');
+                    window.location.href = '/manager';
+                }
+            } else if (module === 'export') {
+                // Open Manager page to Screenplay (export) tab
+                if (currentProject) {
+                    localStorage.setItem('defaultTab', 'screenplay');
+                    window.location.href = '/manager';
+                } else {
+                    alert('Please select a project in Manager first');
+                    localStorage.setItem('defaultTab', 'screenplay');
+                    window.location.href = '/manager';
+                }
             } else {
-                // For other modules, show CLI commands for now
-                const commands = {
-                    'write': 'python3 -m lizzy.automated_write',
-                    'export': 'python3 -m lizzy.export'
-                };
-
-                alert(`Run this command in your terminal:\n\n${commands[module]}\n\n(Web interface coming soon!)`);
+                alert(`Module "${module}" not yet implemented in web interface`);
             }
         }
 

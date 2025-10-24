@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Write - Lizzy 2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #f5f1e8;
+            min-height: 100vh;
+            padding: 0;
+            color: #2d2d2d;
+        }
+
+        .header {
+            background: white;
+            padding: 30px 40px;
+            border-bottom: 3px solid #b83e3e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            color: #b83e3e;
+            font-weight: 700;
+        }
+
+        .header a {
+            color: #b83e3e;
+            text-decoration: none;
+            font-style: italic;
+        }
+
+        .header a:hover {
+            opacity: 0.7;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .intro-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .intro-section h2 {
+            font-size: 2.2em;
+            color: #b83e3e;
+            margin-bottom: 16px;
+        }
+
+        .intro-section p {
+            font-size: 1.1em;
+            color: #666;
+            font-style: italic;
+        }
+
+        .scenes-list {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+            overflow: hidden;
+        }
+
+        .scenes-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .scenes-table th {
+            background: #b83e3e;
+            color: white;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .scenes-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0e8e8;
+        }
+
+        .scenes-table tbody tr:nth-child(even) {
+            background: #fefbf8;
+        }
+
+        .scenes-table tbody tr:hover {
+            background: #fef5f5;
+        }
+
+        .status-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .status-done { color: #48bb78; }
+        .status-warning { color: #f59e0b; }
+        .status-pending { color: #ccc; }
+
+        .scene-title {
+            font-weight: 600;
+            color: #b83e3e;
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: 2px solid #b83e3e;
+            background: white;
+            color: #b83e3e;
+            border-radius: 20px;
+            font-family: 'Georgia', serif;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #9a3232;
+        }
+
+        /* Generation Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 3px solid #b83e3e;
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .modal-header h2 {
+            color: #b83e3e;
+            font-size: 2em;
+            margin-bottom: 12px;
+        }
+
+        .modal-header p {
+            color: #666;
+            font-style: italic;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f0f0f0;
+            border-top: 5px solid #b83e3e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            background: #f0f0f0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #b83e3e, #d45d5d);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .draft-preview {
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .draft-preview h4 {
+            color: #b83e3e;
+            margin-bottom: 16px;
+        }
+
+        .draft-meta {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .draft-content {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .modal-footer {
+            text-align: center;
+            margin-top: 24px;
+        }
+
+        /* Message Container */
+        #message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 500px;
+        }
+
+        .message-alert {
+            padding: 20px 28px;
+            border-radius: 12px;
+            font-size: 1em;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .message-alert.success {
+            background: #d4edda;
+            border: 3px solid #48bb78;
+            color: #155724;
+        }
+
+        .message-alert.error {
+            background: #f8d7da;
+            border: 3px solid #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Write Scenes</h1>
+        <a href="/">← Back to Home</a>
+    </div>
+
+    <div class="container">
+        <div class="intro-section">
+            <h2>Generate Scene Drafts</h2>
+            <p>Transform brainstormed blueprints into professionally formatted screenplay scenes</p>
+        </div>
+
+        <div class="scenes-list">
+            <table class="scenes-table">
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">Status</th>
+                        <th style="width: 60px;">#</th>
+                        <th>Scene</th>
+                        <th style="width: 150px;">Drafts</th>
+                        <th style="width: 180px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="scenes-list">
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                            Loading scenes...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Message Container -->
+    <div id="message-container"></div>
+
+    <script>
+        let currentProject = null;
+
+        // Initialize page
+        async function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectName = urlParams.get('project') || localStorage.getItem('currentProject');
+
+            if (!projectName) {
+                showMessage('No project selected. Redirecting to home...', 'error');
+                setTimeout(() => window.location.href = '/', 2000);
+                return;
+            }
+
+            currentProject = projectName;
+            localStorage.setItem('currentProject', projectName);
+
+            loadScenes();
+        }
+
+        async function loadScenes() {
+            const tbody = document.getElementById('scenes-list');
+
+            try {
+                // Load scenes from batch status (same as Brainstorm page)
+                const batchResponse = await fetch(`/api/brainstorm/batch/status?project=${currentProject}`);
+                const batchData = await batchResponse.json();
+
+                console.log('Batch data:', batchData);
+
+                if (!batchData.scenes || batchData.scenes.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: #999;">
+                                No scenes found. Please create scenes in Manager first.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                const scenes = batchData.scenes;
+
+                // Load brainstorm status
+                const brainstormResponse = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
+                const brainstormData = await brainstormResponse.json();
+                console.log('Brainstorm data:', brainstormData);
+
+                const brainstormsMap = {};
+                if (brainstormData.brainstorms && Array.isArray(brainstormData.brainstorms)) {
+                    brainstormData.brainstorms.forEach(bs => {
+                        brainstormsMap[bs.scene_number] = bs.brainstorm ? true : false;
+                    });
+                }
+
+                // Load draft status
+                const draftsResponse = await fetch(`/api/write/drafts/${currentProject}`);
+                const draftsData = await draftsResponse.json();
+                console.log('Drafts data:', draftsData);
+
+                const draftsMap = {};
+                if (draftsData.drafts && Array.isArray(draftsData.drafts)) {
+                    draftsData.drafts.forEach(draft => {
+                        if (!draftsMap[draft.scene_number]) {
+                            draftsMap[draft.scene_number] = 0;
+                        }
+                        draftsMap[draft.scene_number]++;
+                    });
+                }
+
+                // Render scenes
+                tbody.innerHTML = scenes.map(scene => {
+                    const hasBrainstorm = brainstormsMap[scene.scene_number];
+                    const draftCount = draftsMap[scene.scene_number] || 0;
+                    const canGenerate = hasBrainstorm;
+
+                    const statusText = hasBrainstorm ? '✓ Ready' : '⚠ No Brainstorm';
+                    const statusClass = hasBrainstorm ? 'status-done' : 'status-warning';
+
+                    return `
+                        <tr>
+                            <td>
+                                <span class="status-icon ${statusClass}">${statusText}</span>
+                            </td>
+                            <td><strong>${scene.scene_number}</strong></td>
+                            <td>
+                                <div class="scene-title">${scene.title || 'Untitled'}</div>
+                                <div style="font-size: 0.9em; color: #666; font-style: italic; margin-top: 4px;">
+                                    ${scene.description ? scene.description.substring(0, 100) + '...' : 'No description'}
+                                </div>
+                            </td>
+                            <td>
+                                ${draftCount > 0 ? `<strong>${draftCount} version${draftCount > 1 ? 's' : ''}</strong>` : 'None yet'}
+                            </td>
+                            <td>
+                                <button
+                                    class="btn ${canGenerate ? 'btn-primary' : ''}"
+                                    onclick="navigateToGenerate(${scene.scene_number})"
+                                    ${!canGenerate ? 'disabled' : ''}>
+                                    ${draftCount > 0 ? 'New Version' : 'Generate'}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error('Error loading scenes:', error);
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 40px; color: #dc3545;">
+                            Error loading scenes: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function navigateToGenerate(sceneNumber) {
+            // Navigate to dedicated generation page (like Brainstorm does)
+            window.location.href = `/write/generate?project=${encodeURIComponent(currentProject)}&scene=${sceneNumber}`;
+        }
+
+        function showMessage(text, type) {
+            const container = document.getElementById('message-container');
+            container.innerHTML = `<div class="message-alert ${type}">${escapeHtml(text)}</div>`;
+
+            if (type === 'success') {
+                setTimeout(() => {
+                    container.innerHTML = '';
+                }, 4000);
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize on load
+        init();
+    </script>
+</body>
+</html>

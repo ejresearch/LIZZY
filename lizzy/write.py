@@ -88,6 +88,10 @@ class WriteModule:
         api_key = os.getenv("OPENAI_API_KEY")
         self.client = AsyncOpenAI(api_key=api_key)
 
+        # Initialize screenplay formatter
+        from .screenplay_writer import ScreenplayWriter
+        self.screenplay_writer = ScreenplayWriter(project_name)
+
         # Ensure drafts table exists
         self._init_drafts_table()
 
@@ -275,26 +279,50 @@ class WriteModule:
         prompt_parts.append(f"""
 
 **YOUR TASK:**
-Write this scene as screenplay prose (NOT script format).
+Write this scene in PROPER SCREENPLAY FORMAT following industry standards.
 
-TARGET: {target_words} words (700-900 range)
+TARGET: {target_words} words / 2-3 pages (1 page ≈ 1 minute of screen time)
 
-REQUIREMENTS:
-1. Write in present tense, active voice
-2. Include vivid action and dialogue
-3. Show character emotions through actions, not exposition
-4. Make dialogue witty, natural, and character-specific
-5. Build romantic/comedic tension
-6. Maintain continuity with previous scene
-7. Set up next scene organically
+SCREENPLAY FORMAT REQUIREMENTS:
+1. Scene heading: INT./EXT. LOCATION - TIME (all caps, flush left)
+2. Action lines: Present tense, active voice, visual descriptions
+3. Character names: ALL CAPS, centered before dialogue
+4. Dialogue: Under character name, indented properly
+5. Parentheticals: (brief acting directions) in parentheses
+6. Transitions: CUT TO:, DISSOLVE TO:, etc. (flush right when needed)
 
-STRUCTURE:
-- Opening: Establish setting and mood (50-100 words)
-- Rising action: Character interactions, conflict emerges (400-500 words)
-- Peak moment: Key beat or turning point (150-200 words)
-- Resolution: Scene conclusion that propels story forward (100-150 words)
+CONTENT REQUIREMENTS:
+1. Show character emotions through actions, NOT exposition
+2. Make dialogue witty, natural, and character-specific
+3. Build romantic/comedic tension
+4. Maintain continuity with previous scene
+5. Set up next scene organically
+6. Include specific visual details and character reactions
 
-Write the scene now:
+FORMATTING EXAMPLES:
+```
+INT. COFFEE SHOP - DAY
+
+The morning rush. Sunlight streams through large windows. SARAH (30s,
+professional attire) scans the crowded room.
+
+She spots an empty table and hurries over.
+
+                    SARAH
+          (to herself)
+Finally.
+
+JAKE (20s, barista apron) approaches with a coffee pot.
+
+                    JAKE
+Morning, Sarah. The usual?
+
+                    SARAH
+          (smiling)
+You know me too well.
+```
+
+Write the complete scene now in proper screenplay format:
 """)
 
         return "\n".join(prompt_parts)
@@ -377,15 +405,77 @@ Write the scene now:
 
         return [Draft(**dict(row)) for row in rows]
 
+    def export_draft(
+        self,
+        draft: Draft,
+        output_format: str = "docx",
+        validate: bool = True
+    ) -> tuple[str, bool, list[str]]:
+        """
+        Export a draft as a formatted screenplay.
+
+        Args:
+            draft: The draft to export
+            output_format: Format to export (txt, docx, pdf)
+            validate: Whether to validate the screenplay
+
+        Returns:
+            tuple of (output_path, is_valid, validation_errors)
+        """
+        return self.screenplay_writer.format_scene(
+            raw_screenplay=draft.content,
+            scene_number=draft.scene_number,
+            output_format=output_format,
+            validate=validate
+        )
+
+    def get_formatted_preview(self, draft: Draft, max_lines: int = 50) -> str:
+        """
+        Get a formatted preview of a draft.
+
+        Args:
+            draft: The draft to preview
+            max_lines: Max lines to show
+
+        Returns:
+            Formatted screenplay text (truncated)
+        """
+        return self.screenplay_writer.get_formatted_preview(
+            raw_screenplay=draft.content,
+            max_lines=max_lines
+        )
+
+    def validate_draft(self, draft: Draft):
+        """
+        Validate a draft's screenplay formatting.
+
+        Returns:
+            ValidationReport with validation results
+        """
+        return self.screenplay_writer.validate_screenplay(draft.content)
+
     def display_draft(self, draft: Draft):
         """Display a draft with Rich formatting"""
 
         console.print(f"\n[bold cyan]Scene {draft.scene_number} - Draft v{draft.version}[/bold cyan]")
+
+        # Get formatted preview
+        formatted_preview = self.get_formatted_preview(draft, max_lines=40)
+
         console.print(Panel(
-            draft.content,
-            title=f"📝 Draft (v{draft.version})",
+            formatted_preview,
+            title=f"📝 Formatted Screenplay (v{draft.version})",
             border_style="green"
         ))
+
+        # Validate
+        validation_report = self.validate_draft(draft)
+        if not validation_report.passed:
+            console.print(f"\n[yellow]⚠️  Formatting issues:[/yellow]")
+            for error in validation_report.errors[:3]:  # Show first 3 errors
+                console.print(f"  • {error}")
+        else:
+            console.print(f"\n[green]✓ Screenplay formatting validated[/green]")
 
         console.print(f"\n[dim]Words: {draft.word_count} | Tokens: {draft.tokens_used} | Cost: ${draft.cost_estimate:.4f}[/dim]")
         console.print(f"[dim]Created: {draft.created_at}[/dim]\n")
@@ -407,9 +497,10 @@ async def main():
         console.print("\n[bold cyan]Options:[/bold cyan]")
         console.print("1. Write a scene (generate draft)")
         console.print("2. View drafts for a scene")
-        console.print("3. Exit")
+        console.print("3. Export draft as screenplay (TXT/DOCX/PDF)")
+        console.print("4. Exit")
 
-        choice = Prompt.ask("Choose", choices=["1", "2", "3"], default="1")
+        choice = Prompt.ask("Choose", choices=["1", "2", "3", "4"], default="1")
 
         if choice == "1":
             # Generate a draft
@@ -472,6 +563,49 @@ async def main():
                 console.print(f"[red]Version {which} not found[/red]")
 
         elif choice == "3":
+            # Export draft
+            scene_num = int(Prompt.ask("Scene number", default="1"))
+
+            drafts = writer.get_all_drafts(scene_num)
+
+            if not drafts:
+                console.print(f"\n[yellow]No drafts found for Scene {scene_num}[/yellow]")
+                continue
+
+            # Show available drafts
+            console.print(f"\n[bold]Found {len(drafts)} draft(s) for Scene {scene_num}:[/bold]\n")
+            for draft in drafts:
+                console.print(f"[cyan]v{draft.version}[/cyan] - {draft.word_count} words - {draft.created_at}")
+
+            which = int(Prompt.ask("\nExport which version?", default=str(drafts[-1].version)))
+            selected = next((d for d in drafts if d.version == which), None)
+
+            if not selected:
+                console.print(f"[red]Version {which} not found[/red]")
+                continue
+
+            # Choose format
+            format_choice = Prompt.ask(
+                "Export format",
+                choices=["txt", "docx", "pdf"],
+                default="docx"
+            )
+
+            console.print(f"\n[yellow]⏳ Formatting and exporting...[/yellow]")
+
+            # Export
+            output_path, is_valid, errors = writer.export_draft(selected, format_choice)
+
+            console.print(f"\n[green]✅ Exported to: {output_path}[/green]")
+
+            if not is_valid:
+                console.print(f"\n[yellow]⚠️  Formatting warnings ({len(errors)} issues):[/yellow]")
+                for error in errors[:5]:
+                    console.print(f"  • {error}")
+            else:
+                console.print(f"[green]✓ Screenplay formatting validated[/green]")
+
+        elif choice == "4":
             console.print("\n[green]Goodbye![/green]\n")
             break
 

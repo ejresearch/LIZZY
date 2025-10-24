@@ -1,0 +1,33 @@
+        <!-- Chat Mode -->
+        <div id="chat-mode" class="mode-content active">
+            <div class="chat-container">
+                <div class="chat-header">
+                    <h3>Chat with Expert Knowledge Graphs</h3>
+                    <div class="scene-focus" id="scene-focus-badge">No scene focused</div>
+                </div>
+
+                <div class="chat-messages" id="chat-messages">
+                    <div class="loading-message" id="chat-loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading conversation...</p>
+                    </div>
+                    <!-- Messages will be added here dynamically -->
+                </div>
+
+                <div class="chat-input-area">
+                    <div class="chat-input-wrapper">
+                        <input
+                            type="text"
+                            class="chat-input"
+                            id="chat-input"
+                            placeholder="Ask the experts anything about your screenplay..."
+                            onkeypress="handleChatKeyPress(event)"
+                        />
+                        <button class="btn-send" onclick="sendMessage()" id="send-btn">Send</button>
+                    </div>
+                    <div class="commands-hint">
+                        <strong>Commands:</strong> /focus N (focus on scene) • /compare (compare experts) • /export N (save to scene) • /history (show queries)
+                    </div>
+                </div>
+            </div>
+        </div>

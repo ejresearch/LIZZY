@@ -1,0 +1,187 @@
+        /* Chat Mode Styles */
+        .chat-container {
+            background: white;
+            border-radius: 20px;
+            border: 3px solid #b83e3e;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .chat-header {
+            background: #b83e3e;
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 1.6em;
+        }
+
+        .scene-focus {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .chat-messages {
+            height: 500px;
+            overflow-y: auto;
+            padding: 32px;
+            background: #fefbf8;
+        }
+
+        .message {
+            margin-bottom: 28px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message.user .message-content {
+            background: #b83e3e;
+            color: white;
+            display: inline-block;
+            padding: 14px 20px;
+            border-radius: 18px 18px 4px 18px;
+            max-width: 70%;
+            text-align: left;
+        }
+
+        .message.assistant .message-label {
+            font-weight: 600;
+            color: #b83e3e;
+            margin-bottom: 8px;
+            font-size: 0.95em;
+        }
+
+        .message.assistant .expert-response {
+            background: white;
+            border: 2px solid #e8d5d5;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .expert-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            font-weight: 600;
+            color: #b83e3e;
+        }
+
+        .expert-header .icon {
+            font-size: 1.4em;
+        }
+
+        .expert-content {
+            color: #2d2d2d;
+            line-height: 1.7;
+        }
+
+        .expert-content ul {
+            margin-left: 20px;
+            margin-top: 8px;
+        }
+
+        .expert-content li {
+            margin-bottom: 6px;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border: 2px solid #b83e3e;
+            background: white;
+            color: #b83e3e;
+            border-radius: 20px;
+            font-family: 'Georgia', serif;
+            font-size: 0.85em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-small:hover {
+            background: #b83e3e;
+            color: white;
+        }
+
+        .chat-input-area {
+            padding: 24px 32px;
+            border-top: 2px solid #f0e8e8;
+            background: white;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e8d5d5;
+            border-radius: 25px;
+            font-family: 'Georgia', serif;
+            font-size: 1em;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #b83e3e;
+            box-shadow: 0 0 0 3px rgba(184, 62, 62, 0.1);
+        }
+
+        .btn-send {
+            padding: 14px 32px;
+            background: #b83e3e;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-family: 'Georgia', serif;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-send:hover {
+            background: #9a3232;
+        }
+
+        .btn-send:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .commands-hint {
+            margin-top: 16px;
+            padding: 16px;
+            background: #fef5f5;
+            border-radius: 12px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .commands-hint strong {
+            color: #b83e3e;
+        }

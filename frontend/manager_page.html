@@ -260,6 +260,20 @@
             font-weight: 600;
         }
 
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f0f0f0;
+            border-top: 5px solid #b83e3e;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
         .tab-section-header {
             display: flex;
             justify-content: space-between;
@@ -630,6 +644,7 @@
                 <button class="tab" onclick="switchTab('scenes')">Scenes</button>
                 <button class="tab" onclick="switchTab('notes')">Notes</button>
                 <button class="tab" onclick="switchTab('brainstorm')">Brainstorm</button>
+                <button class="tab" onclick="switchTab('screenplay')">Screenplay</button>
             </div>
 
             <!-- Settings Tab -->
@@ -770,6 +785,44 @@
                 </div>
             </div>
 
+            <!-- Screenplay Tab -->
+            <div id="screenplay-tab" class="tab-content">
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: #b83e3e; margin-bottom: 16px;">Scene Drafts & Export</h3>
+                    <p style="color: #666; font-style: italic; margin-bottom: 24px;">
+                        View and export scene drafts as professionally formatted screenplays
+                    </p>
+
+                    <!-- View Mode Toggle -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                        <button id="view-individual" onclick="switchScreenplayView('individual')" style="padding: 12px 24px; background: #b83e3e; color: white; border: none; border-radius: 8px; cursor: pointer; font-family: 'Georgia', serif; font-size: 1em; font-weight: 600;">Individual Scenes</button>
+                        <button id="view-full" onclick="switchScreenplayView('full')" style="padding: 12px 24px; background: white; color: #b83e3e; border: 2px solid #b83e3e; border-radius: 8px; cursor: pointer; font-family: 'Georgia', serif; font-size: 1em; font-weight: 600;">Full Screenplay</button>
+                    </div>
+                </div>
+
+                <!-- Individual Scene Drafts View -->
+                <div id="drafts-list">
+                    <div style="text-align: center; padding: 40px; color: #999;">
+                        Save project first to load drafts
+                    </div>
+                </div>
+
+                <!-- Full Screenplay View -->
+                <div id="full-screenplay-view" style="display: none;">
+                    <div style="background: white; border: 3px solid #b83e3e; border-radius: 12px; padding: 40px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h3 style="color: #b83e3e; margin: 0;">Full Screenplay</h3>
+                            <div style="display: flex; gap: 12px;">
+                                <button onclick="exportFullScreenplay('txt')" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 600;">Export TXT</button>
+                                <button onclick="exportFullScreenplay('docx')" style="padding: 10px 20px; background: #b83e3e; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 600;">Export DOCX</button>
+                                <button onclick="exportFullScreenplay('pdf')" style="padding: 10px 20px; background: #2c5f8d; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: 600;">Export PDF</button>
+                            </div>
+                        </div>
+                        <pre id="full-screenplay-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #2d2d2d; padding: 24px; background: #f9f9f9; border-radius: 8px; max-height: 800px; overflow-y: auto; border: 2px solid #e0e0e0;">Loading full screenplay...</pre>
+                    </div>
+                </div>
+            </div>
+
             <div class="editor-footer">
                 <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
             </div>
@@ -780,6 +833,7 @@
         let currentProject = null;
         let currentTab = 'settings';
         let allBrainstorms = [];
+        let allDrafts = [];
 
         // Load projects into dropdown
         async function loadProjects() {
@@ -868,6 +922,11 @@
             if (tabName === 'brainstorm' && currentProject) {
                 loadBrainstorms();
             }
+
+            // Load drafts when switching to screenplay tab
+            if (tabName === 'screenplay' && currentProject) {
+                loadDrafts();
+            }
         }
 
         async function loadBrainstorms() {
@@ -875,10 +934,10 @@
             container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Loading brainstorms...</div>';
 
             try {
-                const response = await fetch(`/api/brainstorm/blueprints/${currentProject}`);
+                const response = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
                 const data = await response.json();
 
-                allBrainstorms = data.blueprints;
+                allBrainstorms = data.brainstorms;
                 renderBrainstorms();
             } catch (error) {
                 container.innerHTML = `<div style="text-align: center; padding: 40px; color: #b83e3e;">Error loading brainstorms: ${error.message}</div>`;
@@ -922,6 +981,272 @@
             }
 
             container.innerHTML = html;
+        }
+
+        async function loadDrafts() {
+            const container = document.getElementById('drafts-list');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Loading drafts...</div>';
+
+            try {
+                const response = await fetch(`/api/write/drafts/${currentProject}`);
+                const data = await response.json();
+
+                allDrafts = data.drafts || [];
+                renderDrafts();
+            } catch (error) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: #b83e3e;">Error loading drafts: ${error.message}</div>`;
+            }
+        }
+
+        function renderDrafts() {
+            const container = document.getElementById('drafts-list');
+
+            if (allDrafts.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No scene drafts generated yet. Use WRITE module to create drafts.</div>';
+                return;
+            }
+
+            // Group drafts by scene number
+            const draftsByScene = {};
+            allDrafts.forEach(draft => {
+                if (!draftsByScene[draft.scene_number]) {
+                    draftsByScene[draft.scene_number] = [];
+                }
+                draftsByScene[draft.scene_number].push(draft);
+            });
+
+            let html = '<div style="display: grid; gap: 20px;">';
+
+            Object.keys(draftsByScene).sort((a, b) => parseInt(a) - parseInt(b)).forEach(sceneNum => {
+                const drafts = draftsByScene[sceneNum].sort((a, b) => b.version - a.version);
+                const latestDraft = drafts[0];
+
+                html += `
+                    <div style="background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                            <div>
+                                <h3 style="color: #b83e3e; margin-bottom: 8px;">Scene ${sceneNum}</h3>
+                                <p style="color: #666; font-size: 14px;">
+                                    ${drafts.length} version${drafts.length > 1 ? 's' : ''} •
+                                    ${latestDraft.word_count} words •
+                                    Latest: v${latestDraft.version}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <select id="version-select-${sceneNum}" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; font-size: 14px;">
+                                    ${drafts.map(d => `<option value="${d.version}">v${d.version}</option>`).join('')}
+                                </select>
+                                <button onclick="exportDraft(${sceneNum}, 'txt')" style="padding: 6px 16px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">TXT</button>
+                                <button onclick="exportDraft(${sceneNum}, 'docx')" style="padding: 6px 16px; background: #b83e3e; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">DOCX</button>
+                                <button onclick="exportDraft(${sceneNum}, 'pdf')" style="padding: 6px 16px; background: #2c5f8d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">PDF</button>
+                            </div>
+                        </div>
+                        <details style="margin-top: 12px;">
+                            <summary style="cursor: pointer; color: #b83e3e; font-weight: 600;">View Full Draft (v${latestDraft.version})</summary>
+                            <pre style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #2d2d2d; margin-top: 16px; padding: 16px; background: #f9f9f9; border-radius: 4px; overflow-x: auto; max-height: 600px; overflow-y: auto;">${latestDraft.content}</pre>
+                        </details>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function exportDraft(sceneNumber, format) {
+            const versionSelect = document.getElementById(`version-select-${sceneNumber}`);
+            const version = parseInt(versionSelect.value);
+
+            const statusDiv = document.createElement('div');
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2c5f8d; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+            statusDiv.textContent = `Exporting Scene ${sceneNumber} v${version} as ${format.toUpperCase()}...`;
+            document.body.appendChild(statusDiv);
+
+            try {
+                const response = await fetch('/api/generate/export-scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        scene_number: sceneNumber,
+                        version: version,
+                        format: format
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.style.background = '#4a9d5f';
+                    statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
+
+                    // Trigger download
+                    const downloadUrl = `/api/generate/download-screenplay/${currentProject}/${result.filename}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 3000);
+                } else {
+                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.textContent = `✗ Export failed: ${result.error}`;
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                }
+            } catch (error) {
+                statusDiv.style.background = '#b83e3e';
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                setTimeout(() => {
+                    document.body.removeChild(statusDiv);
+                }, 5000);
+            }
+        }
+
+        function switchScreenplayView(view) {
+            const individualView = document.getElementById('drafts-list');
+            const fullView = document.getElementById('full-screenplay-view');
+            const btnIndividual = document.getElementById('view-individual');
+            const btnFull = document.getElementById('view-full');
+
+            if (view === 'individual') {
+                individualView.style.display = 'block';
+                fullView.style.display = 'none';
+                btnIndividual.style.background = '#b83e3e';
+                btnIndividual.style.color = 'white';
+                btnIndividual.style.border = 'none';
+                btnFull.style.background = 'white';
+                btnFull.style.color = '#b83e3e';
+                btnFull.style.border = '2px solid #b83e3e';
+            } else {
+                individualView.style.display = 'none';
+                fullView.style.display = 'block';
+                btnFull.style.background = '#b83e3e';
+                btnFull.style.color = 'white';
+                btnFull.style.border = 'none';
+                btnIndividual.style.background = 'white';
+                btnIndividual.style.color = '#b83e3e';
+                btnIndividual.style.border = '2px solid #b83e3e';
+                renderFullScreenplay();
+            }
+        }
+
+        function renderFullScreenplay() {
+            const content = document.getElementById('full-screenplay-content');
+
+            if (allDrafts.length === 0) {
+                content.textContent = 'No scene drafts generated yet. Use WRITE module to create drafts.';
+                return;
+            }
+
+            // Group drafts by scene number and get latest version of each
+            const draftsByScene = {};
+            allDrafts.forEach(draft => {
+                if (!draftsByScene[draft.scene_number]) {
+                    draftsByScene[draft.scene_number] = draft;
+                } else if (draft.version > draftsByScene[draft.scene_number].version) {
+                    draftsByScene[draft.scene_number] = draft;
+                }
+            });
+
+            // Combine all scenes in order
+            let fullScreenplay = '';
+            Object.keys(draftsByScene)
+                .sort((a, b) => parseInt(a) - parseInt(b))
+                .forEach((sceneNum, index) => {
+                    const draft = draftsByScene[sceneNum];
+                    if (index > 0) {
+                        fullScreenplay += '\n\n\n';  // Scene separator
+                    }
+                    fullScreenplay += draft.content;
+                });
+
+            content.textContent = fullScreenplay;
+        }
+
+        async function exportFullScreenplay(format) {
+            const statusDiv = document.createElement('div');
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2c5f8d; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+            statusDiv.textContent = `Exporting full screenplay as ${format.toUpperCase()}...`;
+            document.body.appendChild(statusDiv);
+
+            try {
+                // Get all latest drafts by scene
+                const draftsByScene = {};
+                allDrafts.forEach(draft => {
+                    if (!draftsByScene[draft.scene_number]) {
+                        draftsByScene[draft.scene_number] = draft;
+                    } else if (draft.version > draftsByScene[draft.scene_number].version) {
+                        draftsByScene[draft.scene_number] = draft;
+                    }
+                });
+
+                // Get scene numbers and versions
+                const scenes = Object.keys(draftsByScene)
+                    .sort((a, b) => parseInt(a) - parseInt(b))
+                    .map(sceneNum => ({
+                        scene_number: parseInt(sceneNum),
+                        version: draftsByScene[sceneNum].version
+                    }));
+
+                if (scenes.length === 0) {
+                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.textContent = 'No scenes to export. Generate some drafts first.';
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                    return;
+                }
+
+                // Call backend to export full screenplay
+                const response = await fetch('/api/generate/export-full-screenplay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        scenes: scenes,
+                        format: format
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.style.background = '#4a9d5f';
+                    statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
+
+                    // Trigger download
+                    const downloadUrl = `/api/generate/download-screenplay/${currentProject}/${result.filename}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 3000);
+                } else {
+                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.textContent = `✗ Export failed: ${result.error}`;
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                }
+
+            } catch (error) {
+                statusDiv.style.background = '#b83e3e';
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                setTimeout(() => {
+                    document.body.removeChild(statusDiv);
+                }, 5000);
+            }
         }
 
         async function saveProject() {
@@ -1213,6 +1538,20 @@
 
         // Load projects on page load
         loadProjects();
+
+        // Check if we should open a specific tab (from landing page navigation)
+        const defaultTab = localStorage.getItem('defaultTab');
+        if (defaultTab) {
+            // Wait a moment for page to fully load
+            setTimeout(() => {
+                const tabButton = document.querySelector(`.tab[onclick*="${defaultTab}"]`);
+                if (tabButton) {
+                    tabButton.click();
+                }
+                // Clear the flag
+                localStorage.removeItem('defaultTab');
+            }, 500);
+        }
     </script>
 </body>
 </html>

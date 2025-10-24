@@ -5,10 +5,15 @@ Simple FastAPI server that serves the landing page and provides
 API endpoints for tracking project progress and launching modules.
 """
 
+import sys
+from pathlib import Path
+
+# Add parent directory to path so we can import lizzy
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 import json
 import subprocess
 from typing import Dict, List
@@ -32,7 +37,7 @@ class ModuleLaunch(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def landing_page():
     """Serve the landing page"""
-    html_path = Path("landing_page.html")
+    html_path = Path("frontend/landing_page.html")
     if not html_path.exists():
         raise HTTPException(status_code=404, detail="Landing page not found")
 
@@ -43,7 +48,7 @@ async def landing_page():
 @app.get("/manager", response_class=HTMLResponse)
 async def manager_page():
     """Serve the manager page"""
-    html_path = Path("manager_page.html")
+    html_path = Path("frontend/manager_page.html")
     if not html_path.exists():
         raise HTTPException(status_code=404, detail="Manager page not found")
 
@@ -53,7 +58,7 @@ async def manager_page():
 @app.get("/setup", response_class=HTMLResponse)
 async def setup_redirect():
     """Redirect to manager page"""
-    html_path = Path("manager_page.html")
+    html_path = Path("frontend/manager_page.html")
     if not html_path.exists():
         raise HTTPException(status_code=404, detail="Manager page not found")
     return html_path.read_text()
@@ -357,7 +362,7 @@ async def delete_project(project_name: str):
 @app.get("/brainstorm", response_class=HTMLResponse)
 async def brainstorm_page():
     """Serve the brainstorm page"""
-    html_path = Path("brainstorm_page.html")
+    html_path = Path("frontend/brainstorm_page.html")
     if not html_path.exists():
         raise HTTPException(status_code=404, detail="Brainstorm page not found")
 

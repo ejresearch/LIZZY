@@ -11,5 +11,5 @@ echo "Starting server..."
 echo ""
 
 # Start the server
-python3 prompt_studio_server.py
+python3 servers/prompt_studio_server.py
 

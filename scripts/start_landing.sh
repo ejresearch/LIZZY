@@ -33,4 +33,8 @@ echo ""
 echo "Press Ctrl+C to stop"
 echo ""
 
-python3 landing_server.py
+# Set PYTHONPATH to include project root
+export PYTHONPATH="${PYTHONPATH}:$(pwd)"
+
+# Run from project root
+cd "$(dirname "$0")/.." && python3 servers/landing_server.py

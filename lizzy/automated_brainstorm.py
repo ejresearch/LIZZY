@@ -80,11 +80,23 @@ class AutomatedBrainstorm:
 
             # Scenes (all 30)
             cursor.execute("""
-                SELECT id, scene_number, title, description, characters, tone, act
+                SELECT id, scene_number, title, description, characters, tone
                 FROM scenes
                 ORDER BY scene_number
             """)
-            self.scenes = [dict(row) for row in cursor.fetchall()]
+            scenes = [dict(row) for row in cursor.fetchall()]
+
+            # Calculate act for each scene based on scene number
+            for scene in scenes:
+                scene_num = scene['scene_number']
+                if scene_num <= 6:
+                    scene['act'] = 1
+                elif scene_num <= 24:
+                    scene['act'] = 2
+                else:
+                    scene['act'] = 3
+
+            self.scenes = scenes
 
         # Writer notes
         try:
