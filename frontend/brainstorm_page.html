@@ -115,14 +115,6 @@
             background: var(--color-primary-light);
         }
 
-        .status-icon {
-            font-size: 1.2em;
-            margin-right: var(--spacing-xs);
-        }
-
-        .status-done { color: #48bb78; }
-        .status-processing { color: #f59e0b; }
-        .status-pending { color: #ccc; }
 
         .scene-title {
             font-weight: 600;
@@ -284,15 +276,19 @@
 
                 // Render scenes
                 tbody.innerHTML = data.scenes.map(scene => {
-                    const statusText = scene.status === 'done' ? 'Done' :
-                                      scene.status === 'processing' ? 'Processing' : 'Pending';
-                    const statusClass = scene.status === 'done' ? 'status-done' :
-                                       scene.status === 'processing' ? 'status-processing' : 'status-pending';
+                    let statusBadge = '';
+                    if (scene.status === 'done') {
+                        statusBadge = '<span class="status status-success">✓ Ready</span>';
+                    } else if (scene.status === 'processing') {
+                        statusBadge = '<span class="status status-pending">⏳ Processing</span>';
+                    } else {
+                        statusBadge = '<span class="status status-pending">⚠ Not Yet</span>';
+                    }
 
                     return `
                         <tr>
                             <td>
-                                <span class="status-icon ${statusClass}">${statusText}</span>
+                                ${statusBadge}
                             </td>
                             <td><strong>${scene.scene_number}</strong></td>
                             <td>

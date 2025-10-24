@@ -115,14 +115,6 @@
             background: var(--color-primary-light);
         }
 
-        .status-icon {
-            font-size: 1.2em;
-            margin-right: var(--spacing-xs);
-        }
-
-        .status-done { color: #48bb78; }
-        .status-warning { color: #f59e0b; }
-        .status-pending { color: #ccc; }
 
         .scene-title {
             font-weight: 600;
@@ -394,13 +386,17 @@
                     const draftCount = draftsMap[scene.scene_number] || 0;
                     const canGenerate = hasBrainstorm;
 
-                    const statusText = hasBrainstorm ? '✓ Ready' : '⚠ No Brainstorm';
-                    const statusClass = hasBrainstorm ? 'status-done' : 'status-warning';
+                    let statusBadge = '';
+                    if (hasBrainstorm) {
+                        statusBadge = '<span class="status status-success">✓ Ready</span>';
+                    } else {
+                        statusBadge = '<span class="status status-pending">⚠ No Brainstorm</span>';
+                    }
 
                     return `
                         <tr>
                             <td>
-                                <span class="status-icon ${statusClass}">${statusText}</span>
+                                ${statusBadge}
                             </td>
                             <td><strong>${scene.scene_number}</strong></td>
                             <td>
