@@ -287,17 +287,10 @@
 
                     return `
                         <tr>
-                            <td>
-                                ${statusBadge}
-                            </td>
+                            <td>${statusBadge}</td>
                             <td><strong>${scene.scene_number}</strong></td>
-                            <td>
-                                <div class="scene-title">${scene.title}</div>
-                                <div style="font-size: 0.9em; color: #666; font-style: italic; margin-top: 4px;">
-                                    ${scene.description ? scene.description.substring(0, 80) + '...' : 'No description'}
-                                </div>
-                            </td>
-                            <td>
+                            <td><span class="scene-title">${scene.title}</span></td>
+                            <td style="text-align: center;">
                                 ${scene.status === 'done' ?
                                     `<button class="btn-small" onclick="viewBrainstorm(${scene.scene_number})">View Brainstorm</button>` :
                                     `<button class="btn-small" onclick="generateScene(${scene.scene_number})">Generate</button>`

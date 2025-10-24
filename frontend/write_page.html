@@ -166,28 +166,6 @@
             font-style: italic;
         }
 
-        .progress-bar {
-            background: #f0f0f0;
-            height: 10px;
-            border-radius: 5px;
-            overflow: hidden;
-            margin: var(--spacing-sm) 0;
-        }
-
-        .progress-fill {
-            background: linear-gradient(90deg, var(--color-primary), #d45d5d);
-            height: 100%;
-            width: 0%;
-            transition: width var(--transition-normal);
-        }
-
-        .progress-text {
-            text-align: center;
-            color: #999;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-
         .draft-preview {
             background: #f9f9f9;
             border-radius: var(--radius-sm);
@@ -256,7 +234,7 @@
         <div id="batch-mode">
             <div class="batch-header">
                 <h3>Batch Process All Scenes</h3>
-                <p style="color: var(--color-text-light); font-style: italic; margin-bottom: var(--spacing-sm);">
+                <p style="color: #666; font-style: italic; margin-bottom: 20px;">
                     Generate screenplay drafts for all 30 scenes at once
                 </p>
 
@@ -395,20 +373,13 @@
 
                     return `
                         <tr>
-                            <td>
-                                ${statusBadge}
-                            </td>
+                            <td>${statusBadge}</td>
                             <td><strong>${scene.scene_number}</strong></td>
                             <td>
-                                <div class="scene-title">${scene.title || 'Untitled'}</div>
-                                <div style="font-size: 0.9em; color: #666; font-style: italic; margin-top: 4px;">
-                                    ${scene.description ? scene.description.substring(0, 100) + '...' : 'No description'}
-                                </div>
+                                <span class="scene-title">${scene.title || 'Untitled'}</span>
                             </td>
-                            <td>
-                                ${draftCount > 0 ? `<strong>${draftCount} version${draftCount > 1 ? 's' : ''}</strong>` : 'None yet'}
-                            </td>
-                            <td>
+                            <td>${draftCount > 0 ? `<strong>${draftCount} version${draftCount > 1 ? 's' : ''}</strong>` : 'None yet'}</td>
+                            <td style="text-align: center;">
                                 <button
                                     class="btn-small ${canGenerate ? '' : ''}"
                                     onclick="navigateToGenerate(${scene.scene_number})"
