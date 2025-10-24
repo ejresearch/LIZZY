@@ -23,6 +23,46 @@
             font-style: italic;
         }
 
+        /* Batch Mode Styles */
+        .batch-header {
+            background: var(--color-white);
+            border-radius: var(--radius-md);
+            border: 3px solid var(--color-primary);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .batch-header h3 {
+            font-size: 1.8em;
+            color: var(--color-primary);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .progress-bar {
+            background: #e8d5d5;
+            height: 32px;
+            border-radius: 16px;
+            overflow: hidden;
+            margin: var(--spacing-sm) 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary), #d85858);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-white);
+            font-weight: 600;
+        }
+
+        .batch-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+        }
+
         .scenes-list {
             background: var(--color-white);
             border-radius: var(--radius-md);
@@ -204,6 +244,29 @@
             <p>Transform brainstormed blueprints into professionally formatted screenplay scenes</p>
         </div>
 
+        <!-- Batch Mode -->
+        <div id="batch-mode">
+            <div class="batch-header">
+                <h3>Batch Process All Scenes</h3>
+                <p style="color: #666; font-style: italic; margin-bottom: 20px;">
+                    Generate screenplay drafts for all 30 scenes at once
+                </p>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="batch-progress" style="width: 0%">0/30 scenes</div>
+                </div>
+
+                <div class="batch-actions">
+                    <button class="btn btn-primary" onclick="startBatchWrite()">
+                        Generate All Drafts
+                    </button>
+                    <button class="btn" onclick="loadScenes()">
+                        Refresh Status
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="scenes-list">
             <table class="scenes-table">
                 <thead>
@@ -299,6 +362,15 @@
                     });
                 }
 
+                // Update progress bar
+                const completed = Object.keys(draftsMap).length;
+                const total = scenes.length;
+                const percentage = Math.round((completed / total) * 100);
+
+                const progressFill = document.getElementById('batch-progress');
+                progressFill.style.width = percentage + '%';
+                progressFill.textContent = `${completed}/${total} scenes`;
+
                 // Render scenes
                 tbody.innerHTML = scenes.map(scene => {
                     const hasBrainstorm = brainstormsMap[scene.scene_number];
@@ -325,7 +397,7 @@
                             </td>
                             <td>
                                 <button
-                                    class="btn ${canGenerate ? 'btn-primary' : ''}"
+                                    class="btn-small ${canGenerate ? '' : ''}"
                                     onclick="navigateToGenerate(${scene.scene_number})"
                                     ${!canGenerate ? 'disabled' : ''}>
                                     ${draftCount > 0 ? 'New Version' : 'Generate'}
@@ -345,6 +417,15 @@
                     </tr>
                 `;
             }
+        }
+
+        async function startBatchWrite() {
+            if (!confirm('Generate drafts for all scenes with brainstorms? This may take several minutes and will cost ~$0.30.')) {
+                return;
+            }
+
+            showMessage('Batch write feature coming soon! For now, generate scenes individually.', 'info');
+            // TODO: Implement batch write endpoint
         }
 
         function navigateToGenerate(sceneNumber) {
