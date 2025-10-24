@@ -25,16 +25,70 @@ class BrainstormService:
             raise ValueError(f"Project '{project_name}' not found")
         return db_path
 
-    def get_chat_history(self, project_name: str) -> Dict:
-        """Get chat history for a project."""
-        # TODO: Implement chat history storage
-        return {"messages": []}
+    def get_chat_history(self, project_name: str, limit: Optional[int] = None) -> Dict:
+        """
+        Get chat history for a project.
+
+        Args:
+            project_name: Name of the project
+            limit: Optional limit on number of messages (most recent first)
+
+        Returns:
+            Dict with success status and list of messages
+        """
+        try:
+            db_path = self._get_db_path(project_name)
+            db = Database(db_path)
+
+            messages = db.get_chat_history(limit=limit)
+
+            # Parse experts JSON for assistant messages
+            import json
+            for msg in messages:
+                if msg.get('experts'):
+                    try:
+                        msg['experts'] = json.loads(msg['experts'])
+                    except json.JSONDecodeError:
+                        msg['experts'] = []
+
+            return {
+                "success": True,
+                "messages": messages
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "messages": []
+            }
 
     async def chat_query(self, project_name: str, query: str, focused_scene: Optional[int] = None) -> Dict:
-        """Send a query to the expert knowledge graphs."""
+        """
+        Send a query to the expert knowledge graphs and save to chat history.
+
+        Args:
+            project_name: Name of the project
+            query: User's query text
+            focused_scene: Optional scene number in focus
+
+        Returns:
+            Dict with success status, message_id, and expert responses
+        """
         db_path = self._get_db_path(project_name)
 
         try:
+            import json
+
+            # Save user message to database
+            db = Database(db_path)
+            user_msg_id = db.insert_chat_message(
+                role='user',
+                content=query,
+                focused_scene=focused_scene
+            )
+
+            # Query experts
             brainstorm = InteractiveBrainstorm(db_path)
             brainstorm.load_project_context()
 
@@ -54,9 +108,18 @@ class BrainstormService:
                     'content': result.get('response', '')  # 'response' is the key from query_buckets
                 })
 
+            # Save assistant response to database
+            assistant_msg_id = db.insert_chat_message(
+                role='assistant',
+                content=f"Expert responses for: {query}",
+                focused_scene=focused_scene,
+                experts=json.dumps(experts)
+            )
+
             return {
                 "success": True,
-                "message_id": len(brainstorm.conversation_history),
+                "message_id": assistant_msg_id,
+                "user_message_id": user_msg_id,
                 "experts": experts
             }
         except Exception as e:
@@ -65,6 +128,33 @@ class BrainstormService:
             return {
                 "success": False,
                 "error": f"Failed to query: {str(e)}"
+            }
+
+    def clear_chat_history(self, project_name: str) -> Dict:
+        """
+        Clear all chat history for a project.
+
+        Args:
+            project_name: Name of the project
+
+        Returns:
+            Dict with success status and count of deleted messages
+        """
+        try:
+            db_path = self._get_db_path(project_name)
+            db = Database(db_path)
+
+            deleted_count = db.clear_chat_history()
+
+            return {
+                "success": True,
+                "deleted_count": deleted_count
+            }
+
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e)
             }
 
     def get_batch_status(self, project_name: str) -> Dict:

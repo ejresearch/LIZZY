@@ -167,8 +167,6 @@ Create exactly 4-6 well-developed characters and 30 scenes following the standar
             Success status and file details
         """
         try:
-            import sqlite3
-
             # Initialize WRITE module
             writer = WriteModule(project_name)
 

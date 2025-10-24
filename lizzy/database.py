@@ -12,7 +12,7 @@ seamless integration across the various modules."
 
 import sqlite3
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 from contextlib import contextmanager
 
 
@@ -147,6 +147,18 @@ class Database:
                 )
             """)
 
+            # Chat messages table - conversation history with expert buckets
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS chat_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    role TEXT NOT NULL,  -- 'user' or 'assistant'
+                    content TEXT NOT NULL,  -- User query or assistant response
+                    focused_scene INTEGER,  -- Scene context if any
+                    experts TEXT,  -- JSON array of expert responses (for assistant messages)
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Create indices for performance
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_scenes_number
@@ -159,6 +171,10 @@ class Database:
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_drafts_version
                 ON drafts(version DESC)
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_chat_messages_created
+                ON chat_messages(created_at DESC)
             """)
 
     def insert_project(self, name: str, genre: str = "Romantic Comedy", description: str = "") -> int:
@@ -222,3 +238,75 @@ class Database:
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, (logline, theme, inspiration, tone, comps, braindump))
                 return cursor.lastrowid
+
+    def insert_chat_message(
+        self,
+        role: str,
+        content: str,
+        focused_scene: Optional[int] = None,
+        experts: Optional[str] = None
+    ) -> int:
+        """
+        Insert a chat message into conversation history.
+
+        Args:
+            role: Either 'user' or 'assistant'
+            content: The message content (user query or assistant response)
+            focused_scene: Optional scene number that was in focus
+            experts: Optional JSON string of expert responses (for assistant messages)
+
+        Returns:
+            Message ID
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO chat_messages (role, content, focused_scene, experts)
+                VALUES (?, ?, ?, ?)
+            """, (role, content, focused_scene, experts))
+            return cursor.lastrowid
+
+    def get_chat_history(self, limit: Optional[int] = None) -> List[dict]:
+        """
+        Retrieve chat message history.
+
+        Args:
+            limit: Optional limit on number of messages to retrieve (most recent first)
+
+        Returns:
+            List of message dicts with id, role, content, focused_scene, experts, created_at
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            if limit:
+                cursor.execute("""
+                    SELECT id, role, content, focused_scene, experts, created_at
+                    FROM chat_messages
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                """, (limit,))
+            else:
+                cursor.execute("""
+                    SELECT id, role, content, focused_scene, experts, created_at
+                    FROM chat_messages
+                    ORDER BY created_at ASC
+                """)
+
+            messages = []
+            for row in cursor.fetchall():
+                messages.append(dict(row))
+
+            return messages
+
+    def clear_chat_history(self) -> int:
+        """
+        Clear all chat history for the project.
+
+        Returns:
+            Number of messages deleted
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM chat_messages")
+            return cursor.rowcount
