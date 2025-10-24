@@ -141,6 +141,29 @@ body {
     display: inline-block;
 }
 
+.btn-small {
+    padding: 10px 24px;
+    border: 2px solid var(--color-primary);
+    background: var(--color-white);
+    color: var(--color-primary);
+    border-radius: 20px;
+    font-family: var(--font-serif);
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all var(--transition-normal);
+    font-weight: 600;
+}
+
+.btn-small:hover:not(:disabled) {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+.btn-small:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .btn-primary {
     background: var(--color-primary);
     color: var(--color-white);
