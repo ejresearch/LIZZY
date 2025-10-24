@@ -5,6 +5,14 @@ Clean, modular FastAPI server with separation of concerns.
 Uses routers for endpoints and services for business logic.
 """
 
+from pathlib import Path
+import sys
+
+# Add project root to path
+root_dir = Path(__file__).parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
+
 from fastapi import FastAPI
 import uvicorn
 
