@@ -169,6 +169,27 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 20px;
+        }
+
+        .btn-new-project {
+            padding: 16px 40px;
+            font-family: 'Georgia', serif;
+            font-size: 1.1em;
+            font-weight: 600;
+            background: rgba(139, 0, 0, 0.4);
+            color: white;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-new-project:hover {
+            background: rgba(139, 0, 0, 0.6);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
         }
 
         .editor-header h2 {
@@ -591,13 +612,10 @@
         <!-- Project Editor (always visible now) -->
         <div id="project-editor" class="project-editor" style="display: block;">
             <div class="editor-header">
-                <div style="display: flex; align-items: center; gap: 20px;">
-                    <select id="project-selector" onchange="loadSelectedProject()" style="padding: 12px 20px; font-family: 'Georgia', serif; font-size: 1.1em; border: 2px solid #b83e3e; border-radius: 8px; background: white; color: #2d2d2d; cursor: pointer;">
-                        <option value="">Select a project...</option>
-                    </select>
-                    <button class="btn btn-primary" onclick="createNewProject()">+ New Project</button>
-                </div>
-                <button class="btn btn-back" onclick="window.location.href='/'">← Back to Home</button>
+                <select id="project-selector" onchange="loadSelectedProject()" style="padding: 12px 20px; font-family: 'Georgia', serif; font-size: 1.1em; border: 2px solid white; border-radius: 25px; background: white; color: #2d2d2d; cursor: pointer;">
+                    <option value="">Select a project...</option>
+                </select>
+                <button class="btn-new-project" onclick="createNewProject()">+ New Project</button>
             </div>
 
             <div class="tabs">
