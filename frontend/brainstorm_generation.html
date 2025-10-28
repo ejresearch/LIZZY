@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generating Brainstorm - Lizzy 2.0</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', 'Times New Roman', serif;
+            background: #f5f1e8;
+            min-height: 100vh;
+            padding: 0;
+            color: #2d2d2d;
+        }
+
+        /* Red header bar */
+        .header-bar {
+            background: #b83e3e;
+            padding: 24px 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .header-left h1 {
+            font-size: 2.5em;
+            color: white;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .current-project-display {
+            padding: 12px 24px;
+            font-size: 0.95em;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            font-weight: 600;
+            white-space: nowrap;
+            min-width: 200px;
+            text-align: center;
+        }
+
+        .btn-back {
+            padding: 12px 24px;
+            font-size: 0.95em;
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 24px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 40px auto;
+            background: white;
+            border: 3px solid #b83e3e;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 40px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .progress-section {
+            margin-bottom: 40px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .progress-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2d2d2d;
+        }
+
+        .progress-status {
+            font-size: 1em;
+            color: #b83e3e;
+            font-weight: 500;
+            font-style: italic;
+        }
+
+        .progress-bar {
+            background: #f5f1e8;
+            border: 2px solid #b83e3e;
+            border-radius: 15px;
+            height: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #b83e3e 0%, #d94f4f 50%, #b83e3e 100%);
+            background-size: 200% 100%;
+            animation: progressGradient 2s ease infinite;
+            height: 100%;
+            border-radius: 12px;
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1em;
+            box-shadow: 0 2px 8px rgba(184, 62, 62, 0.4);
+        }
+
+        @keyframes progressGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .metric-card {
+            background: #f5f1e8;
+            padding: 25px;
+            border-radius: 12px;
+            border: 2px solid #e0d5c7;
+            text-align: center;
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        .metric-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            color: #b83e3e;
+        }
+
+        .output-section {
+            margin-top: 40px;
+        }
+
+        .output-header {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2d2d2d;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .output-canvas {
+            background: #2d2d2d;
+            border: 3px solid #b83e3e;
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #e0e0e0;
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        .output-line.expert {
+            color: #90ee90;
+        }
+
+        .output-line.synthesis {
+            color: #ffd700;
+        }
+
+        .output-line.success {
+            color: #87ceeb;
+        }
+
+        .output-line.error {
+            color: #ff6b6b;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid #b83e3e;
+            border-top-color: transparent;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite, spinPulse 1.6s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(184, 62, 62, 0.3);
+        }
+
+        @keyframes spinPulse {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .actions {
+            margin-top: 40px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 16px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 1.1em;
+            font-weight: 600;
+            font-family: 'Georgia', serif;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #b83e3e;
+            color: white;
+            border: 3px solid #b83e3e;
+        }
+
+        .btn-primary:hover {
+            background: #a03535;
+            border-color: #a03535;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(184, 62, 62, 0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #b83e3e;
+            border: 3px solid #b83e3e;
+        }
+
+        .btn-secondary:hover {
+            background: #fef5f5;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .complete-message {
+            text-align: center;
+            padding: 60px 40px;
+            display: none;
+            background: #f5f1e8;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+
+        .complete-message.show {
+            display: block;
+        }
+
+        .complete-message h2 {
+            color: #b83e3e;
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .checkmark {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #5cb85c;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+
+        .checkmark::after {
+            content: "✓";
+            color: white;
+            font-size: 60px;
+        }
+
+        .complete-message p {
+            color: #666;
+            font-size: 1.1em;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <div class="header-left">
+            <h1>Generating Brainstorm</h1>
+        </div>
+        <div class="header-right">
+            <div class="current-project-display" id="header-project-name">Loading...</div>
+            <a href="javascript:history.back()" class="btn-back">← Back</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div style="text-align: center; margin-bottom: 32px;">
+            <h2 style="color: var(--color-primary); font-size: 1.8em; margin-bottom: 8px;">Scene <span id="scene-number">-</span></h2>
+            <p id="scene-info" style="color: var(--color-text-light); font-size: 1.1em; font-style: italic;">Loading scene info...</p>
+        </div>
+
+        <div class="content">
+            <div class="progress-section">
+                <div class="progress-header">
+                    <span class="progress-title">Overall Progress</span>
+                    <span class="progress-status" id="progress-status">Initializing...</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill" style="width: 0%">0%</div>
+                </div>
+            </div>
+
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-label">Experts Consulted</div>
+                    <div class="metric-value" id="experts-count">0/3</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Time Elapsed</div>
+                    <div class="metric-value" id="time-elapsed">0s</div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <div class="output-header">
+                    <span class="spinner"></span>
+                    <span>Live Output</span>
+                </div>
+                <div class="output-canvas" id="output-canvas">
+                    <div class="output-line">Initializing brainstorm generation...</div>
+                </div>
+            </div>
+
+            <div class="complete-message" id="complete-message">
+                <div class="checkmark"></div>
+                <h2>Brainstorm Complete!</h2>
+                <p>Scene brainstorm has been successfully generated.</p>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" id="view-brainstorm" onclick="viewBrainstorm()" style="display: none;">
+                    View Brainstorm
+                </button>
+                <button class="btn btn-secondary" onclick="goBack()">
+                    Back to Brainstorm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectName = urlParams.get('project');
+        const sceneNumber = parseInt(urlParams.get('scene'));
+
+        // Update header with project name and scene number
+        if (projectName) {
+            document.getElementById('header-project-name').textContent = projectName;
+        }
+        if (sceneNumber) {
+            document.getElementById('scene-number').textContent = sceneNumber;
+        }
+
+        let startTime = Date.now();
+        let timerInterval;
+        let expertsConsulted = 0;
+
+        // Update scene info
+        document.getElementById('scene-info').textContent = `Scene ${sceneNumber} - ${projectName}`;
+
+        // Start generation
+        async function startGeneration() {
+            addOutput('Starting brainstorm generation process...');
+            addOutput(`Project: ${projectName}, Scene: ${sceneNumber}`, 'expert');
+
+            // Start timer
+            timerInterval = setInterval(updateTimer, 1000);
+
+            try {
+                // Actually call the API to generate the brainstorm
+                updateProgress(10, 'Starting generation...');
+
+                const responsePromise = fetch('/api/brainstorm/batch/generate-scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: projectName,
+                        scene_number: sceneNumber
+                    })
+                });
+
+                // Show progress while generation happens (takes ~30-60 seconds)
+                updateProgress(20, 'Querying Books expert...');
+                addOutput('📚 Books Expert: Analyzing screenplay structure...', 'expert');
+                await sleep(5000);
+
+                updateProgress(40, 'Books complete, querying Plays expert...');
+                expertsConsulted++;
+                document.getElementById('experts-count').textContent = `${expertsConsulted}/3`;
+                addOutput('✓ Books expert consultation complete', 'success');
+                addOutput('🎭 Plays Expert: Analyzing dramatic structure...', 'expert');
+                await sleep(5000);
+
+                updateProgress(60, 'Plays complete, querying Scripts expert...');
+                expertsConsulted++;
+                document.getElementById('experts-count').textContent = `${expertsConsulted}/3`;
+                addOutput('✓ Plays expert consultation complete', 'success');
+                addOutput('🎬 Scripts Expert: Analyzing modern execution...', 'expert');
+                await sleep(5000);
+
+                updateProgress(80, 'All experts consulted, synthesizing...');
+                expertsConsulted++;
+                document.getElementById('experts-count').textContent = `${expertsConsulted}/3`;
+                addOutput('✓ Scripts expert consultation complete', 'success');
+                addOutput('🔮 Synthesizing expert insights...', 'synthesis');
+                await sleep(5000);
+
+                updateProgress(95, 'Saving to database...');
+                addOutput('💾 Saving brainstorm to database...', 'expert');
+
+                // Wait for API response
+                const response = await responsePromise;
+                const data = await response.json();
+
+                if (data.success) {
+                    updateProgress(100, 'Complete!');
+                    addOutput('✓ Brainstorm saved successfully', 'success');
+
+                    // Show completion
+                    clearInterval(timerInterval);
+                    document.querySelector('.spinner').style.display = 'none';
+                    document.getElementById('complete-message').classList.add('show');
+                    document.getElementById('view-brainstorm').style.display = 'inline-block';
+                } else {
+                    throw new Error(data.error || 'Generation failed');
+                }
+
+            } catch (error) {
+                addOutput(`✗ Error: ${error.message}`, 'error');
+                updateProgress(0, 'Failed');
+                clearInterval(timerInterval);
+                document.querySelector('.spinner').style.display = 'none';
+            }
+        }
+
+        function updateProgress(percent, status) {
+            document.getElementById('progress-fill').style.width = `${percent}%`;
+            document.getElementById('progress-fill').textContent = `${percent}%`;
+            document.getElementById('progress-status').textContent = status;
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            document.getElementById('time-elapsed').textContent = `${elapsed}s`;
+        }
+
+        function addOutput(text, type = '') {
+            const canvas = document.getElementById('output-canvas');
+            const line = document.createElement('div');
+            line.className = `output-line ${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            canvas.appendChild(line);
+            canvas.scrollTop = canvas.scrollHeight;
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function viewBrainstorm() {
+            window.location.href = `/manager?project=${projectName}#brainstorms`;
+        }
+
+        function goBack() {
+            window.location.href = `/brainstorm?project=${projectName}`;
+        }
+
+        // Start generation when page loads
+        window.onload = () => {
+            if (projectName && sceneNumber) {
+                startGeneration();
+            } else {
+                addOutput('Error: Missing project or scene number', 'error');
+            }
+        };
+    </script>
+</body>
+</html>

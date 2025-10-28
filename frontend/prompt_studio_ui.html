@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Studio - Chat Interface</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .message-container {
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .block-card {
+            transition: all 0.2s ease;
+        }
+        .block-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .typing-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6b7280;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto max-w-6xl p-6">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg shadow-lg p-6 mb-6 text-white">
+            <h1 class="text-3xl font-bold mb-2">✨ Prompt Studio</h1>
+            <p class="text-purple-100">Chat-based prompt composer with visual block feedback</p>
+        </div>
+
+        <!-- Project Selector -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Project:</label>
+            <select id="projectSelect" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                <option value="">Loading projects...</option>
+            </select>
+        </div>
+
+        <!-- Main Chat Area -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chat Column (2/3) -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Messages -->
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="p-4 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-800">💬 Chat</h2>
+                        <p class="text-sm text-gray-500">Just type what you're thinking...</p>
+                    </div>
+                    <div id="messagesContainer" class="message-container p-4 space-y-4">
+                        <!-- Welcome message -->
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white">
+                                    🤖
+                                </div>
+                            </div>
+                            <div class="flex-1 bg-purple-50 rounded-lg p-3">
+                                <p class="text-sm text-gray-800">
+                                    Hi! I'm your AI prompt composer. Tell me what you're working on:
+                                </p>
+                                <div class="mt-2 text-xs text-gray-600 space-y-1">
+                                    <div>• "Jenny in scene 4 dealing with disappointment, check scripts"</div>
+                                    <div>• "Help with scene 1, what do books say about openings?"</div>
+                                    <div>• "Show me the wedding scene with all experts"</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Input -->
+                    <div class="p-4 border-t border-gray-200">
+                        <div class="flex space-x-2">
+                            <input
+                                type="text"
+                                id="chatInput"
+                                placeholder="What are you working on?"
+                                class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                onkeypress="handleKeyPress(event)"
+                            />
+                            <button
+                                onclick="sendMessage()"
+                                class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium"
+                            >
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Blocks & Prompt Column (1/3) -->
+            <div class="space-y-4">
+                <!-- Blocks Used -->
+                <div id="blocksPanel" class="bg-white rounded-lg shadow-lg p-4 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">🧩 Blocks Used</h3>
+                    <div id="blocksList" class="space-y-2">
+                        <!-- Blocks will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Prompt Preview -->
+                <div id="promptPanel" class="bg-white rounded-lg shadow-lg p-4 hidden">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">📄 Prompt Preview</h3>
+                    <div id="promptPreview" class="text-sm text-gray-700 bg-gray-50 p-3 rounded border border-gray-200 max-h-60 overflow-y-auto font-mono whitespace-pre-wrap">
+                        <!-- Prompt will be inserted here -->
+                    </div>
+                    <div class="mt-3 space-y-2">
+                        <div class="flex space-x-2">
+                            <button
+                                onclick="copyPrompt()"
+                                class="flex-1 px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition"
+                            >
+                                📋 Copy
+                            </button>
+                            <button
+                                onclick="savePrompt()"
+                                class="flex-1 px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition"
+                            >
+                                💾 Save
+                            </button>
+                        </div>
+                        <button
+                            onclick="executePrompt()"
+                            class="w-full px-3 py-3 bg-purple-600 text-white rounded text-sm font-semibold hover:bg-purple-700 transition shadow-lg"
+                        >
+                            🚀 Execute with LLM
+                        </button>
+                    </div>
+                    <div id="promptStats" class="mt-2 text-xs text-gray-500">
+                        <!-- Stats will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentProject = '';
+        let sessionId = null;
+        let lastPrompt = '';
+
+        // Load projects on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            await loadProjects();
+        });
+
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+
+                const select = document.getElementById('projectSelect');
+                select.innerHTML = '<option value="">Select a project...</option>';
+
+                data.projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.name;
+                    option.textContent = project.display_name;
+                    select.appendChild(option);
+                });
+
+                // Select first project by default
+                if (data.projects.length > 0) {
+                    select.value = data.projects[0].name;
+                    currentProject = data.projects[0].name;
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+                addSystemMessage('Error loading projects. Please refresh the page.');
+            }
+        }
+
+        document.getElementById('projectSelect').addEventListener('change', (e) => {
+            currentProject = e.target.value;
+        });
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+
+            if (!message) return;
+
+            if (!currentProject) {
+                addSystemMessage('Please select a project first.');
+                return;
+            }
+
+            // Add user message to chat
+            addUserMessage(message);
+            input.value = '';
+
+            // Show typing indicator
+            const typingId = addTypingIndicator();
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        project_name: currentProject,
+                        message: message,
+                        session_id: sessionId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to process message');
+                }
+
+                const data = await response.json();
+                sessionId = data.session_id;
+                lastPrompt = data.prompt;
+
+                // Remove typing indicator
+                removeTypingIndicator(typingId);
+
+                // Add AI response
+                addAIResponse(data);
+
+                // Update blocks panel
+                updateBlocksPanel(data.blocks_used);
+
+                // Update prompt preview
+                updatePromptPreview(data.prompt, data.total_chars, data.execution_time_ms);
+
+            } catch (error) {
+                removeTypingIndicator(typingId);
+                console.error('Error:', error);
+                addSystemMessage('Error processing your message. Please try again.');
+            }
+        }
+
+        function addUserMessage(message) {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3 justify-end';
+            messageDiv.innerHTML = `
+                <div class="bg-blue-600 text-white rounded-lg p-3 max-w-md">
+                    <p class="text-sm">${escapeHtml(message)}</p>
+                </div>
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                        👤
+                    </div>
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addAIResponse(data) {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex items-start space-x-3';
+
+            const entitiesHtml = data.parsed_entities ?
+                `<div class="mt-2 text-xs text-purple-700 bg-purple-100 rounded p-2">
+                    <strong>Detected:</strong> ${formatEntities(data.parsed_entities)}
+                </div>` : '';
+
+            messageDiv.innerHTML = `
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white">
+                        🤖
+                    </div>
+                </div>
+                <div class="flex-1 bg-purple-50 rounded-lg p-3 max-w-md">
+                    <p class="text-sm text-gray-800">
+                        ✅ Built your prompt with <strong>${data.blocks_used.length} blocks</strong>
+                    </p>
+                    ${entitiesHtml}
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const container = document.getElementById('messagesContainer');
+            const id = 'typing-' + Date.now();
+            const messageDiv = document.createElement('div');
+            messageDiv.id = id;
+            messageDiv.className = 'flex items-start space-x-3';
+            messageDiv.innerHTML = `
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center text-white">
+                        🤖
+                    </div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-3">
+                    <div class="flex space-x-1">
+                        <span class="typing-indicator"></span>
+                        <span class="typing-indicator" style="animation-delay: 0.2s"></span>
+                        <span class="typing-indicator" style="animation-delay: 0.4s"></span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+            return id;
+        }
+
+        function removeTypingIndicator(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.remove();
+            }
+        }
+
+        function addSystemMessage(message) {
+            const container = document.getElementById('messagesContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-center';
+            messageDiv.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2 text-xs text-yellow-800">
+                    ${escapeHtml(message)}
+                </div>
+            `;
+            container.appendChild(messageDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateBlocksPanel(blocks) {
+            const panel = document.getElementById('blocksPanel');
+            const list = document.getElementById('blocksList');
+
+            list.innerHTML = '';
+            blocks.forEach((block, index) => {
+                const blockDiv = document.createElement('div');
+                blockDiv.className = 'block-card bg-gray-50 border border-gray-200 rounded p-2 text-sm';
+                blockDiv.innerHTML = `
+                    <div class="flex items-center space-x-2">
+                        <div class="flex-shrink-0 w-6 h-6 bg-purple-600 text-white rounded flex items-center justify-center text-xs font-bold">
+                            ${index + 1}
+                        </div>
+                        <div class="flex-1 text-gray-700">
+                            ${escapeHtml(block)}
+                        </div>
+                    </div>
+                `;
+                list.appendChild(blockDiv);
+            });
+
+            panel.classList.remove('hidden');
+        }
+
+        function updatePromptPreview(prompt, chars, time) {
+            const panel = document.getElementById('promptPanel');
+            const preview = document.getElementById('promptPreview');
+            const stats = document.getElementById('promptStats');
+
+            // Show preview (truncate if too long)
+            const maxLength = 500;
+            const displayText = prompt.length > maxLength ?
+                prompt.substring(0, maxLength) + '\n\n... [truncated]' :
+                prompt;
+
+            preview.textContent = displayText;
+            stats.textContent = `${chars} characters • ${time.toFixed(2)}ms`;
+
+            panel.classList.remove('hidden');
+        }
+
+        function copyPrompt() {
+            navigator.clipboard.writeText(lastPrompt);
+            addSystemMessage('✅ Prompt copied to clipboard!');
+        }
+
+        function savePrompt() {
+            const blob = new Blob([lastPrompt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `prompt_${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            addSystemMessage('✅ Prompt saved to file!');
+        }
+
+        function formatEntities(entities) {
+            const parts = [];
+            if (entities.scene_reference) parts.push(`Scene: ${entities.scene_reference}`);
+            if (entities.character_names) parts.push(`Characters: ${entities.character_names.join(', ')}`);
+            if (entities.buckets) parts.push(`Buckets: ${entities.buckets.join(', ')}`);
+            if (entities.topic) parts.push(`Topic: ${entities.topic}`);
+            return parts.join(' • ');
+        }
+
+        async function executePrompt() {
+            if (!lastPrompt) {
+                addSystemMessage('No prompt to execute. Please build a prompt first.');
+                return;
+            }
+
+            // Show execution type selector
+            const executionType = prompt('Choose execution type:\n\n1 = General feedback\n2 = Generate scene ideas\n3 = Analyze scene\n4 = Expert feedback\n\nEnter 1-4:', '2');
+
+            const typeMap = {
+                '1': 'general',
+                '2': 'ideas',
+                '3': 'analysis',
+                '4': 'feedback'
+            };
+
+            const execType = typeMap[executionType] || 'ideas';
+
+            // Show executing message
+            addSystemMessage('🚀 Executing prompt with LLM... This may take 10-30 seconds.');
+
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: lastPrompt,
+                        execution_type: execType,
+                        model: 'gpt-4o'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Execution failed');
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Add result as AI message
+                    const container = document.getElementById('messagesContainer');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'flex items-start space-x-3';
+                    messageDiv.innerHTML = `
+                        <div class="flex-shrink-0">
+                            <div class="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                                ✨
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-green-50 rounded-lg p-3">
+                            <p class="text-xs font-semibold text-green-700 mb-2">
+                                LLM Response (${data.model})
+                            </p>
+                            <div class="text-sm text-gray-800 whitespace-pre-wrap">
+                                ${escapeHtml(data.response)}
+                            </div>
+                            <div class="mt-2 text-xs text-green-600">
+                                ${data.tokens_used} tokens • $${data.cost_estimate.toFixed(4)} estimated
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+
+                    addSystemMessage('✅ Execution complete!');
+                } else {
+                    addSystemMessage('❌ Error: ' + data.error);
+                }
+
+            } catch (error) {
+                console.error('Execution error:', error);
+                addSystemMessage('❌ Error executing prompt. Please try again.');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
