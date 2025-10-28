@@ -1916,28 +1916,34 @@
             // Get project display name
             const displayName = document.getElementById('project-name')?.value || currentProject;
 
-            // Enhanced confirmation dialog
+            // First confirmation with all details
             const confirmed = confirm(
                 `⚠️ PERMANENTLY DELETE PROJECT?\n\n` +
-                `Project: ${displayName}\n\n` +
+                `Project: ${displayName}\n` +
+                `Folder: ${currentProject}\n\n` +
                 `This will permanently delete:\n` +
                 `• All ${scenesData.length} scenes\n` +
                 `• All ${charactersData.length} characters\n` +
                 `• All brainstorms and drafts\n` +
                 `• All project settings and notes\n\n` +
                 `THIS ACTION CANNOT BE UNDONE!\n\n` +
-                `Type the project name in the next dialog to confirm deletion.`
+                `Click OK to confirm, or Cancel to abort.`
             );
 
             if (!confirmed) {
+                showMessage('❌ Deletion cancelled', 'info');
                 return;
             }
 
-            // Second confirmation - require typing project name
-            const typedName = prompt(`To confirm deletion, please type the project name:\n"${displayName}"`);
+            // Second confirmation - require typing "DELETE" (case-insensitive)
+            const typedConfirmation = prompt(
+                `FINAL CONFIRMATION\n\n` +
+                `You are about to permanently delete: ${displayName}\n\n` +
+                `Type the word DELETE (in capital letters) to confirm:`
+            );
 
-            if (typedName !== displayName) {
-                showMessage('❌ Project name does not match. Deletion cancelled.', 'warning');
+            if (!typedConfirmation || typedConfirmation.trim() !== 'DELETE') {
+                showMessage('❌ Deletion cancelled - confirmation word did not match', 'warning');
                 return;
             }
 
@@ -1970,7 +1976,7 @@
                 }
             } catch (error) {
                 console.error('Error deleting project:', error);
-                showMessage('✗ Failed to delete project', 'error');
+                showMessage('✗ Failed to delete project: ' + error.message, 'error');
             } finally {
                 hideLoading(deleteBtn);
             }
