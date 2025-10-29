@@ -762,6 +762,29 @@
                 opacity: 1;
             }
         }
+
+        /* Active project indicator pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+            }
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 4px rgba(72, 187, 120, 0);
+            }
+        }
+
+        /* AI Control Button Styles */
+        #ai-cancel-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        #ai-cancel-btn:active {
+            transform: scale(0.98);
+        }
     </style>
 </head>
 <body>
@@ -782,11 +805,11 @@
     <div id="ai-progress-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
         <div style="background: white; padding: 40px; border-radius: 20px; max-width: 500px; text-align: center; border: 3px solid var(--color-primary);">
             <div style="font-size: 3em; margin-bottom: 20px;">🎬</div>
-            <h3 style="color: var(--color-primary); margin-bottom: 10px; font-size: 1.8em;">AI is Thinking...</h3>
+            <h3 id="ai-progress-title" style="color: var(--color-primary); margin-bottom: 10px; font-size: 1.8em;">AI is Thinking...</h3>
             <p id="ai-progress-text" style="color: #666; margin-bottom: 30px; font-size: 1.1em; font-style: italic;">Generating your romantic comedy</p>
 
             <!-- Animated thinking dots -->
-            <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+            <div id="ai-thinking-dots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
                 <div class="thinking-dot" style="animation-delay: 0s;"></div>
                 <div class="thinking-dot" style="animation-delay: 0.2s;"></div>
                 <div class="thinking-dot" style="animation-delay: 0.4s;"></div>
@@ -795,6 +818,13 @@
             <!-- Progress bar -->
             <div style="background: #f0e8e8; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 20px;">
                 <div id="ai-progress-bar" style="background: linear-gradient(90deg, var(--color-primary), #d85858); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+
+            <!-- Control buttons -->
+            <div id="ai-control-buttons" style="display: flex; gap: 12px; justify-content: center; margin-top: 30px;">
+                <button id="ai-cancel-btn" onclick="cancelGeneration()" style="padding: 12px 32px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                    ⏹️ Stop
+                </button>
             </div>
         </div>
     </div>
@@ -2104,15 +2134,77 @@
             alert('Character editor coming soon!');
         }
 
+        // Global variable to track generation abort controller
+        let generationAbortController = null;
+        let generationStageInterval = null;
+
+        // Cancel generation function
+        function cancelGeneration() {
+            if (generationAbortController) {
+                generationAbortController.abort();
+
+                // Update UI to show cancelled state
+                const progressTitle = document.getElementById('ai-progress-title');
+                const progressText = document.getElementById('ai-progress-text');
+                const thinkingDots = document.getElementById('ai-thinking-dots');
+                const progressBar = document.getElementById('ai-progress-bar');
+
+                progressTitle.textContent = 'Cancelled';
+                progressTitle.style.color = '#dc3545';
+                progressText.textContent = 'Generation stopped';
+                thinkingDots.style.display = 'none';
+                progressBar.style.background = '#dc3545';
+
+                // Clear stage interval
+                if (generationStageInterval) {
+                    clearInterval(generationStageInterval);
+                }
+
+                // Hide modal after brief delay
+                setTimeout(() => {
+                    document.getElementById('ai-progress-modal').style.display = 'none';
+
+                    // Reset UI elements
+                    progressTitle.textContent = 'AI is Thinking...';
+                    progressTitle.style.color = '';
+                    progressText.textContent = 'Generating your romantic comedy';
+                    thinkingDots.style.display = 'flex';
+                    progressBar.style.background = '';
+                    progressBar.style.width = '0%';
+
+                    // Re-enable generate button
+                    const button = document.querySelector('.btn-generate-inline');
+                    if (button) {
+                        button.disabled = false;
+                        button.textContent = '🎲 Generate Random';
+                    }
+                }, 400);
+
+                showMessage('Generation cancelled', 'error');
+            }
+        }
+
         async function generateRandomProject() {
             const button = event.target;
             button.disabled = true;
             button.textContent = '🎲 Generating...';
 
+            // Create new abort controller for this generation
+            generationAbortController = new AbortController();
+
             // Show progress modal
             const modal = document.getElementById('ai-progress-modal');
             const progressText = document.getElementById('ai-progress-text');
             const progressBar = document.getElementById('ai-progress-bar');
+            const progressTitle = document.getElementById('ai-progress-title');
+            const thinkingDots = document.getElementById('ai-thinking-dots');
+
+            // Reset UI state
+            progressTitle.textContent = 'AI is Thinking...';
+            progressTitle.style.color = '';
+            progressText.textContent = 'Generating your romantic comedy';
+            thinkingDots.style.display = 'flex';
+            progressBar.style.background = '';
             modal.style.display = 'flex';
 
             // Simulate thinking stages with progress updates
@@ -2125,7 +2217,7 @@
             ];
 
             let currentStage = 0;
-            const stageInterval = setInterval(() => {
+            generationStageInterval = setInterval(() => {
                 if (currentStage < stages.length) {
                     progressText.textContent = stages[currentStage].text;
                     progressBar.style.width = stages[currentStage].progress + '%';
@@ -2136,12 +2228,13 @@
             try {
                 const response = await fetch('/api/generate/random-romcom', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: generationAbortController.signal
                 });
 
                 const data = await response.json();
 
-                clearInterval(stageInterval);
+                clearInterval(generationStageInterval);
                 progressBar.style.width = '100%';
                 progressText.textContent = 'Complete!';
 
@@ -2171,20 +2264,37 @@
                     document.getElementById('note-comps').value = data.project.notes.comparable_films || '';
                     document.getElementById('note-inspiration').value = data.project.notes.inspiration || '';
 
-                    showMessage(`"${data.project.name}" generated! Click Save Project to create it.`, 'success');
+                    showMessage(`"${data.project.name}" generated! Saving project...`, 'success');
+
+                    // Automatically save the generated project
+                    await saveProject();
                 } else {
                     showMessage(data.error || 'Failed to generate project', 'error');
                 }
             } catch (error) {
-                clearInterval(stageInterval);
+                clearInterval(generationStageInterval);
+
+                // Check if error is due to abort
+                if (error.name === 'AbortError') {
+                    console.log('Generation cancelled by user');
+                    return; // Exit early, UI already updated by cancelGeneration()
+                }
+
                 console.error('Generation error:', error);
                 showMessage('Error generating project: ' + error.message, 'error');
             } finally {
-                // Hide modal
-                modal.style.display = 'none';
-                progressBar.style.width = '0%';
-                button.disabled = false;
-                button.textContent = '🎲 Generate Random';
+                // Only clean up if not aborted (abort cleanup handled in cancelGeneration)
+                if (!generationAbortController.signal.aborted) {
+                    // Hide modal
+                    modal.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    button.disabled = false;
+                    button.textContent = '🎲 Generate Random';
+                }
+
+                // Clear abort controller reference
+                generationAbortController = null;
+                generationStageInterval = null;
             }
         }
 

@@ -9,7 +9,11 @@ from .api_models import (
     WriterNotes,
     ChatQueryRequest,
     BatchProcessRequest,
-    SceneBlueprintRequest
+    SceneBlueprintRequest,
+    WriteSceneRequest,
+    ExportSceneRequest,
+    SceneExportInfo,
+    ExportFullScreenplayRequest
 )
 
 __all__ = [
@@ -21,5 +25,9 @@ __all__ = [
     "WriterNotes",
     "ChatQueryRequest",
     "BatchProcessRequest",
-    "SceneBlueprintRequest"
+    "SceneBlueprintRequest",
+    "WriteSceneRequest",
+    "ExportSceneRequest",
+    "SceneExportInfo",
+    "ExportFullScreenplayRequest"
 ]

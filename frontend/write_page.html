@@ -454,6 +454,18 @@
             to { opacity: 1; }
         }
 
+        /* Active project indicator pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+            }
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 4px rgba(72, 187, 120, 0);
+            }
+        }
+
         .batch-status-log .success {
             color: #87ceeb;
         }

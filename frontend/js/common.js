@@ -34,18 +34,28 @@ async function updateHeaderProjectName(projectName = null) {
         try {
             const response = await fetch(`/api/project/${project}`);
             const data = await response.json();
+            let displayName;
             if (data && data.project && data.project.name) {
-                headerDisplay.textContent = data.project.name;
+                displayName = data.project.name;
             } else {
                 // Fallback: convert underscores to spaces and title case
-                headerDisplay.textContent = project.replace(/_/g, ' ');
+                displayName = project.replace(/_/g, ' ');
             }
+            // Add active indicator with green dot
+            headerDisplay.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background: #48bb78; border-radius: 50%; margin-right: 8px; animation: pulse 2s ease-in-out infinite;"></span>${displayName}`;
+            headerDisplay.style.background = 'rgba(72, 187, 120, 0.2)';
+            headerDisplay.style.borderColor = 'rgba(72, 187, 120, 0.5)';
         } catch (error) {
             // Fallback on error
-            headerDisplay.textContent = project.replace(/_/g, ' ');
+            const displayName = project.replace(/_/g, ' ');
+            headerDisplay.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background: #48bb78; border-radius: 50%; margin-right: 8px; animation: pulse 2s ease-in-out infinite;"></span>${displayName}`;
+            headerDisplay.style.background = 'rgba(72, 187, 120, 0.2)';
+            headerDisplay.style.borderColor = 'rgba(72, 187, 120, 0.5)';
         }
     } else {
         headerDisplay.textContent = 'No project selected';
+        headerDisplay.style.background = 'rgba(255, 255, 255, 0.2)';
+        headerDisplay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
     }
 }
 
