@@ -89,3 +89,6 @@ Traceback (most recent call last):
   File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_formatter/formatter.py", line 12, in <module>
     from reportlab.pdfgen import canvas
 ModuleNotFoundError: No module named 'reportlab'
+2025-11-12 14:39:25 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love by the Numbers
+2025-11-12 14:40:39 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track
+2025-11-12 14:42:43 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track

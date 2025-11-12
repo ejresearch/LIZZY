@@ -1831,6 +1831,12 @@
                     body: JSON.stringify(projectData)
                 });
 
+                // Check if response is OK before parsing
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}`);
+                }
+
                 const result = await response.json();
                 console.log('Save result:', result);
 
@@ -2232,6 +2238,12 @@
                     signal: generationAbortController.signal
                 });
 
+                // Check if response is OK before parsing
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 200)}`);
+                }
+
                 const data = await response.json();
 
                 clearInterval(generationStageInterval);
@@ -2266,8 +2278,14 @@
 
                     showMessage(`"${data.project.name}" generated! Saving project...`, 'success');
 
+                    // Debug: Log the data being saved
+                    console.log('Generated project data:', data.project);
+                    console.log('Characters loaded:', charactersData);
+                    console.log('Scenes loaded:', scenesData);
+
                     // Automatically save the generated project
-                    await saveProject();
+                    const saveResult = await saveProject();
+                    console.log('Save completed, currentProject is now:', currentProject);
                 } else {
                     showMessage(data.error || 'Failed to generate project', 'error');
                 }
