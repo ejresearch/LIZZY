@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: lizzy
+    runtime: python
+    plan: starter
+    buildCommand: bash build.sh
+    startCommand: python servers/landing_server.py
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COHERE_API_KEY
+        sync: false
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: RAG_BUCKETS_FILE_ID
+        value: 1aaWh7ZwXgo7ZvC3haH2zMP8pjlCvx5r0
+    healthCheckPath: /api/health
