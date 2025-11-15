@@ -16,6 +16,7 @@ nano-vectordb
 # Utilities
 python-dotenv>=1.0.0
 pydantic>=2.0.0
+rich>=13.0.0
 
 # Additional dependencies
 aiofiles>=23.2.0
