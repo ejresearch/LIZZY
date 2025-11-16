@@ -568,11 +568,57 @@ function hideLoading(element) {
     delete el.dataset.originalDisabled;
 }
 
+// ===== DARK MODE =====
+
+/**
+ * Initialize dark mode based on user preference
+ */
+function initDarkMode() {
+    // Check for saved preference or system preference
+    const savedTheme = localStorage.getItem('theme');
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+    } else if (systemPrefersDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+    }
+}
+
+/**
+ * Toggle dark mode
+ */
+function toggleDarkMode() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const newTheme = current === 'dark' ? 'light' : 'dark';
+
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+}
+
+/**
+ * Get current theme
+ * @returns {string} 'light' or 'dark'
+ */
+function getCurrentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+}
+
 // ===== INITIALIZATION =====
 
 // Auto-update header on page load if element exists
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize dark mode first (before any rendering)
+    initDarkMode();
+
+    // Update project name in header
     if (document.getElementById('header-project-name')) {
         updateHeaderProjectName();
+    }
+
+    // Setup dark mode toggle button if it exists
+    const themeToggle = document.getElementById('theme-toggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', toggleDarkMode);
     }
 });
