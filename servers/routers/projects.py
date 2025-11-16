@@ -79,4 +79,4 @@ async def launch_module(launch: ModuleLaunch):
 @router.get("/health")
 async def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "service": "Lizzy 2.0 Landing Page"}
+    return {"status": "ok", "service": "Lizzy Landing Page"}

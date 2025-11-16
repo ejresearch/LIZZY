@@ -1,5 +1,5 @@
 /**
- * Common utilities shared across all Lizzy 2.0 pages
+ * Common utilities shared across all Lizzy pages
  */
 
 // ===== PROJECT MANAGEMENT =====

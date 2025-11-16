@@ -1,6 +1,6 @@
 # Prompt Studio
 
-**Block-based prompt composition system for Lizzy 2.0**
+**Block-based prompt composition system for Lizzy**
 
 ## Quick Start
 

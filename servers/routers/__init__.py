@@ -1,4 +1,4 @@
-"""API routers for Lizzy 2.0 backend."""
+"""API routers for Lizzy backend."""
 
 from .pages import router as pages_router
 from .projects import router as projects_router

@@ -1,5 +1,5 @@
 """
-Lizzy 2.0 Landing Page Server
+Lizzy Landing Page Server
 
 Clean, modular FastAPI server with separation of concerns.
 Uses routers for endpoints and services for business logic.
@@ -32,9 +32,9 @@ logger = get_logger(__name__)
 
 # Create FastAPI app
 app = FastAPI(
-    title="Lizzy 2.0 - AI Screenplay Writer",
+    title="Lizzy - AI Screenplay Writer",
     description="Backend API for Lizzy, an AI-assisted romantic comedy screenplay writing framework",
-    version="2.0.0"
+    version="1.0.0"
 )
 
 # Mount static files (CSS, JS, images)

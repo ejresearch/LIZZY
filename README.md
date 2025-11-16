@@ -1,4 +1,4 @@
-# Lizzy 2.0 - AI-Assisted Screenplay Writing Framework
+# Lizzy - AI-Assisted Screenplay Writing Framework
 
 **Complete modular system for writing feature-length screenplays with AI assistance**
 
@@ -6,7 +6,7 @@
 
 ## 🎬 What is Lizzy?
 
-Lizzy 2.0 is a complete framework for writing screenplays using AI, structured memory, and knowledge graphs. It takes you from story concept to finished screenplay prose through a modular pipeline.
+Lizzy is a complete framework for writing screenplays using AI, structured memory, and knowledge graphs. It takes you from story concept to finished screenplay prose through a modular pipeline.
 
 **The System:**
 ```
@@ -929,4 +929,4 @@ python3 examples_visualize.py
 
 ---
 
-*Lizzy 2.0 - Because every great story deserves great tools.*
+*Lizzy - Because every great story deserves great tools.*

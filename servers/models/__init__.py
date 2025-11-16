@@ -1,4 +1,4 @@
-"""API models for Lizzy 2.0 backend."""
+"""API models for Lizzy backend."""
 
 from .api_models import (
     ProjectStatus,

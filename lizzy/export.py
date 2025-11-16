@@ -146,7 +146,7 @@ class ScreenplayExporter:
 
 
                                                     Generated: {date}
-                                                    Via Lizzy 2.0
+                                                    Via Lizzy
 """
         return title_page
 
@@ -205,7 +205,7 @@ class ScreenplayExporter:
         if logline:
             lines.append(f"> {logline}\n\n")
 
-        lines.append(f"*Generated: {datetime.now().strftime('%B %d, %Y')} via Lizzy 2.0*\n\n")
+        lines.append(f"*Generated: {datetime.now().strftime('%B %d, %Y')} via Lizzy*\n\n")
         lines.append("---\n\n")
 
         # Scenes
