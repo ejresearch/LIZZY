@@ -63,7 +63,9 @@ class ProjectService:
 
     def get_project_status(self, project_name: str) -> Dict:
         """Get completion status for a project."""
-        db_path = self.projects_dir / project_name / f"{project_name}.db"
+        # Sanitize project name for filesystem lookup
+        sanitized_name = StartModule._sanitize_name(project_name)
+        db_path = self.projects_dir / sanitized_name / f"{sanitized_name}.db"
 
         if not db_path.exists():
             raise ValueError(f"Project '{project_name}' not found")
@@ -105,7 +107,7 @@ class ProjectService:
             status["steps"]["write"] = draft_count > 0
 
             # Check export (has files in exports/)
-            exports_dir = self.projects_dir / project_name / "exports"
+            exports_dir = self.projects_dir / sanitized_name / "exports"
             if exports_dir.exists():
                 export_files = list(exports_dir.glob("*"))
                 status["steps"]["export"] = len(export_files) > 0
@@ -114,7 +116,9 @@ class ProjectService:
 
     def get_project(self, project_name: str) -> Dict:
         """Get full project details including characters, scenes, notes."""
-        db_path = self.projects_dir / project_name / f"{project_name}.db"
+        # Sanitize project name for filesystem lookup
+        sanitized_name = StartModule._sanitize_name(project_name)
+        db_path = self.projects_dir / sanitized_name / f"{sanitized_name}.db"
 
         if not db_path.exists():
             raise ValueError(f"Project '{project_name}' not found")

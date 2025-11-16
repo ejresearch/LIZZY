@@ -10,6 +10,7 @@ from ..config import config
 from ..logging_config import get_logger
 from lizzy.database import Database
 from lizzy.write import WriteModule
+from lizzy.start import StartModule
 from lizzy.exceptions import (
     ProjectNotFoundError,
     SceneNotFoundError,
@@ -29,7 +30,9 @@ class WriteService:
 
     def _get_db_path(self, project_name: str) -> Path:
         """Get database path for a project."""
-        db_path = config.get_project_db_path(project_name)
+        # Sanitize project name for filesystem lookup
+        sanitized_name = StartModule._sanitize_name(project_name)
+        db_path = config.get_project_db_path(sanitized_name)
         if not db_path.exists():
             raise ProjectNotFoundError(project_name)
         return db_path
@@ -112,7 +115,9 @@ class WriteService:
             Dict with success status and draft details
         """
         try:
-            writer = WriteModule(project_name)
+            # Sanitize project name for filesystem lookup
+            sanitized_name = StartModule._sanitize_name(project_name)
+            writer = WriteModule(sanitized_name)
 
             # Load scene context (includes blueprint from brainstorm)
             context = writer.load_scene_context(scene_number)
@@ -175,7 +180,9 @@ class WriteService:
             Dict with success status and list of drafts
         """
         try:
-            writer = WriteModule(project_name)
+            # Sanitize project name for filesystem lookup
+            sanitized_name = StartModule._sanitize_name(project_name)
+            writer = WriteModule(sanitized_name)
             drafts = writer.get_all_drafts(scene_number)
 
             return {
@@ -221,7 +228,9 @@ class WriteService:
             Dict with success status and file details
         """
         try:
-            writer = WriteModule(project_name)
+            # Sanitize project name for filesystem lookup
+            sanitized_name = StartModule._sanitize_name(project_name)
+            writer = WriteModule(sanitized_name)
 
             # Get the draft
             drafts = writer.get_all_drafts(scene_number)
@@ -285,7 +294,9 @@ class WriteService:
             Dict with success status and file details
         """
         try:
-            writer = WriteModule(project_name)
+            # Sanitize project name for filesystem lookup
+            sanitized_name = StartModule._sanitize_name(project_name)
+            writer = WriteModule(sanitized_name)
 
             # Collect all scene drafts
             all_content = []
