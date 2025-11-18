@@ -18,6 +18,8 @@
 }
 
 :root {
+    color-scheme: light;
+
     /* Color Variables - Refined Modern Palette */
     --color-primary: #DC3545;
     --color-primary-dark: #C82333;
