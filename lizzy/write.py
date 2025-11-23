@@ -200,7 +200,7 @@ class WriteModule:
     async def generate_draft(
         self,
         context: SceneContext,
-        model: str = "gpt-4o",
+        model: str = "gpt-5",
         target_words: int = 800
     ) -> Draft:
         """
@@ -378,8 +378,8 @@ Write the complete scene now in proper screenplay format:
     def _estimate_cost(self, model: str, tokens: int) -> float:
         """Estimate cost based on model and tokens"""
         cost_per_1m = {
-            "gpt-4o": 10.0,
-            "gpt-4o-mini": 0.40,
+            "gpt-5": 10.0,
+            "gpt-5.1": 0.40,
         }
 
         rate = cost_per_1m.get(model, 10.0)

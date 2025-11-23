@@ -39,7 +39,7 @@ class PromptExecutor:
     async def execute(
         self,
         prompt: str,
-        model: str = "gpt-4o",
+        model: str = "gpt-5",
         temperature: float = 0.7,
         max_tokens: int = 2000,
         system_message: Optional[str] = None
@@ -49,7 +49,7 @@ class PromptExecutor:
 
         Args:
             prompt: The assembled prompt from Prompt Studio
-            model: Which model to use (gpt-4o, gpt-4o-mini, etc.)
+            model: Which model to use (gpt-5, gpt-5.1, etc.)
             temperature: Creativity (0.0-1.0)
             max_tokens: Maximum response length
             system_message: Optional system message
@@ -107,17 +107,17 @@ Provide detailed, actionable feedback based on the context provided."""
         Estimate cost based on model and tokens.
 
         Rough estimates (as of 2025):
-        - gpt-4o: $5/1M input, $15/1M output (average ~$10/1M)
-        - gpt-4o-mini: $0.15/1M input, $0.60/1M output (average ~$0.40/1M)
+        - gpt-5: $5/1M input, $15/1M output (average ~$10/1M)
+        - gpt-5.1: $0.15/1M input, $0.60/1M output (average ~$0.40/1M)
         """
         cost_per_1m = {
-            "gpt-4o": 10.0,
-            "gpt-4o-mini": 0.40,
+            "gpt-5": 10.0,
+            "gpt-5.1": 0.40,
             "gpt-4-turbo": 10.0,
             "gpt-3.5-turbo": 0.50,
         }
 
-        rate = cost_per_1m.get(model, 10.0)  # Default to gpt-4o rate
+        rate = cost_per_1m.get(model, 10.0)  # Default to gpt-5 rate
         return (tokens / 1_000_000) * rate
 
 
@@ -135,7 +135,7 @@ class BrainstormExecutor:
     async def generate_scene_ideas(
         self,
         prompt: str,
-        model: str = "gpt-4o",
+        model: str = "gpt-5",
         num_ideas: int = 3
     ) -> ExecutionResult:
         """
@@ -171,7 +171,7 @@ Be specific and actionable."""
     async def analyze_scene(
         self,
         prompt: str,
-        model: str = "gpt-4o"
+        model: str = "gpt-5"
     ) -> ExecutionResult:
         """
         Analyze a scene based on Prompt Studio context.
@@ -206,7 +206,7 @@ Be detailed and reference specific story elements."""
         self,
         prompt: str,
         focus_area: str,
-        model: str = "gpt-4o"
+        model: str = "gpt-5"
     ) -> ExecutionResult:
         """
         Get expert feedback on a specific aspect.

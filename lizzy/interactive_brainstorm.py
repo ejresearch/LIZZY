@@ -1,19 +1,13 @@
 """
-Interactive Brainstorm - Context-Aware Micro-Search Engine
-
-Allows writers to explore knowledge graphs with full project context:
-- Characters, scenes, writer notes loaded automatically
-- Query multiple buckets (plays, scripts, books)
-- Context-enhanced queries using project metadata
-- Intelligent AI synthesis across buckets
-- Save insights back to project
+Interactive Brainstorm - Context-aware knowledge graph exploration.
 """
 
 import asyncio
+import os
 from pathlib import Path
 from typing import List, Dict, Optional
 from lightrag import LightRAG, QueryParam
-from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+from lightrag.llm.openai import openai_embed
 from openai import AsyncOpenAI
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
@@ -24,6 +18,33 @@ from .database import Database
 from .reranker import CohereReranker
 
 console = Console()
+
+
+# Custom GPT-5-mini completion function for LightRAG
+async def gpt_5_mini_complete(
+    prompt: str,
+    system_prompt: str = None,
+    history_messages: list = None,
+    **kwargs
+) -> str:
+    """GPT-5-mini completion function compatible with LightRAG."""
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+
+    response = await client.chat.completions.create(
+        model="gpt-5.1",
+        messages=messages,
+        temperature=kwargs.get("temperature", 0.7),
+        max_tokens=kwargs.get("max_tokens", 2000)
+    )
+
+    return response.choices[0].message.content
 
 
 class InteractiveBrainstorm:
@@ -328,7 +349,7 @@ Extract insights from the conversation and organize them into this structure. Us
         try:
             client = AsyncOpenAI()
             response = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.5,
                 max_tokens=1500
@@ -412,7 +433,7 @@ Provide 3 specific, actionable follow-up questions (one per line, no numbering):
         try:
             client = AsyncOpenAI()
             result = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.1",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.7,
                 max_tokens=150
@@ -459,7 +480,7 @@ Provide 3 specific, actionable follow-up questions (one per line, no numbering):
                 rag = LightRAG(
                     working_dir=str(bucket_path),
                     embedding_func=openai_embed,
-                    llm_model_func=gpt_4o_mini_complete,
+                    llm_model_func=gpt_5_mini_complete,
                 )
 
                 # Initialize storage before querying
@@ -929,7 +950,7 @@ Always cite which source (books/plays/scripts) your information comes from."""
         try:
             client = AsyncOpenAI()
             response = await client.chat.completions.create(
-                model="gpt-4o",  # Using GPT-4o for better quality
+                model="gpt-5",  # Using GPT-4o for better quality
                 messages=messages,
                 temperature=0.7,
                 max_tokens=1000

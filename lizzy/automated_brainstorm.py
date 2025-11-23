@@ -1,21 +1,14 @@
 """
-Automated Brainstorm - Batch Scene Generation
-
-Processes all 30 scenes from the beat sheet, querying expert knowledge buckets
-for each scene and synthesizing golden-age romantic comedy insights.
-
-Each bucket acts as an expert consultant:
-- Books: Screenplay theory and structure
-- Plays: Classical dramatic wisdom
-- Scripts: Modern romantic comedy execution
+Automated Brainstorm - Batch scene generation with expert knowledge graph consultation.
 """
 
 import asyncio
+import os
 from pathlib import Path
 from typing import List, Dict, Optional
 from datetime import datetime
 from lightrag import LightRAG, QueryParam
-from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+from lightrag.llm.openai import openai_embed
 from openai import AsyncOpenAI
 from rich.console import Console
 from rich.prompt import Prompt, Confirm
@@ -27,6 +20,33 @@ from .database import Database
 from .reranker import CohereReranker
 
 console = Console()
+
+
+# Custom GPT-5-mini completion function for LightRAG
+async def gpt_5_1_complete(
+    prompt: str,
+    system_prompt: str = None,
+    history_messages: list = None,
+    **kwargs
+) -> str:
+    """GPT-5.1 completion function compatible with LightRAG."""
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+
+    response = await client.chat.completions.create(
+        model="gpt-5.1",
+        messages=messages,
+        temperature=kwargs.get("temperature", 0.7),
+        max_completion_tokens=kwargs.get("max_tokens", 2000)
+    )
+
+    return response.choices[0].message.content
 
 
 class AutomatedBrainstorm:
@@ -54,18 +74,66 @@ class AutomatedBrainstorm:
         self.scenes = []
         self.writer_notes = None
 
-        # Buckets - always use all three for golden age romcom
+        # Buckets - always use all three
         self.bucket_dir = Path("./rag_buckets")
         self.buckets = ["books", "plays", "scripts"]
-
-        # Tone
-        self.tone = "Golden Age Romantic Comedy"
 
         # Initialize reranker
         self.reranker = CohereReranker()
 
         # IMPROVEMENT #16: Store confidence scores
         self.scene_confidence_scores = {}
+
+        # Cached context (built once in load_project_context)
+        self._story_outline = None
+
+        # Romantic comedy structural framework
+        self._romcom_framework = """ROMANTIC COMEDY FRAMEWORK:
+(Draw from these loosely as inspiration, not as rigid requirements)
+
+TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
+Cozy and romantic. Stakes feel enormous but are really about identity and connection.
+The audience thinks: "That could be me, if my life were a little more magical."
+
+STRUCTURE (common patterns):
+- Two protagonists with complementary flaws who resist connection
+- Central question: Will they end up together? (audience knows yes, tension is how)
+- Arc: Meet → Resist → Connect → Crisis (all seems lost) → Realization → Union
+- The grand gesture or public declaration
+- Racing to catch them before it's too late
+
+COMEDY SOURCES (mix and match):
+- Situational irony and misunderstanding
+- Witty banter and verbal sparring
+- Relatable awkwardness and vulnerability
+- Fish-out-of-water moments
+- The well-meaning but chaotic best friend
+- Embarrassing family or coworkers
+- Plans that go spectacularly wrong
+- Overheard conversations, wrong conclusions
+
+ROMANCE SOURCES (moments to build):
+- Vulnerability and emotional honesty
+- Small moments of recognition and care
+- Transformation through love (becoming who they're meant to be)
+- The almost-kiss, the loaded glance, the thing left unsaid
+- Helping each other without being asked
+- Seeing each other clearly when no one else does
+- The quiet moment after the chaos
+- Rain, rooftops, string lights, golden hour
+
+EMOTIONAL ENGINE (internal and external):
+- Internal fears: not good enough, don't deserve love, can't change, fear of rejection
+- External obstacles: timing, circumstances, rival, career vs. love, geography, secrets
+- The lie they tell themselves vs. the truth they need to learn
+- What they want vs. what they need
+- Pride getting in the way"""
+
+        # Reusable LightRAG instances (initialized once per bucket)
+        self._rag_instances = {}
+
+        # Cached delta summaries {scene_number: delta_text}
+        self._delta_cache = {}
 
     def load_project_context(self) -> None:
         """Load all project context from database."""
@@ -103,6 +171,35 @@ class AutomatedBrainstorm:
             self.writer_notes = self.db.get_writer_notes()
         except Exception:
             self.writer_notes = None
+
+        # Cache story outline (built once, used for all queries)
+        self._story_outline = self.build_story_outline()
+
+        # RAG instances are lazy-loaded in _get_rag_instance() to avoid shared state conflicts
+
+    def _get_rag_instance(self, bucket_name: str) -> Optional[LightRAG]:
+        """
+        Get or create a LightRAG instance for a bucket (lazy loading).
+
+        Args:
+            bucket_name: Name of the bucket
+
+        Returns:
+            LightRAG instance or None if bucket doesn't exist
+        """
+        if bucket_name in self._rag_instances:
+            return self._rag_instances[bucket_name]
+
+        bucket_path = self.bucket_dir / bucket_name
+        if not bucket_path.exists():
+            return None
+
+        self._rag_instances[bucket_name] = LightRAG(
+            working_dir=str(bucket_path),
+            embedding_func=openai_embed,
+            llm_model_func=gpt_5_1_complete,
+        )
+        return self._rag_instances[bucket_name]
 
     def build_story_outline(self) -> str:
         """
@@ -230,7 +327,7 @@ class AutomatedBrainstorm:
         try:
             client = AsyncOpenAI()
             response = await client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-5.1",
                 messages=[{
                     "role": "user",
                     "content": f"""Compress this scene blueprint into a 250-token DELTA SUMMARY.
@@ -262,38 +359,34 @@ Provide a tight, bullet-point summary (250 tokens max) focusing on CHANGES and M
 
     def _get_scene_delta_summary(self, scene: Dict) -> Optional[str]:
         """
-        Get or generate delta summary for a scene.
-
-        Checks database for cached delta, generates if not found.
+        Get cached delta summary for a scene.
 
         Args:
             scene: Scene dictionary
 
         Returns:
-            Delta summary or None
+            Delta summary from cache or None
         """
-        # For now, generate on-the-fly from blueprint
-        # TODO: Cache delta summaries in database for reuse
+        scene_num = scene['scene_number']
+        return self._delta_cache.get(scene_num)
+
+    async def _cache_delta_summary(self, scene: Dict) -> None:
+        """
+        Generate and cache delta summary for a scene after processing.
+
+        Args:
+            scene: Scene dictionary
+        """
+        scene_num = scene['scene_number']
+
+        # Don't regenerate if already cached
+        if scene_num in self._delta_cache:
+            return
+
         blueprint = self._get_scene_blueprint(scene['id'])
-
         if blueprint:
-            # Generate delta summary synchronously by running async function
-            import asyncio
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            if loop.is_running():
-                # If loop is running, we're already in async context
-                # This shouldn't happen but handle gracefully
-                return None
-            else:
-                delta = loop.run_until_complete(self._generate_delta_summary(scene, blueprint))
-                return delta
-
-        return None
+            delta = await self._generate_delta_summary(scene, blueprint)
+            self._delta_cache[scene_num] = delta
 
     # === IMPROVEMENT #16: Confidence Scores ===
 
@@ -555,12 +648,10 @@ Provide a tight, bullet-point summary (250 tokens max) focusing on CHANGES and M
         Returns:
             Formatted expert query
         """
-        story_outline = self.build_story_outline()
+        # Use cached context
+        story_outline = self._story_outline
         scene_chars = scene.get('characters', '') or "main characters"
         surrounding = self.get_surrounding_context(scene)
-
-        # Compressed golden-age romcom definition (~100 tokens)
-        golden_age_definition = """GOLDEN AGE ROMCOM: Nineteen-thirties to nineteen-fifties screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby."""
 
         # Metadata header
         from datetime import datetime
@@ -569,7 +660,7 @@ SCENE_ID: {scene['id']}
 SCENE_NUMBER: {scene['scene_number']}
 ACT: {scene.get('act', 'Unknown')}
 BUCKET: {bucket_name}
-MODEL: "gpt-4o-mini (LightRAG)"
+MODEL: "gpt-5.1 (LightRAG)"
 VERSION: 2.0
 PROJECT: {self.project['name'] if self.project else 'Unknown'}
 TIMESTAMP: {datetime.now().isoformat()}
@@ -593,164 +684,128 @@ Next: {surrounding['next'] or 'N/A (last scene)'}"""
         if bucket_name == "books":
             return f"""{metadata}
 
-You are a SCREENPLAY STRUCTURE AND CRAFT EXPERT consulting on a golden-age romantic comedy.
+You are a SCREENPLAY STRUCTURE AND CRAFT EXPERT.
 
-{golden_age_definition}
+{self._romcom_framework}
 
 {context_section}
 
-As a structure expert, PROPOSE how to architect this scene dramatic structure.
+As a structure expert, PROPOSE how to architect this scene.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- five to seven bullets per section
-- Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
-**DIRECTIVE:** Extend and critique the surrounding context; do not restate it.
-
-## STRUCTURAL_FUNCTION
-Propose where this scene falls structurally and what beat it must hit:
-- Three-act position and romcom beat sheet function
-- Structural purpose (setup, catalyst, midpoint reversal, crisis, climax)
-- How this advances plot threads and character arcs
-
-## BEAT_ENGINEERING
-Advise which dramatic beats must occur within this scene:
-- Essential turning points and revelations
-- Tension escalation or release mechanics
+## PLOT_PYRAMID
+Where does this scene fall in the rising/falling action:
+- Position in three-act structure (setup, rising action, midpoint, crisis, climax, resolution)
+- What beat does this scene represent (catalyst, point of no return, all is lost, etc.)
 - What must change from scene open to close
 
-## GENRE_MECHANICS
-Recommend which romcom conventions to employ or subvert:
-- Genre tropes to activate (meet-cute, obstacle, reversal, confession)
-- Balance between romance beats and comedy beats
-- Connection to overall romantic arc trajectory
+## SUBPLOT_INTEGRATION
+How do secondary storylines weave into this scene:
+- Which subplots should surface here
+- How side characters or B-stories echo or contrast the main arc
+- Connections that pay off later or set up future scenes
 
-## PACING_AND_TRANSITIONS
-Specify pacing requirements and transitions:
-- Script page length (target range)
-- Transition from previous scene (cut, dissolve, match cut)
-- Momentum creation for next scene
+## RELATIONSHIPS_AND_CHEMISTRY
+How to build connection between characters:
+- What draws these characters together or pushes them apart
+- Moments that reveal compatibility, friction, or unspoken attraction
+- How the relationship dynamic shifts within this scene
+
+## PACING_AND_MOMENTUM
+The rhythm and drive of this scene:
+- Fast, slow, or building tempo
+- Where to linger vs. move quickly
+- How this scene propels into the next
 
 Provide concrete, executable structural guidance."""
 
         elif bucket_name == "plays":
             return f"""{metadata}
 
-You are a CLASSICAL DRAMATIC THEORY EXPERT consulting on a golden-age romantic comedy.
+You are a CLASSICAL STORY PATTERNS EXPERT drawing from Shakespeare and timeless dramatic works.
 
-{golden_age_definition}
+{self._romcom_framework}
 
 {context_section}
 
-As a dramatic theory expert, PROPOSE how to craft this scene theatrical dimensions.
+As a story patterns expert, PROPOSE how this scene connects to proven dramatic archetypes.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- five to seven bullets per section
-- Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
-**DIRECTIVE:** Extend and critique the surrounding context; do not restate it.
+## STORY_ARCHETYPE
+What classic pattern does this scene draw from:
+- Which Shakespearean or classical framework applies (enemies to lovers, mistaken identity, forbidden love, battle of wills)
+- How this scene fits that archetype
+- Where to honor the pattern vs. subvert it
 
-## DIALOGUE_DYNAMICS
-Advise how to construct dialogue and subtext:
-- Subtext layers beneath surface conversation
-- Verbal sparring and wit execution
-- Power dynamic shifts through dialogue
-- Wordplay, double meanings, innuendo opportunities
+## RELATIONSHIP_DYNAMICS
+The power and vulnerability between characters:
+- Who has the upper hand, who's exposed
+- What each character wants from the other (stated and unstated)
+- How the dynamic shifts within this scene
+- The push-pull tension that creates chemistry
 
-## CHARACTER_PSYCHOLOGY
-Propose character objectives and tactics:
-- Each character scene objective (what they want)
-- Tactics to achieve objectives (how they pursue it)
-- Obstacles (internal fears, external blocks)
-- How characters mask or reveal true feelings
+## TIMELESS_TROPES
+Proven dramatic devices to deploy:
+- The overheard conversation, the interruption, the confession
+- Mistaken assumptions, secrets, dramatic irony
+- The meddling friend, the rival, the obstacle
+- Physical comedy or mishaps that reveal character
 
-## DRAMATIC_TECHNIQUE
-Recommend dramatic tools to deploy:
-- Dramatic irony opportunities to exploit
-- How secrets, lies, misunderstandings escalate
-- Central conflict or tension axis
-- Aristotelian principles (reversal, recognition, catharsis)
+## THEMATIC_UNDERCURRENT
+What this scene is really about underneath:
+- The deeper question or truth being explored
+- How surface action reflects inner conflict
+- What the audience should feel but characters won't say
 
-## EMOTIONAL_ARCHITECTURE
-Map the emotional journey:
-- Each character emotional trajectory through scene
-- How to guide audience emotions beat by beat
-- Vulnerability or truth to be revealed
-- How this deepens character relationships
-
-## STAGE_BUSINESS_AND_ACTION
-Specify physical actions and business:
-- Physical actions that enhance dramatic beats
-- Body language that contradicts or supports dialogue
-- Props or setting elements with symbolic weight
-
-Provide concrete theatrical guidance."""
+Provide concrete, pattern-based guidance."""
 
         elif bucket_name == "scripts":
             return f"""{metadata}
 
-You are a MODERN ROMANTIC COMEDY EXECUTION EXPERT consulting on a golden-age romantic comedy.
+You are a ROMCOM REFERENCE EXPERT with deep knowledge of modern romantic comedy films.
 
-{golden_age_definition}
+{self._romcom_framework}
 
 {context_section}
 
-As an execution expert, ADVISE how to execute this scene cinematically.
+As a reference expert, draw from existing romcoms to inspire and inform this scene.
 
 **OUTPUT REQUIREMENTS:**
 - Bullet points only (no paragraphs)
-- five to seven bullets per section
-- Target length: 400-800 tokens total
 - Active, specific guidance (not theoretical analysis)
 
-**DIRECTIVE:** Extend and critique the surrounding context; do not restate it.
+## COMPARABLE_SCENES
+What existing romcom scenes does this remind you of:
+- Specific scenes from films that tackle similar beats or dynamics
+- What made those scenes work
+- What can be borrowed or adapted
 
-## VISUAL_STORYTELLING
-Propose visual approach and shot design:
-- Opening image/establishing shot
-- Camera work to capture emotional dynamics
-- Visual comedy opportunities
-- Setting/location utilization
+## EXECUTION_INSPIRATION
+How did those films handle the specifics:
+- Dialogue style and rhythm
+- Visual approach and staging
+- Tone balance (comedy vs. heart)
+- Pacing and timing
 
-## PACING_AND_RHYTHM
-Specify tempo and cutting:
-- Scene tempo (fast banter, slow burn, escalating chaos)
-- Cuts and shot selection for rhythm
-- Comedic beat timing and pauses
-- How this fits overall film pacing
+## WHAT_TO_LEARN
+Lessons from films that did this well:
+- Techniques worth emulating
+- Choices that elevated the scene
+- How they made familiar beats feel fresh
 
-## ROMCOM_TROPES
-Recommend genre conventions to deploy:
-- Classic tropes to activate (meet-cute, obstacle, confession)
-- How to freshen familiar beats
-- Contemporary updates to golden-age style
-- Balance homage vs. originality
+## WHAT_TO_AVOID
+Lessons from films that missed the mark:
+- Common pitfalls for this type of scene
+- What falls flat or feels forced
+- Clichés to sidestep or reinvent
 
-## DIALOGUE_EXECUTION
-Advise on dialogue delivery and timing:
-- Dialogue speed and rhythm
-- Overlapping or rapid-fire exchanges
-- Silence and reaction shot placement
-- Screwball energy or verbal tennis requirements
-
-## PERFORMANCE_NOTES
-Specify actor direction:
-- Comedic and romantic tone targets
-- Physical comedy and timing essentials
-- Restraint vs. broadness calibration
-- Chemistry or antagonism intensity
-
-## PRACTICAL_CONSIDERATIONS
-Identify execution risks and examples:
-- Common pitfalls for this scene type
-- Classic/modern romcom examples done well
-- Technical or budget concerns
-
-Provide concrete execution guidance."""
+Provide concrete, reference-based guidance."""
 
         else:
             # Fallback (shouldn't happen)
@@ -771,9 +826,9 @@ Provide concrete execution guidance."""
         Returns:
             Result dictionary or None
         """
-        bucket_path = self.bucket_dir / bucket_name
-
-        if not bucket_path.exists():
+        # Get or create RAG instance (lazy loading)
+        rag = self._get_rag_instance(bucket_name)
+        if not rag:
             console.print(f"[yellow]⚠️  Bucket '{bucket_name}' not found[/yellow]")
             return None
 
@@ -781,13 +836,7 @@ Provide concrete execution guidance."""
             # Build expert query
             query = self.build_expert_query(scene, bucket_name)
 
-            # Initialize LightRAG
-            rag = LightRAG(
-                working_dir=str(bucket_path),
-                embedding_func=openai_embed,
-                llm_model_func=gpt_4o_mini_complete,
-            )
-
+            # Initialize storages (only does work on first call)
             await rag.initialize_storages()
 
             # Query with hybrid mode
@@ -844,19 +893,17 @@ SCENE_ID: {scene['id']}
 SCENE_NUMBER: {scene['scene_number']}
 ACT: {scene.get('act', 'Unknown')}
 BUCKET: synthesis
-MODEL: "gpt-4o"
+MODEL: "gpt-5"
 VERSION: 2.0
 PROJECT: {self.project['name'] if self.project else 'Unknown'}
 TIMESTAMP: {datetime.now().isoformat()}
 ---"""
 
-        golden_age_desc = "GOLDEN AGE ROMCOM: Nineteen-thirties to nineteen-fifties screwball/romantic comedies featuring witty rapid-fire dialogue, class conflict, physical comedy, strong independent leads (esp. female), misunderstandings, sophisticated sexual tension (Production Code era). Reference: His Girl Friday, Philadelphia Story, It Happened One Night, Bringing Up Baby."
-
         system_prompt = f"""{metadata}
 
-You are a MASTER SCREENPLAY CONSULTANT synthesizing expert advice for a golden-age romantic comedy.
+You are a MASTER SCREENPLAY CONSULTANT synthesizing expert advice.
 
-{golden_age_desc}
+{self._romcom_framework}
 
 STORY CONTEXT:
 {story_outline}
@@ -872,67 +919,54 @@ Previous: {surrounding["previous"] or "N/A"}
 Next: {surrounding["next"] or "N/A"}
 
 THREE EXPERT CONSULTATIONS:
-1. **BOOKS (Structure Expert)** - Screenplay craft, beat engineering, act mechanics
-2. **PLAYS (Dramatic Theory Expert)** - Dialogue, subtext, character psychology, theatrical technique
-3. **SCRIPTS (Execution Expert)** - Visual storytelling, pacing, performance, modern romcom execution
+1. **BOOKS (Structure Expert)** - Plot pyramid, subplot integration, relationships, pacing
+2. **PLAYS (Story Patterns Expert)** - Shakespearean archetypes, timeless tropes, thematic undercurrent
+3. **SCRIPTS (Reference Expert)** - Comparable scenes from romcoms, execution inspiration, what to learn/avoid
 
 YOUR TASK:
-Synthesize all three perspectives into ONE comprehensive, actionable scene blueprint.
+Synthesize all three perspectives into ONE actionable scene blueprint.
 
 **SYNTHESIS DIRECTIVE:**
-- If experts disagree, prioritize cinematic clarity and character truth
-- Reference expert insights directly (e.g., "Books expert notes...", "Scripts suggests...")
-- Bullet points only (five to seven per section)
-- Target length: 800-1200 tokens total
+- Weave together structure, pattern, and reference insights
+- If experts disagree, prioritize character truth and emotional clarity
+- Bullet points only (no paragraphs)
 
 OUTPUT FORMAT (use these exact sections):
 
 ## SCENE_BLUEPRINT
 
-### EXECUTIVE_SUMMARY
-[Three to five sentence overview of this scene purpose and execution approach]
+### SUMMARY
+What this scene needs to accomplish and how to approach it (3-5 sentences)
 
-### STRUCTURAL_FUNCTION
-- What this scene accomplishes in overall story
-- Which beat/turning point it represents
-- How it advances plot and character arcs
+### STRUCTURE_AND_PACING
+- Where this falls in the story arc
+- What must change from open to close
+- Subplot threads to weave in
+- Tempo and momentum
 
-### DRAMATIC_BEATS
-- Opening state/situation
-- Key turning points within scene
-- Closing state and what has changed
-- Transition to next scene
+### ARCHETYPE_AND_TROPES
+- Which classic pattern this scene draws from
+- Timeless devices to deploy (dramatic irony, the interruption, the reveal)
+- How to honor the pattern while keeping it fresh
 
-### DIALOGUE_AND_SUBTEXT
-- Tone and pacing of dialogue
-- Surface vs. hidden meaning
-- Wordplay, wit, verbal sparring opportunities
-- Power dynamics and objectives
+### RELATIONSHIP_DYNAMICS
+- Power balance and vulnerability
+- What draws characters together or apart
+- The push-pull that creates chemistry
+- How the dynamic shifts within the scene
 
-### VISUAL_AND_STAGING
-- Opening image/establishing shot
-- Key visual moments or physical comedy
-- Camera approach and shot selection
-- Setting/location utilization
+### REFERENCE_POINTS
+- Comparable scenes from existing romcoms
+- What those scenes did well
+- Techniques worth borrowing
+- Clichés to avoid
 
-### CHARACTER_PSYCHOLOGY
-- Each character objective and tactics
-- Emotional journey through scene
-- Vulnerability or growth moments
-- Relationship dynamics
+### THEMATIC_CORE
+- What this scene is really about underneath
+- The emotional truth to convey
+- What the audience should feel
 
-### GOLDEN_AGE_EXECUTION
-- Screwball/romcom tropes to employ
-- Balance wit and physical comedy
-- Sexual tension or romantic chemistry notes
-- Classic film references or inspirations
-
-### PITFALLS_TO_AVOID
-- Common mistakes for this scene type
-- What could fall flat or feel forced
-- Tonal concerns
-
-Be SPECIFIC, CONCRETE, ACTIONABLE. Reference expert insights directly."""
+Be SPECIFIC, CONCRETE, ACTIONABLE."""
 
         # Combine bucket results
         expert_context = "\n\n".join([
@@ -944,7 +978,7 @@ Be SPECIFIC, CONCRETE, ACTIONABLE. Reference expert insights directly."""
         try:
             client = AsyncOpenAI()
             response = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"{expert_context}\n\n---\n\nSynthesize these three expert perspectives into a comprehensive scene blueprint using the exact format specified."}
@@ -977,13 +1011,14 @@ Be SPECIFIC, CONCRETE, ACTIONABLE. Reference expert insights directly."""
 
         progress.update(task_id, description=f"Scene {scene_num}: {scene_title}")
 
-        # Query all three buckets
-        bucket_results = []
+        # Query all three buckets in parallel
+        results = await asyncio.gather(
+            *[self.query_bucket_for_scene(scene, bucket) for bucket in self.buckets],
+            return_exceptions=True
+        )
 
-        for bucket in self.buckets:
-            result = await self.query_bucket_for_scene(scene, bucket)
-            if result:
-                bucket_results.append(result)
+        # Filter successful results
+        bucket_results = [r for r in results if r and not isinstance(r, Exception)]
 
         # Synthesize insights
         if bucket_results:
@@ -995,6 +1030,9 @@ Be SPECIFIC, CONCRETE, ACTIONABLE. Reference expert insights directly."""
 
             # Save to database
             self._save_brainstorm_session(scene, bucket_results, synthesized)
+
+            # Cache delta summary for next scene's context
+            await self._cache_delta_summary(scene)
 
             progress.update(task_id, advance=1)
 

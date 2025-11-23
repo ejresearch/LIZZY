@@ -1,18 +1,45 @@
 """
 Bucket Manager - Create and populate LightRAG buckets.
-
-Simple, working functions following the official LightRAG pattern.
 """
 
 import asyncio
+import os
 from pathlib import Path
 from typing import List
 from lightrag import LightRAG
-from lightrag.llm.openai import gpt_4o_mini_complete, openai_embed
+from lightrag.llm.openai import openai_embed
 from lightrag.kg.shared_storage import initialize_pipeline_status
 from lightrag.utils import setup_logger
+from openai import AsyncOpenAI
 
 setup_logger("lightrag", level="INFO")
+
+
+# Custom GPT-5-mini completion function for LightRAG
+async def gpt_5_1_complete(
+    prompt: str,
+    system_prompt: str = None,
+    history_messages: list = None,
+    **kwargs
+) -> str:
+    """GPT-5.1 completion function compatible with LightRAG."""
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+
+    response = await client.chat.completions.create(
+        model="gpt-5.1",
+        messages=messages,
+        temperature=kwargs.get("temperature", 0.7),
+        max_completion_tokens=kwargs.get("max_tokens", 2000)
+    )
+
+    return response.choices[0].message.content
 
 
 async def create_bucket(bucket_name: str, bucket_dir: Path) -> LightRAG:
@@ -39,7 +66,7 @@ async def create_bucket(bucket_name: str, bucket_dir: Path) -> LightRAG:
     rag = LightRAG(
         working_dir=str(bucket_dir),
         embedding_func=openai_embed,
-        llm_model_func=gpt_4o_mini_complete,
+        llm_model_func=gpt_5_1_complete,
     )
 
     # CRITICAL: Both initialization calls required!

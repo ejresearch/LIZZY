@@ -1,14 +1,39 @@
 """
-RAG-based blocks for Prompt Studio
-
-These blocks query LightRAG knowledge graph buckets.
+RAG-based blocks for Prompt Studio - query LightRAG knowledge graph buckets.
 """
 
 import os
 from typing import Optional, List
 from lightrag import LightRAG, QueryParam
-from lightrag.llm.openai import gpt_4o_mini_complete
+from openai import AsyncOpenAI
 from .base import Block
+
+
+# Custom GPT-5-mini completion function for LightRAG
+async def gpt_5_1_complete(
+    prompt: str,
+    system_prompt: str = None,
+    history_messages: list = None,
+    **kwargs
+) -> str:
+    """GPT-5.1 completion function compatible with LightRAG."""
+    client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    if history_messages:
+        messages.extend(history_messages)
+    messages.append({"role": "user", "content": prompt})
+
+    response = await client.chat.completions.create(
+        model="gpt-5.1",
+        messages=messages,
+        temperature=kwargs.get("temperature", 0.7),
+        max_completion_tokens=kwargs.get("max_tokens", 2000)
+    )
+
+    return response.choices[0].message.content
 
 
 class BooksQueryBlock(Block):
@@ -32,7 +57,7 @@ class BooksQueryBlock(Block):
         # Initialize LightRAG
         rag = LightRAG(
             working_dir=bucket_path,
-            llm_model_func=gpt_4o_mini_complete
+            llm_model_func=gpt_5_1_complete
         )
 
         # Query
@@ -80,7 +105,7 @@ class PlaysQueryBlock(Block):
 
         rag = LightRAG(
             working_dir=bucket_path,
-            llm_model_func=gpt_4o_mini_complete
+            llm_model_func=gpt_5_1_complete
         )
 
         result = rag.query(
@@ -127,7 +152,7 @@ class ScriptsQueryBlock(Block):
 
         rag = LightRAG(
             working_dir=bucket_path,
-            llm_model_func=gpt_4o_mini_complete
+            llm_model_func=gpt_5_1_complete
         )
 
         result = rag.query(

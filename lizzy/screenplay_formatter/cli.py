@@ -184,7 +184,7 @@ def diff(input_file: str, reference_file: str, show_all: bool):
 @click.argument('input_file', type=click.Path(exists=True))
 @click.option('--output', '-o', type=click.Path(), help='Output file for fixed screenplay')
 @click.option('--dry-run', is_flag=True, help='Preview fixes without applying them')
-@click.option('--model', default='gpt-4o-mini', help='OpenAI model to use')
+@click.option('--model', default='gpt-5.1', help='OpenAI model to use')
 @click.option('--confidence', type=float, default=0.8, help='Minimum confidence for auto-apply')
 @click.option('--audit', type=click.Path(), help='Export audit log to JSON file')
 @click.option('--strict', is_flag=True, help='Use strict validation mode')

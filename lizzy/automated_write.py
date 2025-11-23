@@ -279,8 +279,8 @@ Write the scene now:
         """Estimate cost based on model and tokens"""
         # GPT-4o pricing (as of 2025)
         cost_per_1m = {
-            "gpt-4o": 2.50,  # Input: $2.50/1M, Output: $10/1M (average ~$5/1M)
-            "gpt-4o-mini": 0.15,  # Input: $0.15/1M, Output: $0.60/1M (average ~$0.30/1M)
+            "gpt-5": 2.50,  # Input: $2.50/1M, Output: $10/1M (average ~$5/1M)
+            "gpt-5.1": 0.15,  # Input: $0.15/1M, Output: $0.60/1M (average ~$0.30/1M)
         }
 
         rate = cost_per_1m.get(model, 5.0)
@@ -289,7 +289,7 @@ Write the scene now:
     async def generate_scene_draft(
         self,
         scene: Dict,
-        model: str = "gpt-4o",
+        model: str = "gpt-5",
         target_words: int = 800
     ) -> Dict:
         """
@@ -383,7 +383,7 @@ Write the scene now:
     async def process_all_scenes(
         self,
         scene_range: Optional[tuple] = None,
-        model: str = "gpt-4o"
+        model: str = "gpt-5"
     ):
         """
         Process all scenes in sequence (feed-forward).
@@ -542,8 +542,8 @@ async def main():
 
     # Choose model
     console.print("\n[bold cyan]Model Options:[/bold cyan]")
-    console.print("1. gpt-4o (higher quality, ~$0.015/scene)")
-    console.print("2. gpt-4o-mini (faster/cheaper, ~$0.001/scene)")
+    console.print("1. gpt-5 (higher quality, ~$0.015/scene)")
+    console.print("2. gpt-5.1 (faster/cheaper, ~$0.001/scene)")
 
     model_choice = Prompt.ask(
         "\nChoose model",
@@ -551,7 +551,7 @@ async def main():
         default="1"
     )
 
-    model = "gpt-4o" if model_choice == "1" else "gpt-4o-mini"
+    model = "gpt-5" if model_choice == "1" else "gpt-5.1"
 
     # Estimate cost
     if scene_range:
@@ -559,7 +559,7 @@ async def main():
     else:
         num_scenes = len(writer.scenes)
 
-    est_cost = num_scenes * (0.015 if model == "gpt-4o" else 0.001)
+    est_cost = num_scenes * (0.015 if model == "gpt-5" else 0.001)
 
     console.print(f"\n[yellow]Estimated cost: ${est_cost:.2f} for {num_scenes} scenes[/yellow]")
 

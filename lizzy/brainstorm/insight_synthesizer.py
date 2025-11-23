@@ -124,7 +124,7 @@ SCENE_ID: {scene['id']}
 SCENE_NUMBER: {scene['scene_number']}
 ACT: {scene.get('act', 'Unknown')}
 BUCKET: synthesis
-MODEL: "gpt-4o"
+MODEL: "gpt-5"
 VERSION: 2.0
 PROJECT: {self.project['name'] if self.project else 'Unknown'}
 TIMESTAMP: {datetime.now().isoformat()}
@@ -224,7 +224,7 @@ Be SPECIFIC, CONCRETE, ACTIONABLE. Reference expert insights directly."""
         try:
             client = AsyncOpenAI()
             response = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"{expert_context}\n\n---\n\nSynthesize these three expert perspectives into a comprehensive scene blueprint using the exact format specified."}

@@ -57,7 +57,7 @@ class LLMCorrector:
 
     def __init__(self,
                  api_key: Optional[str] = None,
-                 model: str = "gpt-4o-mini",
+                 model: str = "gpt-5.1",
                  temperature: float = 0.0,
                  top_p: float = 0.1,
                  min_confidence: float = 0.8,

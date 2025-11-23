@@ -29,7 +29,7 @@ class ConfigManager:
         # Return default config
         return {
             'openai_api_key': None,
-            'default_model': 'gpt-4o-mini',
+            'default_model': 'gpt-5.1',
             'default_confidence': 0.8,
             'strict_validation': False
         }
@@ -70,7 +70,7 @@ class ConfigManager:
 
     def get_default_model(self) -> str:
         """Get default OpenAI model."""
-        return self._config.get('default_model', 'gpt-4o-mini')
+        return self._config.get('default_model', 'gpt-5.1')
 
     def set_default_confidence(self, confidence: float):
         """Set default confidence threshold."""
@@ -118,7 +118,7 @@ class ConfigManager:
         """Reset configuration to defaults."""
         self._config = {
             'openai_api_key': None,
-            'default_model': 'gpt-4o-mini',
+            'default_model': 'gpt-5.1',
             'default_confidence': 0.8,
             'strict_validation': False
         }

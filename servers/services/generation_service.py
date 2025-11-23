@@ -60,7 +60,7 @@ Return ONLY valid JSON with this exact structure:
 Create exactly 4-6 well-developed characters and 30 scenes following the standard romantic comedy beat sheet structure (Act 1: scenes 1-6, Act 2: scenes 7-24, Act 3: scenes 25-30). Make it fresh, funny, and emotionally resonant."""
 
             response = self.client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5",
                 messages=[
                     {"role": "system", "content": "You are an expert romantic comedy screenwriter. Generate creative, emotionally resonant story concepts."},
                     {"role": "user", "content": prompt}
