@@ -15,14 +15,34 @@ Flow:
 import os
 import json
 import asyncio
+import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, AsyncGenerator
 from datetime import datetime
 from openai import AsyncOpenAI
 from lightrag import LightRAG, QueryParam
 from lightrag.llm.openai import openai_embed
 
 from .database import Database
+
+# Suppress verbose logs
+logging.getLogger("nano-vectordb").setLevel(logging.ERROR)
+logging.getLogger("lightrag").setLevel(logging.ERROR)
+logging.getLogger("pipmaster").setLevel(logging.ERROR)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger().setLevel(logging.ERROR)  # Root logger
+
+# Suppress LightRAG's print-based INFO messages
+import builtins
+_original_print = builtins.print
+def _filtered_print(*args, **kwargs):
+    msg = " ".join(str(a) for a in args)
+    if "INFO:" in msg or "Process" in msg and "initialized" in msg:
+        return
+    if "pipmaster" in msg or "graspologic" in msg:
+        return
+    _original_print(*args, **kwargs)
+builtins.print = _filtered_print
 
 
 # =============================================================================
@@ -61,64 +81,113 @@ async def gpt_5_1_complete(
 # This is the core personality and instructions for the ideation AI.
 # Uses GPT-5.1 for the main conversation, with bucket queries as needed.
 
-IDEATE_SYSTEM_PROMPT = """You are Elle, a warm and collaborative screenwriting partner helping develop romantic comedy ideas.
+IDEATE_SYSTEM_PROMPT = """You are Syd, a warm and collaborative screenwriting partner helping develop romantic comedy ideas.
 
-GOAL: Guide the user from a loose idea to locked fundamentals through natural conversation.
+GOAL: Guide the user from a loose idea to a fully developed story foundation through natural conversation.
 
-FUNDAMENTALS TO LOCK:
-1. Title
-2. Logline (one sentence that captures protagonist, goal, obstacle, stakes)
-3. Main characters (protagonist, love interest, key supporting - just names and brief descriptions for now)
+WHAT WE'RE BUILDING:
+Phase 1 (Lock First):
+- Title
+- Logline (one sentence: protagonist, goal, obstacle, stakes)
+
+Phase 2 (Build Together):
+- Outline (5-8 key story moments / plot pyramid)
+- Beat sheet (30 scenes)
+- Characters (protagonist, love interest, supporting - with arcs and flaws)
+
+Supporting Context (capture along the way):
+- Theme, tone, comps
+- Notebook (misc ideas, fragments, inspirations)
 
 CONVERSATION APPROACH:
-- Ask one question at a time
-- Be encouraging but push for specificity
+- Ask ONE question at a time - never multiple numbered questions
+- Be conversational, not form-like - offer ideas and reactions, not interrogations
+- React to what they said first, then gently guide with a single follow-up
 - When something feels solid, reflect it back: "So the logline might be: [X]. Does that capture it?"
 - Wait for user confirmation before locking anything
+- Capture stray good ideas in the notebook - "Love that detail, adding it to the notebook"
 - Use knowledge buckets when they'd help (see BUCKET USAGE below)
+
+WRONG (too many questions):
+"1. What's the setting? 2. What's their job? 3. What's the tone?"
+
+RIGHT (conversational):
+"Love that she's the overlooked one - that's such a relatable place to start. What does 'overlooked' look like for her day-to-day? Like, does her roommate always get the guy's attention at parties, or is it more that she makes all the decisions?"
 
 BUCKET USAGE:
 You have access to three expert knowledge bases. Query them when the conversation would benefit:
-- BOOKS: When discussing structure, character arcs, protagonist flaws, story vs situation
-- PLAYS: When discussing relationship dynamics, classic patterns, thematic depth
-- SCRIPTS: When discussing tone, comparable films, how specific moments might play
+- BOOKS: Structure, beat positioning, plot pyramid, pacing
+- PLAYS: Relationship dynamics, classic patterns, archetypal tropes
+- SCRIPTS: Tone, comparable films, how specific moments might play
 
 Before responding, consider: "Would insight from a bucket help here?"
 If yes, query silently and weave the insight into your response naturally.
 
-CONVERSATION STAGES:
-
-STAGE 1: EXPLORE
-Draw out the raw idea. Ask about:
+PHASE 1: IDEA TO LOGLINE
+Draw out the raw idea and shape it:
 - The core concept (what's the hook?)
-- The protagonist (who is she/he, what do they want?)
-- The love interest (who are they, why are they compelling?)
-- The obstacle (what's keeping them apart - internal and external?)
+- The protagonist (who are they, what do they want?)
+- The love interest (who are they, why compelling?)
+- The obstacle (internal flaw + external circumstance)
 - The world (setting, profession, context)
 - The tone (closer to what films?)
 
-STAGE 2: REFINE
-Shape what you've learned into fundamentals:
-- Propose 2-3 logline options, ask which resonates
-- Suggest title ideas based on tone and concept
-- Clarify main character dynamics
-
-STAGE 3: LOCK
-Confirm each fundamental explicitly:
+Then lock:
 - "Ready to lock the title as: [X]?"
 - "Logline locked: [Y]"
-- "Main characters locked: [Z]"
 
-STAGE 4: HANDOFF
-Once fundamentals are locked, transition to parallel build-out:
-- "Great - we've got our foundation. Now let's develop the outline, beats, and character arcs together."
+PHASE 2: BUILD THE STORY
+Once title and logline are locked, develop outline/beats/characters TOGETHER through conversation. These inform each other:
+- As you map the plot pyramid, characters emerge
+- As you develop characters, new beats become clear
+- Keep circling between them naturally
+
+Work through:
+- Opening image / status quo
+- Inciting incident / meet cute
+- Rising action beats
+- Midpoint shift
+- Crisis / all is lost
+- Climax / grand gesture
+- Resolution
+
+For characters, develop:
+- Role (protagonist, love interest, best friend, obstacle)
+- Brief description
+- Flaw (what holds them back)
+- Arc (how they transform)
+
+TRACKING PROGRESS:
+Keep mental track of what's populated:
+- [ ] Title
+- [ ] Logline
+- [ ] Outline (5-8 moments)
+- [ ] Beats (30 scenes)
+- [ ] Characters (with arcs)
+
+Don't rush to handoff until all are filled. If user tries to move on too fast, gently note what's missing.
+
+HANDOFF:
+Once everything is populated:
+- "We've got a solid foundation - title, logline, 30 beats, and fleshed-out characters. Ready to move to scene-by-scene brainstorming?"
 
 TONE: Cozy, curious, encouraging. Like a smart friend at a coffee shop who happens to know a lot about screenwriting.
 
 IMPORTANT:
-- Never rush to lock. The conversation might need to circle back.
+- Never rush. The conversation might need to circle back.
 - If user seems stuck, offer options or examples.
-- If user's idea has structural issues (e.g., no real obstacle), gently probe - use BOOKS bucket for insight.
+- If the idea has structural issues (e.g., no real obstacle), gently probe.
+- Capture good fragments in the notebook even if they don't fit yet.
+
+TOOL USAGE - BE PROACTIVE:
+You have tools to track project state. USE THEM as information becomes clear:
+- When user confirms a title → call lock_title
+- When user confirms a logline → call lock_logline
+- When a character is defined (name + role) → call add_character immediately
+- When user mentions a good idea/detail → call add_to_notebook
+- When theme/tone/comps are discussed → call set_theme/set_tone/set_comps
+
+Don't wait for everything to be perfect. If Emma is the protagonist law student, call add_character right away with what you know. You can update characters later as more details emerge.
 """
 
 
@@ -177,45 +246,184 @@ EMOTIONAL ENGINE (internal and external):
 # and saved to the database.
 
 IDEATE_FIELDS = {
-    # Stage 1-3: Lock Fundamentals
+    # Phase 1: Lock First
     "title": None,              # projects.name
     "logline": None,            # writer_notes.logline
-    "characters": [],           # characters table (name, role, brief description)
 
-    # Stage 4: Parallel Build-out
+    # Phase 2: Build Together (conversationally)
+    "outline": [],              # 5-8 key moments (plot pyramid)
+    "beats": [],                # 30 scenes for scenes table
+    "characters": [],           # characters table (name, role, description, arc, flaw)
+
+    # Supporting Context
     "theme": None,              # writer_notes.theme
     "tone": None,               # writer_notes.tone
     "comps": None,              # writer_notes.comps (comparable films)
-    "inspiration": None,        # writer_notes.inspiration
-    "outline": [],              # 5-8 key moments before full beat sheet
-    "beats": [],                # 30 scenes for scenes table
-    "character_arcs": {},       # expanded character details (arcs, flaws, relationships)
+    "notebook": [],             # misc ideas, fragments, inspiration that come up
 }
 
 
 # =============================================================================
-# BUCKET QUERY LOGIC
+# TOOL DEFINITIONS
 # =============================================================================
-# The AI decides when to query buckets based on conversation context.
-# This helper determines which bucket might be useful.
+# Tools Syd can call to update fields during conversation.
 
-BUCKET_TRIGGERS = {
-    "books": [
-        "structure", "arc", "flaw", "protagonist", "three act", "beat",
-        "want vs need", "transformation", "stakes", "obstacle", "setup",
-        "midpoint", "climax", "resolution", "story vs situation"
-    ],
-    "plays": [
-        "dynamic", "relationship", "power", "vulnerability", "pattern",
-        "archetype", "enemies to lovers", "mistaken identity", "trope",
-        "shakespeare", "classic", "theme", "undercurrent", "subtext"
-    ],
-    "scripts": [
-        "tone", "vibe", "feels like", "similar to", "reminds me of",
-        "comparable", "reference", "example", "how did they", "execution",
-        "dialogue style", "pacing"
-    ]
-}
+IDEATE_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "lock_title",
+            "description": "Lock the title after user confirms",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string", "description": "The confirmed title"}
+                },
+                "required": ["title"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "lock_logline",
+            "description": "Lock the logline after user confirms",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "logline": {"type": "string", "description": "One sentence: protagonist, goal, obstacle, stakes"}
+                },
+                "required": ["logline"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_outline_beat",
+            "description": "Add a key story moment to the outline (aim for 5-8 total)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "beat": {"type": "string", "description": "Description of this story moment"}
+                },
+                "required": ["beat"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_scene",
+            "description": "Add a scene to the beat sheet (30 total)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "number": {"type": "integer", "description": "Scene number 1-30"},
+                    "title": {"type": "string", "description": "Short evocative title"},
+                    "description": {"type": "string", "description": "What happens, what changes"}
+                },
+                "required": ["number", "title", "description"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_character",
+            "description": "Add or update a character",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "role": {"type": "string", "enum": ["protagonist", "love_interest", "best_friend", "obstacle", "supporting"]},
+                    "description": {"type": "string", "description": "Who they are"},
+                    "flaw": {"type": "string", "description": "What holds them back"},
+                    "arc": {"type": "string", "description": "How they transform"}
+                },
+                "required": ["name", "role"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_to_notebook",
+            "description": "Capture a good idea or fragment for later",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "idea": {"type": "string"}
+                },
+                "required": ["idea"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_theme",
+            "description": "Set the theme",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "theme": {"type": "string"}
+                },
+                "required": ["theme"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_tone",
+            "description": "Set the tone",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tone": {"type": "string"}
+                },
+                "required": ["tone"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "set_comps",
+            "description": "Set comparable films",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "comps": {"type": "string", "description": "Comparable films"}
+                },
+                "required": ["comps"]
+            }
+        }
+    }
+]
+
+# =============================================================================
+# BUCKET SYSTEM PROMPTS
+# =============================================================================
+
+SCRIPTS_BUCKET_PROMPT = """You are a romcom reference expert. Given the current idea development, provide:
+- Comparable films or specific scenes that tackle similar beats
+- Tone and execution notes
+- What to borrow or avoid
+Keep response focused and under 400 words."""
+
+BOOKS_BUCKET_PROMPT = """You are a screenplay structure expert. Given the current idea development, provide:
+- Plot pyramid positioning and beat suggestions
+- Structural considerations for this story
+- Pacing and momentum guidance
+Keep response focused and under 400 words."""
+
+PLAYS_BUCKET_PROMPT = """You are a patterns and dynamics expert drawing from Shakespeare and timeless drama. Given the current idea development, provide:
+- Archetypal patterns that fit (enemies to lovers, mistaken identity, etc.)
+- Relationship dynamics to explore
+- Classic tropes to deploy or subvert
+Keep response focused and under 400 words."""
 
 
 # =============================================================================
@@ -242,14 +450,16 @@ class IdeateSession:
         session.save_to_database()
     """
 
-    def __init__(self, project_name: str = None):
+    def __init__(self, project_name: str = None, debug: bool = False):
         """
         Initialize ideation session.
 
         Args:
             project_name: Optional project name (can be set during conversation)
+            debug: If True, print bucket query results
         """
         self.project_name = project_name
+        self.debug = debug
         self.client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
         # Conversation history
@@ -263,17 +473,24 @@ class IdeateSession:
         self.fields["characters"] = []  # Reset mutable defaults
         self.fields["outline"] = []
         self.fields["beats"] = []
-        self.fields["character_arcs"] = {}
+        self.fields["notebook"] = []
 
-        # Locked status
+        # Locked status for Phase 1
         self.locked = {
             "title": False,
             "logline": False,
+        }
+
+        # Populated status for Phase 2
+        self.populated = {
+            "outline": False,
+            "beats": False,
             "characters": False,
         }
 
         # RAG bucket instances (lazy loaded)
         self._rag_instances = {}
+        self._initialized_buckets = set()
         self.bucket_dir = Path("./rag_buckets")
 
     # -------------------------------------------------------------------------
@@ -284,10 +501,13 @@ class IdeateSession:
         """
         Process a user message and return AI response.
 
-        This is the main conversation loop. The AI:
-        1. Considers the conversation history
-        2. Decides if a bucket query would help
-        3. Generates a response that advances toward locking fundamentals
+        Architecture:
+        1. Add user message to history
+        2. Shape queries based on current state (no LLM)
+        3. Query all 3 buckets in parallel (LightRAG)
+        4. Synthesize with Syd + tool calling
+        5. Execute any tool calls
+        6. Return response
 
         Args:
             user_message: What the user said
@@ -301,25 +521,34 @@ class IdeateSession:
             "content": user_message
         })
 
-        # Check if we should query a bucket
-        bucket_insight = await self._maybe_query_bucket(user_message)
+        # Shape bucket-specific queries based on state (programmatic, no LLM)
+        queries = self._shape_bucket_queries(user_message)
 
-        # Build the prompt with any bucket insight
-        system_content = IDEATE_SYSTEM_PROMPT
-        if bucket_insight:
-            system_content += f"\n\n[BUCKET INSIGHT - weave naturally into response]\n{bucket_insight}"
+        # Query all 3 buckets in parallel with tailored queries
+        insights = await self._get_all_bucket_insights(queries)
 
-        # Generate response
+        # Build system prompt with current state
+        system_content = self._build_system_prompt(insights)
+
+        # Generate response with tool calling
         response = await self.client.chat.completions.create(
-            model="gpt-5.1",  # Using 5.1 for main ideation conversation
+            model="gpt-5.1",
             messages=[
                 {"role": "system", "content": system_content},
                 *self.messages
             ],
-            temperature=0.8,  # Slightly creative for ideation
+            tools=IDEATE_TOOLS,
+            temperature=0.8,
         )
 
-        ai_message = response.choices[0].message.content
+        response_message = response.choices[0].message
+
+        # Execute any tool calls
+        if response_message.tool_calls:
+            for tool_call in response_message.tool_calls:
+                self._execute_tool(tool_call)
+
+        ai_message = response_message.content or ""
 
         # Add AI response to history
         self.messages.append({
@@ -327,165 +556,447 @@ class IdeateSession:
             "content": ai_message
         })
 
-        # Extract any locked fields from the response
-        await self._extract_fields(ai_message)
-
         return ai_message
 
-    async def _extract_fields(self, ai_message: str) -> None:
+    async def process_message_stream(self, user_message: str) -> AsyncGenerator[str, None]:
         """
-        Parse AI response for locked fundamentals.
+        Process a user message and stream AI response for low latency.
 
-        Looks for explicit lock phrases like:
-        - "Title locked: X"
-        - "Logline locked: X"
-        - "Main characters locked: X"
+        Same architecture as process_message but yields chunks as they arrive.
+        Tool calls are executed after streaming completes.
 
-        Uses GPT to extract structured data when lock phrases are detected.
+        Args:
+            user_message: What the user said
+
+        Yields:
+            Response text chunks
         """
-        message_lower = ai_message.lower()
+        # Add user message to history
+        self.messages.append({
+            "role": "user",
+            "content": user_message
+        })
 
-        # Check for lock indicators
-        has_title_lock = "title locked" in message_lower or "lock the title" in message_lower
-        has_logline_lock = "logline locked" in message_lower or "lock the logline" in message_lower
-        has_character_lock = "characters locked" in message_lower or "lock the characters" in message_lower
+        # Shape bucket-specific queries based on state (programmatic, no LLM)
+        queries = self._shape_bucket_queries(user_message)
 
-        if not (has_title_lock or has_logline_lock or has_character_lock):
+        # Query all 3 buckets in parallel with tailored queries (~2-3s)
+        insights = await self._get_all_bucket_insights(queries)
+
+        # Build system prompt with current state
+        system_content = self._build_system_prompt(insights)
+
+        # Debug: print full prompt
+        if self.debug:
+            self._debug_print_full_prompt(system_content)
+
+        # Generate streamed response with tool calling
+        try:
+            stream = await self.client.chat.completions.create(
+                model="gpt-5.1",
+                messages=[
+                    {"role": "system", "content": system_content},
+                    *self.messages
+                ],
+                tools=IDEATE_TOOLS,
+                temperature=0.8,
+                stream=True,
+            )
+        except Exception as e:
+            print(f"OpenAI API error: {e}")
+            error_msg = f"Sorry, I encountered an error: {str(e)}"
+            self.messages.append({"role": "assistant", "content": error_msg})
+            yield error_msg
             return
 
-        # Use GPT to extract structured fields
-        extraction_prompt = f"""Extract any locked fundamentals from this message.
-
-MESSAGE:
-{ai_message}
-
-Return a JSON object with only the fields that were explicitly locked:
-{{
-    "title": "extracted title or null",
-    "logline": "extracted logline or null",
-    "characters": [
-        {{"name": "...", "role": "protagonist/love_interest/supporting", "description": "brief description"}}
-    ] or null
-}}
-
-Only include fields that were EXPLICITLY LOCKED in the message. Return valid JSON only."""
-
-        response = await self.client.chat.completions.create(
-            model="gpt-5.1",
-            messages=[{"role": "user", "content": extraction_prompt}],
-            temperature=0,
-        )
+        # Accumulate response and tool calls
+        full_content = ""
+        tool_calls = []
+        current_tool_call = None
 
         try:
-            import json
-            extracted = json.loads(response.choices[0].message.content)
+            async for chunk in stream:
+                delta = chunk.choices[0].delta
 
-            if extracted.get("title"):
-                self.lock_field("title", extracted["title"])
-            if extracted.get("logline"):
-                self.lock_field("logline", extracted["logline"])
-            if extracted.get("characters"):
-                self.lock_field("characters", extracted["characters"])
+                # Handle content
+                if delta.content:
+                    full_content += delta.content
+                    yield delta.content
 
+                # Handle tool calls (accumulate from stream)
+                if delta.tool_calls:
+                    for tc in delta.tool_calls:
+                        if tc.index is not None:
+                            # New tool call or continuation
+                            while len(tool_calls) <= tc.index:
+                                tool_calls.append({
+                                    "id": "",
+                                    "function": {"name": "", "arguments": ""}
+                                })
+                            if tc.id:
+                                tool_calls[tc.index]["id"] = tc.id
+                            if tc.function:
+                                if tc.function.name:
+                                    tool_calls[tc.index]["function"]["name"] = tc.function.name
+                                if tc.function.arguments:
+                                    tool_calls[tc.index]["function"]["arguments"] += tc.function.arguments
+        except Exception as e:
+            print(f"Streaming error: {e}")
+            error_msg = f"Sorry, streaming failed: {str(e)}"
+            self.messages.append({"role": "assistant", "content": error_msg})
+            yield error_msg
+            return
+
+        # Execute accumulated tool calls
+        for tc in tool_calls:
+            if tc["function"]["name"]:
+                self._execute_tool_from_dict(tc)
+
+        # Add AI response to history
+        self.messages.append({
+            "role": "assistant",
+            "content": full_content
+        })
+
+    def _execute_tool_from_dict(self, tool_call_dict: Dict) -> None:
+        """Execute a tool call from dictionary format (for streaming)."""
+        name = tool_call_dict["function"]["name"]
+        try:
+            args = json.loads(tool_call_dict["function"]["arguments"])
         except json.JSONDecodeError:
-            # Extraction failed, continue without locking
-            pass
+            return
 
-    # -------------------------------------------------------------------------
-    # Bucket query logic
-    # -------------------------------------------------------------------------
+        if name == "lock_title":
+            self.lock_field("title", args.get("title"))
+        elif name == "lock_logline":
+            self.lock_field("logline", args.get("logline"))
+        elif name == "add_outline_beat":
+            self.fields["outline"].append(args.get("beat"))
+            if len(self.fields["outline"]) >= 5:
+                self.populated["outline"] = True
+        elif name == "add_scene":
+            self.fields["beats"].append({
+                "number": args.get("number"),
+                "title": args.get("title"),
+                "description": args.get("description")
+            })
+            if len(self.fields["beats"]) >= 30:
+                self.populated["beats"] = True
+        elif name == "add_character":
+            existing = next((c for c in self.fields["characters"] if c.get("name") == args.get("name")), None)
+            if existing:
+                existing.update(args)
+            else:
+                self.fields["characters"].append(args)
+            if len(self.fields["characters"]) >= 3:
+                self.populated["characters"] = True
+        elif name == "add_to_notebook":
+            self.fields["notebook"].append(args.get("idea"))
+        elif name == "set_theme":
+            self.fields["theme"] = args.get("theme")
+        elif name == "set_tone":
+            self.fields["tone"] = args.get("tone")
+        elif name == "set_comps":
+            self.fields["comps"] = args.get("comps")
 
-    async def _maybe_query_bucket(self, user_message: str) -> Optional[str]:
+        # Update stage
+        if all(self.locked.values()) and all(self.populated.values()):
+            self.stage = "complete"
+        elif all(self.locked.values()):
+            self.stage = "build_out"
+
+    def _shape_bucket_queries(self, user_message: str) -> Dict[str, str]:
         """
-        Decide if a bucket query would help and execute if so.
+        Shape bucket-specific queries based on current state.
+        Each bucket gets a tailored query for what it's best at.
 
-        Looks for trigger words in the user message and conversation context
-        to determine which bucket (if any) to query.
+        Returns dict with 'scripts', 'books', 'plays' queries.
+        """
+        # Extract key concepts from current state
+        logline = self.fields.get('logline') or ''
+        title = self.fields.get('title') or ''
+
+        # Extract character info
+        chars = self.fields.get('characters', [])
+        protagonist = next((c for c in chars if c.get('role') == 'protagonist'), {})
+        love_interest = next((c for c in chars if c.get('role') == 'love_interest'), {})
+
+        protagonist_desc = protagonist.get('description', '') or protagonist.get('flaw', '')
+        love_interest_desc = love_interest.get('description', '')
+
+        # Build core concept from user message + logline
+        core_concept = f"{user_message} {logline}".strip()
+
+        # Determine phase
+        in_phase_1 = not self.locked['title'] or not self.locked['logline']
+
+        if in_phase_1:
+            # Phase 1: Exploring concept - need comparable films, archetypes, premise patterns
+
+            # Scripts: Find similar films and tone references
+            scripts_query = f"romantic comedy films with premise: {core_concept}"
+
+            # Books: Character archetypes and story structure for this type
+            if protagonist_desc:
+                books_query = f"protagonist character arc: {protagonist_desc} romantic comedy structure"
+            else:
+                books_query = f"romantic comedy story structure premise: {core_concept}"
+
+            # Plays: Relationship dynamics and classic patterns
+            plays_query = f"romantic comedy relationship dynamics patterns: {core_concept}"
+
+        else:
+            # Phase 2: Building beats - need structural guidance, scene examples, specific patterns
+
+            outline_count = len(self.fields.get('outline', []))
+            beats_count = len(self.fields.get('beats', []))
+
+            # Scripts: Specific scene examples and execution
+            if beats_count < 10:
+                scripts_query = f"romantic comedy opening scenes meet cute examples: {logline}"
+            elif beats_count < 20:
+                scripts_query = f"romantic comedy midpoint scenes turning point examples: {logline}"
+            else:
+                scripts_query = f"romantic comedy climax resolution grand gesture scenes: {logline}"
+
+            # Books: Beat sheet structure and pacing
+            if outline_count < 5:
+                books_query = f"romantic comedy plot structure key beats outline: {logline}"
+            else:
+                books_query = f"romantic comedy 30 scene beat sheet pacing: {logline}"
+
+            # Plays: Character dynamics for current development
+            if protagonist_desc and love_interest_desc:
+                plays_query = f"romantic comedy character dynamics: {protagonist_desc} and {love_interest_desc}"
+            else:
+                plays_query = f"romantic comedy relationship arc transformation: {logline}"
+
+        return {
+            'scripts': scripts_query,
+            'books': books_query,
+            'plays': plays_query
+        }
+
+    async def _get_all_bucket_insights(self, queries: Dict[str, str]) -> Dict[str, str]:
+        """
+        Query all three buckets in parallel using LightRAG.
+        Each bucket gets its own tailored query.
 
         Args:
-            user_message: Latest user message
+            queries: Dict with 'scripts', 'books', 'plays' query strings
 
         Returns:
-            Bucket insight or None
+            Dict with insights from each bucket
         """
-        message_lower = user_message.lower()
+        async def query_bucket(bucket_name: str, query: str) -> str:
+            rag = self._get_rag_instance(bucket_name)
+            if not rag:
+                return ""
 
-        # Check each bucket for trigger words
-        for bucket_name, triggers in BUCKET_TRIGGERS.items():
-            for trigger in triggers:
-                if trigger in message_lower:
-                    # Found a trigger - query this bucket
-                    return await self._query_bucket(bucket_name, user_message)
+            try:
+                # Initialize only if not already done
+                if bucket_name not in self._initialized_buckets:
+                    await rag.initialize_storages()
+                    self._initialized_buckets.add(bucket_name)
 
-        return None
+                # Query with bucket-specific query (30s timeout)
+                response = await asyncio.wait_for(
+                    rag.aquery(query, param=QueryParam(mode="local")),
+                    timeout=30.0
+                )
+                return response or ""
+            except asyncio.TimeoutError:
+                print(f"Bucket query timeout ({bucket_name})")
+                return ""
+            except Exception as e:
+                print(f"Bucket query error ({bucket_name}): {e}")
+                return ""
 
-    async def _query_bucket(self, bucket_name: str, query: str) -> Optional[str]:
+        # Run all three in parallel with their specific queries
+        scripts, books, plays = await asyncio.gather(
+            query_bucket("scripts", queries.get('scripts', '')),
+            query_bucket("books", queries.get('books', '')),
+            query_bucket("plays", queries.get('plays', ''))
+        )
+
+        if self.debug:
+            _original_print("\n" + "="*60)
+            _original_print("BUCKET DEBUG")
+            _original_print("="*60)
+            _original_print(f"\nSCRIPTS QUERY: {queries.get('scripts', '')}")
+            _original_print(f"BOOKS QUERY: {queries.get('books', '')}")
+            _original_print(f"PLAYS QUERY: {queries.get('plays', '')}\n")
+            _original_print("-"*60)
+            _original_print(f"SCRIPTS ({len(scripts)} chars):")
+            _original_print("-"*60)
+            _original_print(scripts if scripts else "(empty)")
+            _original_print("\n" + "-"*60)
+            _original_print(f"BOOKS ({len(books)} chars):")
+            _original_print("-"*60)
+            _original_print(books if books else "(empty)")
+            _original_print("\n" + "-"*60)
+            _original_print(f"PLAYS ({len(plays)} chars):")
+            _original_print("-"*60)
+            _original_print(plays if plays else "(empty)")
+            _original_print("="*60 + "\n")
+
+        return {
+            "scripts": scripts,
+            "books": books,
+            "plays": plays
+        }
+
+    def _debug_print_full_prompt(self, system_content: str):
+        """Print the full assembled system prompt for debugging."""
+        _original_print("\n" + "="*60)
+        _original_print("FULL SYSTEM PROMPT SENT TO GPT-5.1")
+        _original_print("="*60)
+        _original_print(system_content)
+        _original_print("="*60 + "\n")
+
+    def _build_system_prompt(self, insights: Dict[str, str]) -> str:
         """
-        Query a specific bucket for insight.
-
-        Args:
-            bucket_name: books, plays, or scripts
-            query: The query to send
-
-        Returns:
-            Bucket response or None
+        Build the full system prompt with Syd's personality,
+        current state, and bucket insights.
         """
+        # Current progress
+        progress = f"""
+CURRENT PROGRESS:
+- Title: {'✓ ' + self.fields['title'] if self.locked['title'] else '○ not locked'}
+- Logline: {'✓ locked' if self.locked['logline'] else '○ not locked'}
+- Outline: {len(self.fields.get('outline', []))}/8 beats
+- Scenes: {len(self.fields.get('beats', []))}/30
+- Characters: {len(self.fields.get('characters', []))} defined
+"""
+
+        # Bucket insights
+        insights_section = f"""
+YOUR EXPERT KNOWLEDGE:
+
+You have deep expertise in screenwriting. Below is relevant context from your knowledge of films, craft, and dramatic patterns. Draw on this naturally as an expert would—mentioning comparable films, structural principles, or character dynamics when they genuinely illuminate the conversation. Don't force references, but don't hold back your expertise either. You're not just asking questions; you're a knowledgeable collaborator who brings real insight.
+
+SCRIPTS (films, tone, execution):
+{insights.get('scripts', 'No insight available')[:2000]}
+
+BOOKS (structure, beats, craft):
+{insights.get('books', 'No insight available')[:2000]}
+
+PLAYS (patterns, dynamics, archetypes):
+{insights.get('plays', 'No insight available')[:2000]}
+"""
+
+        return IDEATE_SYSTEM_PROMPT + progress + insights_section
+
+    def _execute_tool(self, tool_call) -> None:
+        """Execute a tool call and update session state."""
+        import json
+
+        name = tool_call.function.name
+        args = json.loads(tool_call.function.arguments)
+
+        if name == "lock_title":
+            self.lock_field("title", args["title"])
+        elif name == "lock_logline":
+            self.lock_field("logline", args["logline"])
+        elif name == "add_outline_beat":
+            self.fields["outline"].append(args["beat"])
+            if len(self.fields["outline"]) >= 5:
+                self.populated["outline"] = True
+        elif name == "add_scene":
+            self.fields["beats"].append({
+                "number": args["number"],
+                "title": args["title"],
+                "description": args["description"]
+            })
+            if len(self.fields["beats"]) >= 30:
+                self.populated["beats"] = True
+        elif name == "add_character":
+            # Check if character exists, update or add
+            existing = next((c for c in self.fields["characters"] if c.get("name") == args["name"]), None)
+            if existing:
+                existing.update(args)
+            else:
+                self.fields["characters"].append(args)
+            if len(self.fields["characters"]) >= 3:
+                self.populated["characters"] = True
+        elif name == "add_to_notebook":
+            self.fields["notebook"].append(args["idea"])
+        elif name == "set_theme":
+            self.fields["theme"] = args["theme"]
+        elif name == "set_tone":
+            self.fields["tone"] = args["tone"]
+        elif name == "set_comps":
+            self.fields["comps"] = args["comps"]
+
+        # Update stage
+        if all(self.locked.values()) and all(self.populated.values()):
+            self.stage = "complete"
+        elif all(self.locked.values()):
+            self.stage = "build_out"
+
+    def _get_rag_instance(self, bucket_name: str) -> Optional[LightRAG]:
+        """Get or create a LightRAG instance for a bucket (lazy loading)."""
+        if bucket_name in self._rag_instances:
+            return self._rag_instances[bucket_name]
+
         bucket_path = self.bucket_dir / bucket_name
-
         if not bucket_path.exists():
             return None
 
-        # Lazy load RAG instance
-        if bucket_name not in self._rag_instances:
-            self._rag_instances[bucket_name] = LightRAG(
-                working_dir=str(bucket_path),
-                embedding_func=openai_embed,
-                llm_model_func=gpt_5_1_complete,
-            )
-            await self._rag_instances[bucket_name].initialize_storages()
-
-        rag = self._rag_instances[bucket_name]
-
-        try:
-            response = await rag.aquery(query, param=QueryParam(mode="hybrid"))
-            return response
-        except Exception as e:
-            print(f"Bucket query error: {e}")
-            return None
+        self._rag_instances[bucket_name] = LightRAG(
+            working_dir=str(bucket_path),
+            embedding_func=openai_embed,
+            llm_model_func=gpt_5_1_complete,
+        )
+        return self._rag_instances[bucket_name]
 
     # -------------------------------------------------------------------------
-    # Field extraction and locking
+    # Field locking
     # -------------------------------------------------------------------------
 
     def lock_field(self, field_name: str, value) -> None:
         """
-        Lock a field value.
+        Lock or populate a field value.
 
         Args:
-            field_name: Which field (title, logline, characters)
-            value: The value to lock
+            field_name: Which field
+            value: The value to set
         """
         if field_name in self.fields:
             self.fields[field_name] = value
+
+        # Update locked status (Phase 1)
         if field_name in self.locked:
             self.locked[field_name] = True
 
-        # Check if all fundamentals are locked
-        if all(self.locked.values()):
+        # Update populated status (Phase 2)
+        if field_name in self.populated:
+            # Check if actually has content
+            if isinstance(value, list) and len(value) > 0:
+                self.populated[field_name] = True
+            elif value:
+                self.populated[field_name] = True
+
+        # Update stage based on progress
+        if all(self.locked.values()) and self.stage == "explore":
             self.stage = "build_out"
+        if all(self.locked.values()) and all(self.populated.values()):
+            self.stage = "complete"
 
     def get_state(self) -> Dict:
         """
         Get current session state.
 
         Returns:
-            Dict with stage, fields, locked status
+            Dict with stage, fields, locked/populated status
         """
         return {
             "stage": self.stage,
             "fields": self.fields,
             "locked": self.locked,
+            "populated": self.populated,
             "message_count": len(self.messages),
+            "ready_for_handoff": all(self.locked.values()) and all(self.populated.values()),
         }
 
     # -------------------------------------------------------------------------
@@ -758,14 +1269,20 @@ Return ONLY the JSON object."""
 # =============================================================================
 
 async def main():
-    """Simple CLI for testing ideation flow."""
+    """Simple CLI for testing ideation flow with streaming."""
+    import sys
+    import os
+
+    # Suppress LightRAG noise
+    os.environ["LIGHTRAG_LOG_LEVEL"] = "ERROR"
+
     print("=" * 60)
     print("LIZZY IDEATE - Conversational Pre-Planning")
     print("=" * 60)
-    print("\nHi! I'm Elle. Got an idea for a romantic comedy?")
+    print("\nHi! I'm Syd. Got an idea for a romantic comedy?")
     print("Tell me anything - a character, a situation, a vibe.\n")
 
-    session = IdeateSession()
+    session = IdeateSession(debug=False)
 
     while True:
         user_input = input("You: ").strip()
@@ -776,14 +1293,35 @@ async def main():
         if not user_input:
             continue
 
-        response = await session.process_message(user_input)
-        print(f"\nElle: {response}\n")
+        # Stream response for low latency
+        print("\nSyd: ", end="", flush=True)
+        async for chunk in session.process_message_stream(user_input):
+            print(chunk, end="", flush=True)
+        print("\n")
 
         # Show state for debugging
         state = session.get_state()
         if any(state["locked"].values()):
             locked_items = [k for k, v in state["locked"].items() if v]
-            print(f"[Locked: {', '.join(locked_items)}]\n")
+            print(f"[Locked: {', '.join(locked_items)}]")
+            # Show actual locked values
+            fields = state["fields"]
+            if fields.get("title"):
+                print(f"  Title: {fields['title']}")
+            if fields.get("logline"):
+                print(f"  Logline: {fields['logline']}")
+        if any(state["populated"].values()):
+            populated_items = [k for k, v in state["populated"].items() if v]
+            print(f"[Populated: {', '.join(populated_items)}]")
+            # Show counts
+            fields = state["fields"]
+            if fields.get("outline"):
+                print(f"  Outline: {len(fields['outline'])} beats")
+            if fields.get("beats"):
+                print(f"  Beats: {len(fields['beats'])} scenes")
+            if fields.get("characters"):
+                print(f"  Characters: {[c.get('name') for c in fields['characters']]}")
+        print()
 
 
 if __name__ == "__main__":
