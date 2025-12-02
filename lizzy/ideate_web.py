@@ -26,15 +26,16 @@ async def startup():
     session = IdeateSession(debug=False)
     print("Session initialized")
 
-    # Pre-initialize all buckets
-    print("Initializing RAG buckets...")
-    for bucket_name in ["scripts", "books", "plays"]:
-        rag = session._get_rag_instance(bucket_name)
-        if rag:
-            await rag.initialize_storages()
-            session._initialized_buckets.add(bucket_name)
-            print(f"  {bucket_name} bucket ready")
-    print("All buckets initialized")
+    # TEMPORARILY DISABLED: Pre-initialize all buckets
+    # print("Initializing RAG buckets...")
+    # for bucket_name in ["scripts", "books", "plays"]:
+    #     rag = session._get_rag_instance(bucket_name)
+    #     if rag:
+    #         await rag.initialize_storages()
+    #         session._initialized_buckets.add(bucket_name)
+    #         print(f"  {bucket_name} bucket ready")
+    # print("All buckets initialized")
+    print("Buckets disabled - faster startup")
 
 @app.get("/", response_class=HTMLResponse)
 async def get_chat():
@@ -78,6 +79,28 @@ async def get_state():
     if session:
         return session.get_state()
     return {"error": "No session"}
+
+@app.post("/save")
+async def save_to_database(request: dict):
+    """Save current session to database."""
+    from pathlib import Path
+
+    if not session:
+        return {"error": "No session to save"}
+
+    db_path = request.get("db_path")
+    if not db_path:
+        return {"error": "db_path required"}
+
+    try:
+        project_id = session.save_to_database(Path(db_path))
+        return {
+            "success": True,
+            "project_id": project_id,
+            "message": "Project saved successfully"
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">

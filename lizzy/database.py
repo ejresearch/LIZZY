@@ -89,6 +89,11 @@ class Database:
                     description TEXT,
                     role TEXT,  -- protagonist, love_interest, antagonist, supporting
                     arc TEXT,   -- character arc/transformation
+                    age TEXT,   -- character age
+                    personality TEXT,  -- personality traits
+                    flaw TEXT,  -- character flaw/weakness
+                    backstory TEXT,  -- character backstory
+                    relationships TEXT,  -- relationships to other characters
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -157,6 +162,7 @@ class Database:
                     tone TEXT,
                     comps TEXT,  -- Comparable titles
                     braindump TEXT,
+                    outline TEXT,  -- JSON array of outline beats
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -233,7 +239,8 @@ class Database:
         inspiration: str = "",
         tone: str = "",
         comps: str = "",
-        braindump: str = ""
+        braindump: str = "",
+        outline: str = ""
     ) -> int:
         """Insert or update writer notes."""
         with self.get_connection() as conn:
@@ -248,19 +255,70 @@ class Database:
                 cursor.execute("""
                     UPDATE writer_notes
                     SET logline = ?, theme = ?, inspiration = ?,
-                        tone = ?, comps = ?, braindump = ?,
+                        tone = ?, comps = ?, braindump = ?, outline = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (logline, theme, inspiration, tone, comps, braindump, existing[0]))
+                """, (logline, theme, inspiration, tone, comps, braindump, outline, existing[0]))
                 return existing[0]
             else:
                 # Insert new
                 cursor.execute("""
                     INSERT INTO writer_notes
-                    (logline, theme, inspiration, tone, comps, braindump)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (logline, theme, inspiration, tone, comps, braindump))
+                    (logline, theme, inspiration, tone, comps, braindump, outline)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (logline, theme, inspiration, tone, comps, braindump, outline))
                 return cursor.lastrowid
+
+    def insert_character(
+        self,
+        name: str,
+        role: str = "",
+        description: str = "",
+        arc: str = "",
+        age: str = "",
+        personality: str = "",
+        flaw: str = "",
+        backstory: str = "",
+        relationships: str = ""
+    ) -> int:
+        """Insert a character into the characters table."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO characters
+                (name, role, description, arc, age, personality, flaw, backstory, relationships)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (name, role, description, arc, age, personality, flaw, backstory, relationships))
+            return cursor.lastrowid
+
+    def get_characters(self) -> List[dict]:
+        """Get all characters for the project."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM characters ORDER BY created_at")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def insert_scene(
+        self,
+        scene_number: int,
+        title: str = "",
+        description: str = "",
+        characters: str = "",
+        tone: str = ""
+    ) -> int:
+        """Insert or update a scene in the scenes table."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO scenes (scene_number, title, description, characters, tone)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(scene_number) DO UPDATE SET
+                    title = excluded.title,
+                    description = excluded.description,
+                    characters = excluded.characters,
+                    tone = excluded.tone
+            """, (scene_number, title, description, characters, tone))
+            return cursor.lastrowid
 
     def insert_chat_message(
         self,
