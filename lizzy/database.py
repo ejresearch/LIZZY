@@ -180,7 +180,45 @@ class Database:
                 )
             """)
 
+            # Ideate sessions table - IDEATE phase conversation state
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,  -- Project/session name
+                    stage TEXT DEFAULT 'explore',  -- explore, build_out, complete
+                    title TEXT,  -- Locked title
+                    logline TEXT,  -- Locked logline
+                    title_locked INTEGER DEFAULT 0,
+                    logline_locked INTEGER DEFAULT 0,
+                    characters TEXT,  -- JSON array of character objects
+                    outline TEXT,  -- JSON array of outline beats
+                    beats TEXT,  -- JSON array of scene beats
+                    notebook TEXT,  -- JSON array of notebook ideas
+                    theme TEXT,
+                    tone TEXT,
+                    comps TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Ideate messages table - conversation history for ideate sessions
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,  -- 'user' or 'assistant'
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES ideate_sessions(id)
+                )
+            """)
+
             # Create indices for performance
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ideate_messages_session
+                ON ideate_messages(session_id)
+            """)
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_scenes_number
                 ON scenes(scene_number)
@@ -391,3 +429,206 @@ class Database:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chat_messages")
             return cursor.rowcount
+
+    # =========================================================================
+    # IDEATE SESSION METHODS
+    # =========================================================================
+
+    def create_ideate_session(self, name: str) -> int:
+        """
+        Create a new ideate session.
+
+        Args:
+            name: Project/session name
+
+        Returns:
+            Session ID
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_sessions
+                (name, characters, outline, beats, notebook)
+                VALUES (?, ?, ?, ?, ?)
+            """, (name, '[]', '[]', '[]', '[]'))
+            return cursor.lastrowid
+
+    def get_ideate_sessions(self) -> List[dict]:
+        """
+        Get all ideate sessions.
+
+        Returns:
+            List of session dicts with id, name, stage, title, logline, created_at, updated_at
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, name, stage, title, logline, created_at, updated_at
+                FROM ideate_sessions
+                ORDER BY updated_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_ideate_session(self, session_id: int) -> Optional[dict]:
+        """
+        Get a specific ideate session with all fields.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            Session dict or None
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM ideate_sessions WHERE id = ?
+            """, (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            session = dict(row)
+            # Parse JSON fields
+            for field in ['characters', 'outline', 'beats', 'notebook']:
+                if session.get(field):
+                    try:
+                        session[field] = json.loads(session[field])
+                    except json.JSONDecodeError:
+                        session[field] = []
+                else:
+                    session[field] = []
+            return session
+
+    def update_ideate_session(
+        self,
+        session_id: int,
+        stage: str = None,
+        title: str = None,
+        logline: str = None,
+        title_locked: bool = None,
+        logline_locked: bool = None,
+        characters: list = None,
+        outline: list = None,
+        beats: list = None,
+        notebook: list = None,
+        theme: str = None,
+        tone: str = None,
+        comps: str = None
+    ) -> None:
+        """
+        Update an ideate session. Only updates fields that are provided.
+
+        Args:
+            session_id: Session ID
+            Other args: Fields to update
+        """
+        import json
+
+        updates = []
+        params = []
+
+        if stage is not None:
+            updates.append("stage = ?")
+            params.append(stage)
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+        if logline is not None:
+            updates.append("logline = ?")
+            params.append(logline)
+        if title_locked is not None:
+            updates.append("title_locked = ?")
+            params.append(1 if title_locked else 0)
+        if logline_locked is not None:
+            updates.append("logline_locked = ?")
+            params.append(1 if logline_locked else 0)
+        if characters is not None:
+            updates.append("characters = ?")
+            params.append(json.dumps(characters))
+        if outline is not None:
+            updates.append("outline = ?")
+            params.append(json.dumps(outline))
+        if beats is not None:
+            updates.append("beats = ?")
+            params.append(json.dumps(beats))
+        if notebook is not None:
+            updates.append("notebook = ?")
+            params.append(json.dumps(notebook))
+        if theme is not None:
+            updates.append("theme = ?")
+            params.append(theme)
+        if tone is not None:
+            updates.append("tone = ?")
+            params.append(tone)
+        if comps is not None:
+            updates.append("comps = ?")
+            params.append(comps)
+
+        if not updates:
+            return
+
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        params.append(session_id)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                UPDATE ideate_sessions
+                SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+
+    def delete_ideate_session(self, session_id: int) -> None:
+        """
+        Delete an ideate session and its messages.
+
+        Args:
+            session_id: Session ID
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM ideate_messages WHERE session_id = ?", (session_id,))
+            cursor.execute("DELETE FROM ideate_sessions WHERE id = ?", (session_id,))
+
+    def add_ideate_message(self, session_id: int, role: str, content: str) -> int:
+        """
+        Add a message to an ideate session.
+
+        Args:
+            session_id: Session ID
+            role: 'user' or 'assistant'
+            content: Message content
+
+        Returns:
+            Message ID
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_messages (session_id, role, content)
+                VALUES (?, ?, ?)
+            """, (session_id, role, content))
+            return cursor.lastrowid
+
+    def get_ideate_messages(self, session_id: int) -> List[dict]:
+        """
+        Get all messages for an ideate session.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            List of message dicts
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, role, content, created_at
+                FROM ideate_messages
+                WHERE session_id = ?
+                ORDER BY created_at ASC
+            """, (session_id,))
+            return [dict(row) for row in cursor.fetchall()]

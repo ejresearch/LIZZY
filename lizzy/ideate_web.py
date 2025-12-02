@@ -2,7 +2,7 @@
 Web interface for IDEATE - Conversational Pre-Planning
 
 Run with: python -m lizzy.ideate_web
-Then open: http://localhost:8000
+Then open: http://localhost:8888
 """
 
 import os
@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from .ideate import IdeateSession
+from .database import Database
 
 app = FastAPI()
 
@@ -22,38 +23,121 @@ STATIC_DIR = Path(__file__).parent / "static"
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Global session (for demo - in production use session management)
+# Database path for session persistence
+DB_PATH = Path(__file__).parent.parent / "ideate_sessions.db"
+
+# Global session and current session ID
 session = None
+current_session_id = None
+db = None
 
 @app.on_event("startup")
 async def startup():
-    global session
-    session = IdeateSession(debug=False)
-    print("Session initialized")
+    global db
+    db = Database(DB_PATH)
+    db.initialize_schema()
+    print(f"Database initialized at {DB_PATH}")
 
-    # TEMPORARILY DISABLED: Pre-initialize all buckets
-    # print("Initializing RAG buckets...")
-    # for bucket_name in ["scripts", "books", "plays"]:
-    #     rag = session._get_rag_instance(bucket_name)
-    #     if rag:
-    #         await rag.initialize_storages()
-    #         session._initialized_buckets.add(bucket_name)
-    #         print(f"  {bucket_name} bucket ready")
-    # print("All buckets initialized")
-    print("Buckets disabled - faster startup")
+# =============================================================================
+# SESSION MANAGEMENT ENDPOINTS
+# =============================================================================
 
 @app.get("/", response_class=HTMLResponse)
-async def get_chat():
-    return HTML_TEMPLATE
+async def get_landing():
+    """Landing page - project selector."""
+    return LANDING_TEMPLATE
+
+@app.get("/chat/{session_id}", response_class=HTMLResponse)
+async def get_chat(session_id: int):
+    """Chat interface for a specific session."""
+    global session, current_session_id
+
+    # Load session from database
+    session_data = db.get_ideate_session(session_id)
+    if not session_data:
+        return HTMLResponse("<h1>Session not found</h1>", status_code=404)
+
+    # Create IdeateSession and restore state
+    session = IdeateSession(project_name=session_data['name'], debug=False)
+    current_session_id = session_id
+
+    # Restore fields
+    session.fields['title'] = session_data.get('title')
+    session.fields['logline'] = session_data.get('logline')
+    session.fields['characters'] = session_data.get('characters', [])
+    session.fields['outline'] = session_data.get('outline', [])
+    session.fields['beats'] = session_data.get('beats', [])
+    session.fields['notebook'] = session_data.get('notebook', [])
+    session.fields['theme'] = session_data.get('theme')
+    session.fields['tone'] = session_data.get('tone')
+    session.fields['comps'] = session_data.get('comps')
+
+    # Restore locked status
+    session.locked['title'] = bool(session_data.get('title_locked'))
+    session.locked['logline'] = bool(session_data.get('logline_locked'))
+
+    # Restore stage
+    session.stage = session_data.get('stage', 'explore')
+
+    # Restore conversation history
+    messages = db.get_ideate_messages(session_id)
+    for msg in messages:
+        session.messages.append({
+            "role": msg['role'],
+            "content": msg['content']
+        })
+
+    print(f"Loaded session {session_id}: {session_data['name']} ({len(messages)} messages)")
+
+    return HTML_TEMPLATE.replace('{{SESSION_ID}}', str(session_id)).replace('{{SESSION_NAME}}', session_data['name'])
+
+@app.get("/api/sessions")
+async def list_sessions():
+    """List all sessions."""
+    sessions = db.get_ideate_sessions()
+    return {"sessions": sessions}
+
+@app.post("/api/sessions")
+async def create_session(request: Request):
+    """Create a new session."""
+    data = await request.json()
+    name = data.get("name", "Untitled Project")
+
+    session_id = db.create_ideate_session(name)
+    return {"id": session_id, "name": name}
+
+@app.delete("/api/sessions/{session_id}")
+async def delete_session(session_id: int):
+    """Delete a session."""
+    db.delete_ideate_session(session_id)
+    return {"success": True}
+
+@app.get("/api/sessions/{session_id}/messages")
+async def get_messages(session_id: int):
+    """Get all messages for a session."""
+    messages = db.get_ideate_messages(session_id)
+    return {"messages": messages}
+
+# =============================================================================
+# CHAT ENDPOINTS
+# =============================================================================
 
 @app.post("/chat")
 async def chat(request: Request):
     """Process a message and return streamed response."""
+    global session, current_session_id
+
     data = await request.json()
     message = data.get("message", "")
 
     if not message:
         return {"error": "No message provided"}
+
+    if not session or not current_session_id:
+        return {"error": "No active session"}
+
+    # Save user message to database
+    db.add_ideate_message(current_session_id, "user", message)
 
     async def generate():
         try:
@@ -64,6 +148,16 @@ async def chat(request: Request):
                 yield f"data: {json.dumps({'type': 'chunk', 'content': chunk})}\n\n"
 
             print(f"Response complete: {len(full_response)} chars")
+
+            # Strip directives from response before saving
+            import re
+            clean_response = re.sub(r'\[DIRECTIVE:[^\]]+\]\s*', '', full_response).strip()
+
+            # Save assistant response to database
+            db.add_ideate_message(current_session_id, "assistant", clean_response)
+
+            # Save updated session state to database
+            save_session_state()
 
             # Send final state
             state = session.get_state()
@@ -78,6 +172,27 @@ async def chat(request: Request):
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 
+def save_session_state():
+    """Save current session state to database."""
+    if not session or not current_session_id:
+        return
+
+    db.update_ideate_session(
+        current_session_id,
+        stage=session.stage,
+        title=session.fields.get('title'),
+        logline=session.fields.get('logline'),
+        title_locked=session.locked.get('title', False),
+        logline_locked=session.locked.get('logline', False),
+        characters=session.fields.get('characters', []),
+        outline=session.fields.get('outline', []),
+        beats=session.fields.get('beats', []),
+        notebook=session.fields.get('notebook', []),
+        theme=session.fields.get('theme'),
+        tone=session.fields.get('tone'),
+        comps=session.fields.get('comps')
+    )
+
 @app.get("/state")
 async def get_state():
     """Get current session state."""
@@ -86,14 +201,15 @@ async def get_state():
     return {"error": "No session"}
 
 @app.post("/save")
-async def save_to_database(request: dict):
-    """Save current session to database."""
+async def save_to_database(request: Request):
+    """Export session to production database."""
     from pathlib import Path
 
     if not session:
         return {"error": "No session to save"}
 
-    db_path = request.get("db_path")
+    data = await request.json()
+    db_path = data.get("db_path")
     if not db_path:
         return {"error": "db_path required"}
 
@@ -102,17 +218,324 @@ async def save_to_database(request: dict):
         return {
             "success": True,
             "project_id": project_id,
-            "message": "Project saved successfully"
+            "message": "Project exported successfully"
         }
     except Exception as e:
         return {"error": str(e)}
+
+# =============================================================================
+# LANDING PAGE TEMPLATE
+# =============================================================================
+
+LANDING_TEMPLATE = """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lizzy IDEATE - Projects</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #F8F6F1 0%, #F0EDE5 100%);
+            min-height: 100vh;
+            padding: 40px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #888;
+            font-size: 16px;
+        }
+
+        .new-project {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+        }
+
+        .new-project h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin-bottom: 16px;
+        }
+
+        .new-project-form {
+            display: flex;
+            gap: 12px;
+        }
+
+        .new-project-form input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid rgba(0, 0, 0, 0.06);
+            border-radius: 12px;
+            font-size: 15px;
+            background: #FDFCFA;
+        }
+
+        .new-project-form input:focus {
+            outline: none;
+            border-color: #DC3545;
+        }
+
+        .new-project-form button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #DC3545 0%, #c82333 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+        }
+
+        .new-project-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(220, 53, 69, 0.35);
+        }
+
+        .projects-list {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+
+        .projects-list h2 {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .project-item {
+            display: flex;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .project-item:hover {
+            background: rgba(220, 53, 69, 0.03);
+        }
+
+        .project-item:last-child {
+            border-bottom: none;
+        }
+
+        .project-info {
+            flex: 1;
+        }
+
+        .project-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+
+        .project-meta {
+            font-size: 13px;
+            color: #888;
+        }
+
+        .project-meta .stage {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 8px;
+        }
+
+        .project-meta .stage.explore {
+            background: rgba(220, 53, 69, 0.1);
+            color: #DC3545;
+        }
+
+        .project-meta .stage.build_out {
+            background: rgba(255, 193, 7, 0.1);
+            color: #FFC107;
+        }
+
+        .project-meta .stage.complete {
+            background: rgba(32, 201, 151, 0.1);
+            color: #20C997;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .project-actions button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-open {
+            background: linear-gradient(135deg, #DC3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-delete {
+            background: rgba(0, 0, 0, 0.04);
+            color: #888;
+        }
+
+        .btn-delete:hover {
+            background: rgba(220, 53, 69, 0.1);
+            color: #DC3545;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 24px;
+            color: #888;
+        }
+
+        .empty-state p {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Lizzy IDEATE</h1>
+            <p>Brainstorm your romantic comedy with Syd</p>
+        </div>
+
+        <div class="new-project">
+            <h2>Start New Project</h2>
+            <form class="new-project-form" onsubmit="createProject(event)">
+                <input type="text" id="projectName" placeholder="Enter project name..." required>
+                <button type="submit">Create</button>
+            </form>
+        </div>
+
+        <div class="projects-list">
+            <h2>Your Projects</h2>
+            <div id="projectsList">
+                <div class="empty-state">
+                    <p>No projects yet</p>
+                    <p>Create one above to get started!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadProjects() {
+            const response = await fetch('/api/sessions');
+            const data = await response.json();
+            const container = document.getElementById('projectsList');
+
+            if (data.sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>No projects yet</p>
+                        <p>Create one above to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = data.sessions.map(s => `
+                <div class="project-item" onclick="openProject(${s.id})">
+                    <div class="project-info">
+                        <div class="project-name">${s.title || s.name}</div>
+                        <div class="project-meta">
+                            <span class="stage ${s.stage}">${s.stage.replace('_', ' ')}</span>
+                            ${s.logline ? s.logline.substring(0, 60) + '...' : 'No logline yet'}
+                        </div>
+                    </div>
+                    <div class="project-actions">
+                        <button class="btn-open">Open</button>
+                        <button class="btn-delete" onclick="deleteProject(event, ${s.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function createProject(e) {
+            e.preventDefault();
+            const name = document.getElementById('projectName').value.trim();
+            if (!name) return;
+
+            const response = await fetch('/api/sessions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            const data = await response.json();
+
+            // Open the new project
+            window.location.href = '/chat/' + data.id;
+        }
+
+        function openProject(id) {
+            window.location.href = '/chat/' + id;
+        }
+
+        async function deleteProject(e, id) {
+            e.stopPropagation();
+            if (!confirm('Delete this project?')) return;
+
+            await fetch('/api/sessions/' + id, { method: 'DELETE' });
+            loadProjects();
+        }
+
+        // Load on page load
+        loadProjects();
+    </script>
+</body>
+</html>
+"""
 
 HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lizzy IDEATE - Syd v2</title>
+    <title>{{SESSION_NAME}} - Lizzy IDEATE</title>
     <style>
         * {
             margin: 0;
@@ -259,15 +682,90 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3);
         }
 
-        /* Progress Tracker */
-        .progress-tracker {
-            background: white;
-            border-radius: 16px;
-            padding: 16px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.03);
+        /* Foundation Content */
+        .foundation-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
 
+        .field-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+        }
+
+        .field-count {
+            font-weight: 500;
+            color: #bbb;
+        }
+
+        .field-block .field-value {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .field-block .field-value.pending {
+            color: #bbb;
+            font-style: italic;
+        }
+
+        .field-block .field-value.locked {
+            color: #1a1a1a;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        #titleValue.locked {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .empty-hint {
+            font-size: 13px;
+            color: #ccc;
+            font-style: italic;
+        }
+
+        .notebook-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .notebook-item {
+            font-size: 13px;
+            color: #555;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+            border-left: 3px solid #DC3545;
+        }
+
+        /* Legacy - keeping for JS compatibility */
         .progress-item {
+            display: none;
+        }
+
+        .progress-tracker {
+            display: none;
+        }
+
+        .status-badge {
+            display: none;
+        }
+
+        .progress-item.hidden {
             display: flex;
             align-items: center;
             gap: 12px;
@@ -453,6 +951,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             box-shadow: 0 4px 20px rgba(220, 53, 69, 0.3);
         }
 
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            opacity: 0.8;
+            transition: opacity 0.2s ease;
+            margin-right: 8px;
+        }
+
+        .back-link:hover {
+            opacity: 1;
+        }
+
         .chat-header .logo {
             width: 48px;
             height: 48px;
@@ -566,35 +1077,164 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             border-radius: 18px 18px 18px 4px;
         }
 
-        /* Command hints */
-        .command-hints {
+        /* Command Bar */
+        .command-bar {
             padding: 12px 28px;
             background: rgba(0, 0, 0, 0.02);
-            font-size: 12px;
-            color: #999;
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .command-bar-header {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            margin-bottom: 10px;
         }
 
-        .command-hints span {
-            color: #bbb;
+        .command-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #999;
+            font-weight: 600;
         }
 
-        .command-hints code {
-            background: white;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+        .help-toggle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1.5px solid #ccc;
+            background: transparent;
+            color: #999;
             font-size: 11px;
-            color: #666;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .command-hints code:hover {
-            background: #f8f8f8;
+        .help-toggle:hover {
+            border-color: #DC3545;
             color: #DC3545;
+            background: rgba(220, 53, 69, 0.05);
+        }
+
+        .help-toggle.active {
+            background: #DC3545;
+            border-color: #DC3545;
+            color: white;
+        }
+
+        .command-chips {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .command-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 20px;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+            font-size: 12px;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .command-chip:hover {
+            background: #fafafa;
+            border-color: #DC3545;
+            color: #DC3545;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(220, 53, 69, 0.15);
+        }
+
+        .chip-icon {
+            font-size: 14px;
+        }
+
+        /* Command Help Panel */
+        .command-help {
+            display: none;
+            margin-top: 14px;
+            padding: 16px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .command-help.visible {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .help-section {
+            margin-bottom: 14px;
+        }
+
+        .help-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .help-section h4 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #888;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+        }
+
+        .help-section p {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .help-command {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .help-command:last-child {
+            border-bottom: none;
+        }
+
+        .help-command code {
+            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+            font-size: 13px;
+            color: #DC3545;
+            font-weight: 500;
+        }
+
+        .help-command span {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .help-command em {
+            color: #666;
+            font-style: normal;
+            background: rgba(0, 0, 0, 0.03);
+            padding: 2px 6px;
+            border-radius: 4px;
         }
 
         .input-container {
@@ -660,33 +1300,249 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         .typing-dots-container {
-            display: flex;
-            gap: 10px;
-            padding: 20px 26px;
-            align-items: center;
-            border-radius: 24px;
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 8px !important;
+            padding: 16px 20px !important;
+            align-items: center !important;
+            background: white !important;
+            border-radius: 18px 18px 18px 4px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06) !important;
         }
 
         .typing-dot {
-            width: 14px;
-            height: 14px;
-            background-color: #DC3545;
-            border-radius: 50%;
-            animation: pulse-bounce 1.5s infinite ease-in-out;
+            width: 10px !important;
+            height: 10px !important;
+            background-color: #DC3545 !important;
+            border-radius: 50% !important;
+            display: block !important;
+            animation: pulse-bounce 1.4s infinite ease-in-out !important;
         }
 
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s !important; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s !important; }
 
         @keyframes pulse-bounce {
-            0%, 100% {
-                transform: translateY(0) scale(1);
-                opacity: 0.5;
+            0%, 80%, 100% {
+                transform: scale(0.6);
+                opacity: 0.4;
             }
-            50% {
-                transform: translateY(-10px) scale(1.15);
+            40% {
+                transform: scale(1);
                 opacity: 1;
             }
+        }
+
+        /* Sidebar Tabs */
+        .sidebar-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 16px 20px;
+            background: rgba(0, 0, 0, 0.02);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            background: transparent;
+            color: #888;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-tab:hover {
+            background: rgba(0, 0, 0, 0.04);
+            color: #555;
+        }
+
+        .sidebar-tab.active {
+            background: linear-gradient(135deg, #DC3545 0%, #c82333 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+        }
+
+        .tab-content {
+            display: none;
+            overflow-y: auto;
+            flex: 1;
+            padding: 8px 0;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Building Tab - Act/Scene Structure */
+        .structure-container {
+            padding: 20px;
+        }
+
+        .act-section {
+            margin-bottom: 20px;
+        }
+
+        .act-header {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #bbb;
+            padding: 0 4px 8px 4px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+            margin-bottom: 10px;
+        }
+
+        .scenes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-left: 8px;
+        }
+
+        .empty-scenes {
+            font-size: 12px;
+            color: #aaa;
+            font-style: italic;
+            padding: 8px 12px;
+        }
+
+        .scene-card {
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .scene-card:hover {
+            border-color: rgba(220, 53, 69, 0.3);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+
+        .scene-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .scene-header:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+
+        .scene-number {
+            font-size: 11px;
+            font-weight: 700;
+            color: #DC3545;
+            background: rgba(220, 53, 69, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+        }
+
+        .scene-title {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .scene-toggle {
+            font-size: 10px;
+            color: #aaa;
+            transition: transform 0.2s ease;
+        }
+
+        .scene-card.expanded .scene-toggle {
+            transform: rotate(180deg);
+        }
+
+        .scene-beats {
+            display: none;
+            padding: 0 12px 12px 12px;
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
+        }
+
+        .scene-card.expanded .scene-beats {
+            display: block;
+        }
+
+        .beat-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+        }
+
+        .beat-item:last-child {
+            border-bottom: none;
+        }
+
+        .beat-bullet {
+            width: 6px;
+            height: 6px;
+            background: #DC3545;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .beat-text {
+            font-size: 12px;
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .no-beats {
+            font-size: 11px;
+            color: #aaa;
+            font-style: italic;
+            padding: 8px 0;
+        }
+
+        /* Outline Beats List */
+        .outline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .outline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 10px 12px;
+            background: white;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 8px;
+        }
+
+        .outline-number {
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+            background: #DC3545;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .outline-text {
+            font-size: 13px;
+            color: #333;
+            line-height: 1.4;
         }
 
         .status-badge {
@@ -714,6 +1570,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             display: flex;
             flex-direction: column;
             gap: 10px;
+            padding: 0 16px;
+            margin-bottom: 20px;
         }
 
         /* Save button */
@@ -784,26 +1642,68 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="main-container">
         <div class="chat-container">
             <div class="chat-header">
+                <a href="/" class="back-link" title="Back to projects">&larr;</a>
                 <div class="logo">
                     <img src="/static/syd_logo.png" alt="Syd" onerror="this.style.display='none'; this.parentElement.textContent='S';">
                 </div>
                 <div class="chat-header-text">
-                    Syd
-                    <span>Your romcom writing partner</span>
+                    {{SESSION_NAME}}
+                    <span>Brainstorming with Syd</span>
                 </div>
             </div>
 
             <div class="messages" id="messages">
-                <div class="message assistant">
-                    <div class="message-avatar"><img src="/static/syd_logo.png" alt="Syd"></div>
-                    <div class="message-content">Hi! I'm Syd. Got an idea for a romantic comedy?
-
-Tell me anything - a character, a situation, a vibe.</div>
-                </div>
+                <!-- Messages loaded dynamically -->
             </div>
 
-            <div class="command-hints">
-                <span>Commands</span> <code>/character</code> <code>/beat</code> <code>/scene</code>
+            <div class="command-bar">
+                <div class="command-bar-header">
+                    <span class="command-label">Commands</span>
+                    <button class="help-toggle" onclick="toggleCommandHelp()" title="Show command help">?</button>
+                </div>
+                <div class="command-chips">
+                    <button class="command-chip" onclick="insertCommand('/character ')" title="Add a character">
+                        <span class="chip-icon">👤</span>/character
+                    </button>
+                    <button class="command-chip" onclick="insertCommand('/beat ')" title="Add an outline beat">
+                        <span class="chip-icon">📍</span>/beat
+                    </button>
+                    <button class="command-chip" onclick="insertCommand('/scene ')" title="Add a scene">
+                        <span class="chip-icon">🎬</span>/scene
+                    </button>
+                    <button class="command-chip" onclick="insertCommand('/note ')" title="Save an idea to notebook">
+                        <span class="chip-icon">📝</span>/note
+                    </button>
+                </div>
+                <div class="command-help" id="commandHelp">
+                    <div class="help-section">
+                        <h4>How Lizzy Works</h4>
+                        <p>Syd automatically saves ideas as you chat (via <strong>directives</strong>). You can also manually save things using <strong>commands</strong>.</p>
+                    </div>
+                    <div class="help-section">
+                        <h4>Available Commands</h4>
+                        <div class="help-command">
+                            <code>/character [name]</code>
+                            <span>Save a character. Example: <em>/character Emma</em></span>
+                        </div>
+                        <div class="help-command">
+                            <code>/beat [text]</code>
+                            <span>Add an outline beat. Example: <em>/beat They meet at a wedding</em></span>
+                        </div>
+                        <div class="help-command">
+                            <code>/scene [num] [title]</code>
+                            <span>Add a scene. Example: <em>/scene 1 Wedding Disaster</em></span>
+                        </div>
+                        <div class="help-command">
+                            <code>/note [idea]</code>
+                            <span>Save to notebook. Example: <em>/note Rain scene at the end</em></span>
+                        </div>
+                    </div>
+                    <div class="help-section">
+                        <h4>Automatic Tracking</h4>
+                        <p>Syd will ask to lock <strong>Title</strong> and <strong>Logline</strong> when ready. Ideas get saved to the <strong>Notebook</strong> automatically.</p>
+                    </div>
+                </div>
             </div>
 
             <div class="input-container">
@@ -822,54 +1722,64 @@ Tell me anything - a character, a situation, a vibe.</div>
                 <button class="collapse-btn" onclick="toggleSidebar()" title="Collapse">&#9664;</button>
             </div>
 
-            <!-- Phase Indicator -->
-            <div class="phase-indicator">
-                <div class="phase active" id="phase1">1. Foundation</div>
-                <div class="phase" id="phase2">2. Building</div>
+            <!-- Tab Switcher -->
+            <div class="sidebar-tabs">
+                <button class="sidebar-tab active" id="tabFoundation" onclick="switchTab('foundation')">1. Foundation</button>
+                <button class="sidebar-tab" id="tabBuilding" onclick="switchTab('building')">2. Building</button>
             </div>
 
-            <!-- Progress Tracker -->
-            <div class="progress-tracker">
-                <div class="progress-item pending" id="progressTitle">
-                    <span class="icon">&#10003;</span>
-                    <span>Title</span>
-                </div>
-                <div class="progress-item pending" id="progressLogline">
-                    <span class="icon">&#10003;</span>
-                    <span>Logline</span>
-                </div>
-                <div class="progress-item pending" id="progressCharacters">
-                    <span class="icon">&#10003;</span>
-                    <span>Characters</span>
-                    <span class="count" id="characterCount">0</span>
-                </div>
-                <div class="progress-item pending" id="progressBeats">
-                    <span class="icon">&#10003;</span>
-                    <span>Beat Sheet</span>
-                    <span class="count" id="beatCount">0/30</span>
-                </div>
-            </div>
+            <!-- Foundation Tab Content -->
+            <div class="tab-content active" id="foundationTab">
+                <div class="foundation-content">
+                    <div class="field-block" id="titleBlock">
+                        <div class="field-label">Title</div>
+                        <div class="field-value pending" id="titleValue">Untitled</div>
+                    </div>
 
-            <div class="sidebar-section">
-                <h3>Title <span class="status-badge status-pending" id="titleStatus">pending</span></h3>
-                <div class="field-value empty" id="titleValue">Not set yet</div>
-            </div>
+                    <div class="field-block" id="loglineBlock">
+                        <div class="field-label">Logline</div>
+                        <div class="field-value pending" id="loglineValue">What's the one-sentence pitch?</div>
+                    </div>
 
-            <div class="sidebar-section">
-                <h3>Logline <span class="status-badge status-pending" id="loglineStatus">pending</span></h3>
-                <div class="field-value empty" id="loglineValue">Not set yet</div>
-            </div>
+                    <div class="field-block">
+                        <div class="field-label">Characters <span class="field-count" id="characterCount">0</span></div>
+                        <div class="character-cards" id="charactersContainer">
+                            <div class="empty-hint" id="noCharacters">Use /character to add</div>
+                        </div>
+                    </div>
 
-            <div class="sidebar-section">
-                <h3>Characters</h3>
-                <div class="character-cards" id="charactersContainer">
-                    <div class="field-value empty" id="noCharacters">None defined yet</div>
+                    <div class="field-block">
+                        <div class="field-label">Notebook <span class="field-count" id="notebookCount">0</span></div>
+                        <div class="notebook-list" id="notebookValue">
+                            <div class="empty-hint">Ideas saved during chat</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="sidebar-section">
-                <h3>Notebook <span class="count" id="notebookCount" style="font-size: 11px; color: #aaa; font-weight: 500;">(0)</span></h3>
-                <div class="field-value empty" id="notebookValue">Empty</div>
+            <!-- Building Tab Content -->
+            <div class="tab-content" id="buildingTab">
+                <div class="structure-container" id="structureContainer">
+                    <div class="act-section" id="act1Section">
+                        <div class="act-header">Act 1</div>
+                        <div class="scenes-list" id="act1Scenes">
+                            <div class="empty-scenes">No scenes yet. Use /scene to add.</div>
+                        </div>
+                    </div>
+                    <div class="act-section" id="act2Section">
+                        <div class="act-header">Act 2</div>
+                        <div class="scenes-list" id="act2Scenes">
+                            <div class="empty-scenes">No scenes yet.</div>
+                        </div>
+                    </div>
+                    <div class="act-section" id="act3Section">
+                        <div class="act-header">Act 3</div>
+                        <div class="scenes-list" id="act3Scenes">
+                            <div class="empty-scenes">No scenes yet.</div>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Save Section -->
@@ -895,6 +1805,125 @@ Tell me anything - a character, a situation, a vibe.</div>
         function toggleSidebar() {
             sidebar.classList.toggle('collapsed');
             expandBtn.style.display = sidebar.classList.contains('collapsed') ? 'block' : 'none';
+        }
+
+        function switchTab(tab) {
+            // Update tab buttons
+            document.getElementById('tabFoundation').classList.toggle('active', tab === 'foundation');
+            document.getElementById('tabBuilding').classList.toggle('active', tab === 'building');
+
+            // Update tab content
+            document.getElementById('foundationTab').classList.toggle('active', tab === 'foundation');
+            document.getElementById('buildingTab').classList.toggle('active', tab === 'building');
+        }
+
+        function toggleScene(sceneId) {
+            const card = document.getElementById('scene-' + sceneId);
+            if (card) {
+                card.classList.toggle('expanded');
+            }
+        }
+
+        function updateBuildingTab(state) {
+            const fields = state.fields;
+
+            // Update scenes by act
+            const scenes = fields.beats || [];
+            const act1Scenes = document.getElementById('act1Scenes');
+            const act2Scenes = document.getElementById('act2Scenes');
+            const act3Scenes = document.getElementById('act3Scenes');
+
+            // Clear existing
+            act1Scenes.innerHTML = '';
+            act2Scenes.innerHTML = '';
+            act3Scenes.innerHTML = '';
+
+            if (scenes.length === 0) {
+                act1Scenes.innerHTML = '<div class="empty-scenes">No scenes yet. Use /scene to add.</div>';
+                act2Scenes.innerHTML = '<div class="empty-scenes">No scenes yet.</div>';
+                act3Scenes.innerHTML = '<div class="empty-scenes">No scenes yet.</div>';
+            } else {
+                // Group scenes by act (1-10 = Act 1, 11-20 = Act 2, 21-30 = Act 3)
+                scenes.forEach(scene => {
+                    const num = scene.number || 0;
+                    let container;
+                    if (num <= 10) container = act1Scenes;
+                    else if (num <= 20) container = act2Scenes;
+                    else container = act3Scenes;
+
+                    const card = document.createElement('div');
+                    card.className = 'scene-card';
+                    card.id = 'scene-' + num;
+
+                    // Get beats for this scene (placeholder for now)
+                    const sceneBeats = scene.beats || [];
+
+                    card.innerHTML = `
+                        <div class="scene-header" onclick="toggleScene(${num})">
+                            <span class="scene-number">${num}</span>
+                            <span class="scene-title">${scene.title || 'Untitled'}</span>
+                            <span class="scene-toggle">▼</span>
+                        </div>
+                        <div class="scene-beats">
+                            ${sceneBeats.length > 0
+                                ? sceneBeats.map(b => `
+                                    <div class="beat-item">
+                                        <div class="beat-bullet"></div>
+                                        <div class="beat-text">${b}</div>
+                                    </div>
+                                `).join('')
+                                : '<div class="no-beats">No beats for this scene yet</div>'
+                            }
+                            ${scene.description ? `<div class="beat-item"><div class="beat-bullet"></div><div class="beat-text">${scene.description}</div></div>` : ''}
+                        </div>
+                    `;
+
+                    container.appendChild(card);
+                });
+
+                // Add empty placeholders for acts with no scenes
+                if (act1Scenes.children.length === 0) {
+                    act1Scenes.innerHTML = '<div class="empty-scenes">No scenes yet.</div>';
+                }
+                if (act2Scenes.children.length === 0) {
+                    act2Scenes.innerHTML = '<div class="empty-scenes">No scenes yet.</div>';
+                }
+                if (act3Scenes.children.length === 0) {
+                    act3Scenes.innerHTML = '<div class="empty-scenes">No scenes yet.</div>';
+                }
+            }
+
+            // Update outline beats
+            const outline = fields.outline || [];
+            const outlineList = document.getElementById('outlineList');
+            const outlineCount = document.getElementById('outlineCount');
+
+            outlineCount.textContent = '(' + outline.length + ')';
+
+            if (outline.length === 0) {
+                outlineList.innerHTML = '<div class="field-value empty">No beats yet. Use /beat to add.</div>';
+            } else {
+                outlineList.innerHTML = outline.map((beat, i) => `
+                    <div class="outline-item">
+                        <div class="outline-number">${i + 1}</div>
+                        <div class="outline-text">${typeof beat === 'string' ? beat : beat.beat || beat.text || JSON.stringify(beat)}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function toggleCommandHelp() {
+            const help = document.getElementById('commandHelp');
+            const toggle = document.querySelector('.help-toggle');
+            help.classList.toggle('visible');
+            toggle.classList.toggle('active');
+        }
+
+        function insertCommand(cmd) {
+            messageInput.value = cmd;
+            messageInput.focus();
+            // Place cursor at end
+            messageInput.setSelectionRange(cmd.length, cmd.length);
         }
 
         // Strip directives from text
@@ -924,6 +1953,59 @@ Tell me anything - a character, a situation, a vibe.</div>
         });
 
         sendButton.addEventListener('click', sendMessage);
+
+        // Session ID for this chat
+        const SESSION_ID = {{SESSION_ID}};
+
+        // Load conversation history and state on page load
+        async function loadSession() {
+            // Load messages
+            const msgResponse = await fetch('/api/sessions/' + SESSION_ID + '/messages');
+            const msgData = await msgResponse.json();
+
+            if (msgData.messages && msgData.messages.length > 0) {
+                // Render existing messages
+                msgData.messages.forEach(msg => {
+                    if (msg.role === 'user') {
+                        addMessage(msg.content, 'user');
+                    } else {
+                        addAssistantMessage(msg.content);
+                    }
+                });
+            } else {
+                // Show welcome message for new sessions
+                addAssistantMessage("Hi! I'm Syd. Got an idea for a romantic comedy?\\n\\nTell me anything - a character, a situation, a vibe.");
+            }
+
+            // Load current state
+            const stateResponse = await fetch('/state');
+            const state = await stateResponse.json();
+            if (state && !state.error) {
+                updateSidebar(state);
+            }
+
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addAssistantMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = '<img src="/static/syd_logo.png" alt="Syd">';
+
+            const content = document.createElement('div');
+            content.className = 'message-content';
+            content.textContent = text;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
+        }
+
+        // Load session on page load
+        loadSession();
 
         // Save button handler
         saveButton.addEventListener('click', async function() {
@@ -1091,60 +2173,36 @@ Tell me anything - a character, a situation, a vibe.</div>
             const fields = state.fields;
             const locked = state.locked;
 
-            // Determine phase
-            const phase1 = document.getElementById('phase1');
-            const phase2 = document.getElementById('phase2');
             const titleLocked = locked && locked.title;
             const loglineLocked = locked && locked.logline;
 
-            if (titleLocked && loglineLocked) {
-                phase1.className = 'phase complete';
-                phase2.className = 'phase active';
-            } else {
-                phase1.className = 'phase active';
-                phase2.className = 'phase';
-            }
-
-            // Update progress tracker
-            const progressTitle = document.getElementById('progressTitle');
-            const progressLogline = document.getElementById('progressLogline');
-            const progressCharacters = document.getElementById('progressCharacters');
-            const progressBeats = document.getElementById('progressBeats');
-
-            progressTitle.className = titleLocked ? 'progress-item complete' : 'progress-item pending';
-            progressLogline.className = loglineLocked ? 'progress-item complete' : 'progress-item pending';
-
-            const charCount = fields.characters ? fields.characters.length : 0;
-            document.getElementById('characterCount').textContent = charCount;
-            progressCharacters.className = charCount >= 3 ? 'progress-item complete' : 'progress-item pending';
-
-            const beatCount = fields.beats ? fields.beats.length : 0;
-            document.getElementById('beatCount').textContent = beatCount + '/30';
-            progressBeats.className = beatCount >= 30 ? 'progress-item complete' : 'progress-item pending';
-
             // Title
             const titleValue = document.getElementById('titleValue');
-            const titleStatus = document.getElementById('titleStatus');
             if (fields.title) {
                 const changed = !previousState || previousState.fields.title !== fields.title;
                 titleValue.textContent = fields.title;
-                titleValue.classList.remove('empty');
-                titleStatus.textContent = 'locked';
-                titleStatus.className = 'status-badge status-locked';
+                titleValue.className = 'field-value locked';
                 if (changed) animateUpdate('titleValue');
+            } else {
+                titleValue.textContent = 'Untitled';
+                titleValue.className = 'field-value pending';
             }
 
             // Logline
             const loglineValue = document.getElementById('loglineValue');
-            const loglineStatus = document.getElementById('loglineStatus');
             if (fields.logline) {
                 const changed = !previousState || previousState.fields.logline !== fields.logline;
                 loglineValue.textContent = fields.logline;
-                loglineValue.classList.remove('empty');
-                loglineStatus.textContent = 'locked';
-                loglineStatus.className = 'status-badge status-locked';
+                loglineValue.className = 'field-value locked';
                 if (changed) animateUpdate('loglineValue');
+            } else {
+                loglineValue.textContent = "What's the one-sentence pitch?";
+                loglineValue.className = 'field-value pending';
             }
+
+            // Character count
+            const charCount = fields.characters ? fields.characters.length : 0;
+            document.getElementById('characterCount').textContent = charCount;
 
             // Characters - render as cards
             const container = document.getElementById('charactersContainer');
@@ -1173,6 +2231,7 @@ Tell me anything - a character, a situation, a vibe.</div>
                     const avatarColor = roleColors[char.role] || '#DC3545';
 
                     let detailsHtml = '';
+                    if (char.description) detailsHtml += `<div class="character-detail"><span class="character-detail-label">Description</span><br>${char.description}</div>`;
                     if (char.personality) detailsHtml += `<div class="character-detail"><span class="character-detail-label">Personality</span><br>${char.personality}</div>`;
                     if (char.flaw) detailsHtml += `<div class="character-detail"><span class="character-detail-label">Flaw</span><br>${char.flaw}</div>`;
                     if (char.arc) detailsHtml += `<div class="character-detail"><span class="character-detail-label">Arc</span><br>${char.arc}</div>`;
@@ -1198,16 +2257,21 @@ Tell me anything - a character, a situation, a vibe.</div>
             const notebookCount = document.getElementById('notebookCount');
             if (fields.notebook && fields.notebook.length > 0) {
                 const changed = !previousState || (previousState.fields.notebook || []).length !== fields.notebook.length;
-                notebookCount.textContent = '(' + fields.notebook.length + ')';
-                // Show last 3 ideas
-                const recent = fields.notebook.slice(-3).reverse();
-                notebookValue.innerHTML = recent.map(n => '<div style="margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #E5E1D8;">' + n + '</div>').join('');
-                notebookValue.classList.remove('empty');
+                notebookCount.textContent = fields.notebook.length;
+                // Show last 5 ideas
+                const recent = fields.notebook.slice(-5).reverse();
+                notebookValue.innerHTML = recent.map(n => '<div class="notebook-item">' + n + '</div>').join('');
                 if (changed) animateUpdate('notebookValue');
+            } else {
+                notebookCount.textContent = '0';
+                notebookValue.innerHTML = '<div class="empty-hint">Ideas saved during chat</div>';
             }
 
             // Enable save button if we have title or logline
             saveButton.disabled = !(fields.title || fields.logline);
+
+            // Update building tab
+            updateBuildingTab(state);
 
             // Store state for comparison
             previousState = JSON.parse(JSON.stringify(state));

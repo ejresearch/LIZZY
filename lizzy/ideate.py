@@ -368,6 +368,10 @@ When the user types a command starting with /, respond with the appropriate dire
 - Parse number and title from command
 - Example: User says "/scene 1 Wedding Disaster" → [DIRECTIVE:scene|number:1|title:Wedding Disaster|description:Opening scene]
 
+/note [idea] - Save an idea to the notebook
+- Emit directive with the provided idea
+- Example: User says "/note Rain scene at the end" → [DIRECTIVE:note|idea:Rain scene at the end]
+
 WHEN TO USE DIRECTIVES - CRITICAL RULES:
 
 ⚠️ DIRECTIVE EMISSION IS MANDATORY - NOT OPTIONAL ⚠️
@@ -856,43 +860,49 @@ class IdeateSession:
             self._debug_print_full_prompt(system_content)
 
         # Generate streamed response with embedded directives (no function calling)
-        try:
-            stream = await self.client.chat.completions.create(
-                model="gpt-5.1",
-                messages=[
-                    {"role": "system", "content": system_content},
-                    *self.messages
-                ],
-                # No tools - using directive-based approach instead
-                temperature=0.8,
-                stream=True,
-            )
-        except Exception as e:
-            print(f"OpenAI API error: {e}")
-            error_msg = f"Sorry, I encountered an error: {str(e)}"
-            self.messages.append({"role": "assistant", "content": error_msg})
-            yield error_msg
-            return
-
-        # Accumulate response (directives embedded in text)
+        # Retry up to 3 times on connection errors
+        max_retries = 3
         full_response_with_directives = ""
 
-        try:
-            async for chunk in stream:
-                delta = chunk.choices[0].delta
+        for attempt in range(max_retries):
+            try:
+                stream = await self.client.chat.completions.create(
+                    model="gpt-5.1",
+                    messages=[
+                        {"role": "system", "content": system_content},
+                        *self.messages
+                    ],
+                    # No tools - using directive-based approach instead
+                    temperature=0.8,
+                    stream=True,
+                )
 
-                # Accumulate content (includes directives)
-                if delta.content:
-                    full_response_with_directives += delta.content
-                    # Stream to user as-is (directives will be stripped at end)
-                    yield delta.content
+                # Accumulate response (directives embedded in text)
+                full_response_with_directives = ""
 
-        except Exception as e:
-            print(f"Streaming error: {e}")
-            error_msg = f"Sorry, streaming failed: {str(e)}"
-            self.messages.append({"role": "assistant", "content": error_msg})
-            yield error_msg
-            return
+                async for chunk in stream:
+                    delta = chunk.choices[0].delta
+
+                    # Accumulate content (includes directives)
+                    if delta.content:
+                        full_response_with_directives += delta.content
+                        # Stream to user as-is (directives will be stripped at end)
+                        yield delta.content
+
+                # If we got here, streaming completed successfully
+                break
+
+            except Exception as e:
+                print(f"Streaming error (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    # Wait before retry
+                    await asyncio.sleep(1)
+                    yield f"\n\n[Connection lost, retrying...]\n\n"
+                else:
+                    error_msg = f"Sorry, connection failed after {max_retries} attempts: {str(e)}"
+                    self.messages.append({"role": "assistant", "content": error_msg})
+                    yield error_msg
+                    return
 
         # Extract and execute directives from response
         directives = self._extract_directives(full_response_with_directives)
