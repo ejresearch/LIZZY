@@ -360,13 +360,15 @@ When the user types a command starting with /, respond with the appropriate dire
 - If no name: emit directive for the most recently discussed character
 - Example: User says "/character Emma" → You respond with brief confirmation and emit [DIRECTIVE:character|name:Emma|role:protagonist|age:early 30s|personality:...|flaw:...|backstory:...]
 
-/beat [text] - Add an outline beat
-- Emit directive with the provided text
-- Example: User says "/beat Act 1: They meet at a wedding" → [DIRECTIVE:beat|beat:Act 1: They meet at a wedding]
-
-/scene [number] [title] - Add a scene to the beat sheet
+/scene [number] [title] - Add a scene to the structure
 - Parse number and title from command
-- Example: User says "/scene 1 Wedding Disaster" → [DIRECTIVE:scene|number:1|title:Wedding Disaster|description:Opening scene]
+- Scene numbers 1-10 = Act 1, 11-20 = Act 2, 21-30 = Act 3
+- Example: User says "/scene 1 Wedding Disaster" → [DIRECTIVE:scene|number:1|title:Wedding Disaster|description:Opening scene where Ivy meets Lars]
+
+/beat [scene_number] [text] - Add a beat to a specific scene
+- First arg is scene number, rest is the beat text
+- Example: User says "/beat 1 Ivy arrives nervous" → [DIRECTIVE:beat|scene:1|beat:Ivy arrives nervous]
+- Example: User says "/beat 5 The almost-kiss" → [DIRECTIVE:beat|scene:5|beat:The almost-kiss]
 
 /note [idea] - Save an idea to the notebook
 - Emit directive with the provided idea
@@ -457,6 +459,30 @@ BE PROACTIVE: Add directives as soon as information becomes clear. Don't wait fo
 
 NOTE ON CHARACTER TRACKING:
 Characters are tracked manually via commands (e.g., /character). Do NOT automatically emit character directives during conversation. Focus on helping the user develop rich, compelling characters through discussion.
+
+QUICK REFERENCE - COPY/PASTE THESE PATTERNS:
+
+/character Maya → respond with:
+[DIRECTIVE:character|name:Maya|role:protagonist|description:...]
+✓ Maya added as protagonist.
+
+/scene 5 The Truce → respond with:
+[DIRECTIVE:scene|number:5|title:The Truce|description:...]
+✓ Scene 5 added: The Truce
+
+/beat 3 First real conversation → respond with:
+[DIRECTIVE:beat|scene:3|beat:First real conversation]
+✓ Beat added to Scene 3.
+
+"Lock the title 'Coffee Wars'" → respond with:
+[DIRECTIVE:title|title:Coffee Wars]
+✓ Title locked: **Coffee Wars**
+
+"Lock that logline" → respond with:
+[DIRECTIVE:logline|logline:When a sarcastic barista...]
+✓ Logline locked.
+
+NEVER confirm something is saved without including the [DIRECTIVE:...] syntax.
 """
 
 
@@ -520,9 +546,8 @@ IDEATE_FIELDS = {
     "logline": None,            # writer_notes.logline
 
     # Phase 2: Build Together (conversationally)
-    "outline": [],              # 5-8 key moments (plot pyramid)
-    "beats": [],                # 30 scenes for scenes table
     "characters": [],           # characters table (name, role, description, arc, flaw)
+    "scenes": [],               # scenes with nested beats: {number, title, description, act, beats: []}
 
     # Supporting Context
     "theme": None,              # writer_notes.theme
@@ -740,8 +765,7 @@ class IdeateSession:
         # Extracted fields
         self.fields = IDEATE_FIELDS.copy()
         self.fields["characters"] = []  # Reset mutable defaults
-        self.fields["outline"] = []
-        self.fields["beats"] = []
+        self.fields["scenes"] = []      # Scenes with nested beats
         self.fields["notebook"] = []
 
         # Locked status for Phase 1
@@ -752,10 +776,13 @@ class IdeateSession:
 
         # Populated status for Phase 2
         self.populated = {
-            "outline": False,
-            "beats": False,
-            "characters": False,
+            "characters": False,  # 3+ characters
+            "scenes": False,      # 30 scenes
         }
+
+        # Track scenes saved by backend parsing in current request
+        # This prevents LLM directives from overwriting user-specified scenes
+        self._backend_saved_scenes = set()
 
         # RAG bucket instances (lazy loaded)
         self._rag_instances = {}
@@ -840,6 +867,28 @@ class IdeateSession:
         Yields:
             Response text chunks
         """
+        # Clear backend-saved tracking for this request
+        self._backend_saved_scenes = set()
+
+        # Parse and execute any slash commands BEFORE sending to LLM
+        # This guarantees commands are saved even if LLM doesn't emit directives
+        command_result = self.parse_user_command(user_message)
+        command_feedback = None
+        if command_result:
+            print(f"📌 Backend parsed command: {command_result['type']} - saved directly")
+
+            # Handle /help command - return help text immediately without LLM call
+            if command_result.get('type') == 'help':
+                yield command_result['text']
+                return
+
+            # Track which scenes were saved by backend to protect from LLM overwrites
+            if command_result.get('type') == 'scene':
+                self._backend_saved_scenes.add(command_result['number'])
+                print(f"🔒 Protected scene {command_result['number']} from LLM overwrites")
+            # Generate user-facing feedback
+            command_feedback = self._format_command_feedback(command_result)
+
         # Add user message to history
         self.messages.append({
             "role": "user",
@@ -858,6 +907,10 @@ class IdeateSession:
         # Debug: print full prompt
         if self.debug:
             self._debug_print_full_prompt(system_content)
+
+        # If command was parsed, yield feedback first
+        if command_feedback:
+            yield command_feedback
 
         # Generate streamed response with embedded directives (no function calling)
         # Retry up to 3 times on connection errors
@@ -912,6 +965,14 @@ class IdeateSession:
             for d in directives:
                 print(f"   - {d['action']}: {d['params']}")
                 self._execute_directive(d)
+        else:
+            # No directives found - try fallback parsing from natural language
+            fallback_directives = self._fallback_parse_response(full_response_with_directives, user_message)
+            if fallback_directives:
+                print(f"🔄 Fallback extracted {len(fallback_directives)} items:")
+                for d in fallback_directives:
+                    print(f"   - {d['action']}: {d['params']}")
+                    self._execute_directive(d)
 
         # Strip directives from response (get clean user-facing text)
         clean_response = self._strip_directives(full_response_with_directives)
@@ -964,6 +1025,621 @@ class IdeateSession:
         import re
         return re.sub(r'\[DIRECTIVE:[^\]]+\]\s*', '', text).strip()
 
+    def _format_command_feedback(self, command_result: Dict) -> str:
+        """
+        Format user-facing feedback for a parsed command.
+
+        Args:
+            command_result: Result from parse_user_command
+
+        Returns:
+            User-friendly feedback string
+        """
+        cmd_type = command_result.get("type")
+
+        if cmd_type == "scene":
+            return f"**Scene {command_result['number']} saved:** {command_result['title']}\n\n"
+        elif cmd_type == "character":
+            role_display = command_result.get("role", "").replace("_", " ")
+            return f"**Character saved:** {command_result['name']} ({role_display})\n\n"
+        elif cmd_type == "beat":
+            return f"**Beat added to Scene {command_result['scene']}:** {command_result['beat']}\n\n"
+        elif cmd_type == "note":
+            return f"**Note saved:** {command_result['idea']}\n\n"
+        elif cmd_type == "title":
+            return f"**Title locked:** {command_result['title']}\n\n"
+        elif cmd_type == "logline":
+            return f"**Logline locked**\n\n"
+        elif cmd_type == "edit_scene":
+            if command_result.get("success"):
+                return f"**Scene {command_result['number']} updated:** {command_result['title']}\n\n"
+            return f"**Error:** {command_result.get('error', 'Failed to edit scene')}\n\n"
+        elif cmd_type == "edit_character":
+            if command_result.get("success"):
+                return f"**{command_result['name']} updated**\n\n"
+            return f"**Error:** {command_result.get('error', 'Failed to edit character')}\n\n"
+        elif cmd_type == "delete_scene":
+            if command_result.get("success"):
+                return f"**Scene {command_result['number']} deleted**\n\n"
+            return f"**Error:** {command_result.get('error', 'Scene not found')}\n\n"
+        elif cmd_type == "delete_character":
+            if command_result.get("success"):
+                return f"**{command_result['name']} deleted**\n\n"
+            return f"**Error:** {command_result.get('error', 'Character not found')}\n\n"
+        elif cmd_type == "delete_beat":
+            if command_result.get("success"):
+                return f"**Beat deleted from Scene {command_result['scene']}**\n\n"
+            return f"**Error:** {command_result.get('error', 'Beat not found')}\n\n"
+        elif cmd_type == "move_scene":
+            if command_result.get("success"):
+                return f"**Scene moved from {command_result['from']} to {command_result['to']}**\n\n"
+            return f"**Error:** {command_result.get('error', 'Failed to move scene')}\n\n"
+        elif cmd_type == "undo":
+            if command_result.get("success"):
+                undone = command_result.get("undone", {})
+                return f"**Undone:** {undone.get('action', 'action')} {undone.get('type', 'item')}\n\n"
+            return f"**Nothing to undo**\n\n"
+        elif cmd_type == "export":
+            return f"**Exporting to {command_result['format']}...**\n\n"
+        elif cmd_type == "bulk_import":
+            count = command_result.get("count", 0)
+            return f"**Bulk imported {count} items**\n\n"
+        else:
+            return ""
+
+    def parse_user_command(self, message: str) -> Optional[Dict]:
+        """
+        Parse slash commands from user message and execute them directly.
+        This ensures commands are saved even if the LLM doesn't emit directives.
+
+        Returns:
+            Dict with command info if a command was found, None otherwise
+        """
+        import re
+
+        message = message.strip()
+        if not message.startswith('/'):
+            return None
+
+        # Parse /help command
+        if message.strip().lower() == '/help':
+            help_text = """## Available Commands
+
+**Content Creation:**
+- `/scene [num] [title] - [description]` — Add a scene
+- `/character [name] - [description]` — Add a character
+- `/beat [scene_num] [text]` — Add a beat to a scene
+- `/note [idea]` — Add a note to the notebook
+- `/title [text]` — Lock the title
+- `/logline [text]` — Lock the logline
+
+**Editing:**
+- `/edit scene [num] [new title]` — Edit a scene's title
+- `/edit character [name] [new description]` — Edit a character
+- `/delete scene [num]` — Delete a scene
+- `/delete character [name]` — Delete a character
+- `/delete beat [scene_num] [beat_num]` — Delete a beat
+- `/move scene [from] to [to]` — Reorder scenes
+
+**Other:**
+- `/undo` — Undo the last action
+- `/export [md|pdf]` — Export the project
+
+**Tips:**
+- You can also just chat naturally! Say "lock the title 'My Movie'" or describe ideas.
+- Multiple commands can be entered at once (one per line)."""
+            return {"type": "help", "text": help_text}
+
+        # Parse /scene command: /scene [number] [title] - [description]
+        scene_match = re.match(r'^/scene\s+(\d+)\s+(.+?)(?:\s*-\s*(.+))?$', message, re.IGNORECASE)
+        if scene_match:
+            scene_num = int(scene_match.group(1))
+            title = scene_match.group(2).strip()
+            description = scene_match.group(3).strip() if scene_match.group(3) else ""
+
+            # Execute directly
+            self._execute_directive({
+                "action": "scene",
+                "params": {"number": str(scene_num), "title": title, "description": description}
+            })
+            return {"type": "scene", "number": scene_num, "title": title, "description": description}
+
+        # Parse /character command: /character [name] - [description]
+        char_match = re.match(r'^/character\s+(\w+)(?:\s*-\s*(.+))?$', message, re.IGNORECASE)
+        if char_match:
+            name = char_match.group(1).strip()
+            description = char_match.group(2).strip() if char_match.group(2) else ""
+
+            # Try to infer role from description
+            role = "supporting"
+            desc_lower = description.lower()
+            if "protagonist" in desc_lower or "main character" in desc_lower:
+                role = "protagonist"
+            elif "love interest" in desc_lower:
+                role = "love_interest"
+            elif "best friend" in desc_lower or "coworker" in desc_lower:
+                role = "best_friend"
+            elif "antagonist" in desc_lower or "villain" in desc_lower:
+                role = "obstacle"
+
+            # Execute directly
+            self._execute_directive({
+                "action": "character",
+                "params": {"name": name, "role": role, "description": description}
+            })
+            return {"type": "character", "name": name, "role": role, "description": description}
+
+        # Parse /beat command: /beat [scene_number] [beat_text]
+        beat_match = re.match(r'^/beat\s+(\d+)\s+(.+)$', message, re.IGNORECASE)
+        if beat_match:
+            scene_num = int(beat_match.group(1))
+            beat_text = beat_match.group(2).strip()
+
+            # Execute directly
+            self._execute_directive({
+                "action": "beat",
+                "params": {"scene": str(scene_num), "beat": beat_text}
+            })
+            return {"type": "beat", "scene": scene_num, "beat": beat_text}
+
+        # Parse /note command: /note [idea]
+        note_match = re.match(r'^/note\s+(.+)$', message, re.IGNORECASE)
+        if note_match:
+            idea = note_match.group(1).strip()
+
+            # Execute directly
+            self._execute_directive({
+                "action": "note",
+                "params": {"idea": idea}
+            })
+            return {"type": "note", "idea": idea}
+
+        # Parse /title command: /title [title] or "lock title [title]"
+        title_match = re.match(r'^/title\s+(.+)$', message, re.IGNORECASE)
+        if title_match:
+            title = title_match.group(1).strip()
+            self._execute_directive({
+                "action": "title",
+                "params": {"title": title}
+            })
+            return {"type": "title", "title": title}
+
+        # Parse /logline command: /logline [text]
+        logline_match = re.match(r'^/logline\s+(.+)$', message, re.IGNORECASE)
+        if logline_match:
+            logline = logline_match.group(1).strip()
+            self._execute_directive({
+                "action": "logline",
+                "params": {"logline": logline}
+            })
+            return {"type": "logline", "logline": logline}
+
+        # Parse /edit command: /edit scene [num] [new title] or /edit character [name] [field] [value]
+        edit_scene_match = re.match(r'^/edit\s+scene\s+(\d+)\s+(.+)$', message, re.IGNORECASE)
+        if edit_scene_match:
+            scene_num = int(edit_scene_match.group(1))
+            new_title = edit_scene_match.group(2).strip()
+            result = self._edit_scene(scene_num, new_title)
+            if result:
+                return {"type": "edit_scene", "number": scene_num, "title": new_title, "success": True}
+            return {"type": "edit_scene", "number": scene_num, "success": False, "error": "Scene not found"}
+
+        edit_char_match = re.match(r'^/edit\s+character\s+(\w+)\s+(.+)$', message, re.IGNORECASE)
+        if edit_char_match:
+            name = edit_char_match.group(1).strip()
+            new_desc = edit_char_match.group(2).strip()
+            result = self._edit_character(name, new_desc)
+            if result:
+                return {"type": "edit_character", "name": name, "description": new_desc, "success": True}
+            return {"type": "edit_character", "name": name, "success": False, "error": "Character not found"}
+
+        # Parse /delete command: /delete scene [num] or /delete character [name]
+        delete_scene_match = re.match(r'^/delete\s+scene\s+(\d+)$', message, re.IGNORECASE)
+        if delete_scene_match:
+            scene_num = int(delete_scene_match.group(1))
+            result = self._delete_scene(scene_num)
+            if result:
+                return {"type": "delete_scene", "number": scene_num, "success": True}
+            return {"type": "delete_scene", "number": scene_num, "success": False, "error": "Scene not found"}
+
+        delete_char_match = re.match(r'^/delete\s+character\s+(\w+)$', message, re.IGNORECASE)
+        if delete_char_match:
+            name = delete_char_match.group(1).strip()
+            result = self._delete_character(name)
+            if result:
+                return {"type": "delete_character", "name": name, "success": True}
+            return {"type": "delete_character", "name": name, "success": False, "error": "Character not found"}
+
+        delete_beat_match = re.match(r'^/delete\s+beat\s+(\d+)\s+(\d+)$', message, re.IGNORECASE)
+        if delete_beat_match:
+            scene_num = int(delete_beat_match.group(1))
+            beat_idx = int(delete_beat_match.group(2)) - 1  # 1-indexed to 0-indexed
+            result = self._delete_beat(scene_num, beat_idx)
+            if result:
+                return {"type": "delete_beat", "scene": scene_num, "beat_index": beat_idx, "success": True}
+            return {"type": "delete_beat", "scene": scene_num, "success": False, "error": "Beat not found"}
+
+        # Parse /move command: /move scene [from] to [to]
+        move_match = re.match(r'^/move\s+scene\s+(\d+)\s+to\s+(\d+)$', message, re.IGNORECASE)
+        if move_match:
+            from_num = int(move_match.group(1))
+            to_num = int(move_match.group(2))
+            result = self._move_scene(from_num, to_num)
+            if result:
+                return {"type": "move_scene", "from": from_num, "to": to_num, "success": True}
+            return {"type": "move_scene", "from": from_num, "success": False, "error": "Scene not found"}
+
+        # Parse /undo command
+        if message.strip().lower() == '/undo':
+            result = self._undo_last_action()
+            if result:
+                return {"type": "undo", "undone": result, "success": True}
+            return {"type": "undo", "success": False, "error": "Nothing to undo"}
+
+        # Parse /export command: /export [format]
+        export_match = re.match(r'^/export(?:\s+(md|markdown|pdf))?$', message, re.IGNORECASE)
+        if export_match:
+            fmt = export_match.group(1) or 'markdown'
+            if fmt.lower() == 'md':
+                fmt = 'markdown'
+            return {"type": "export", "format": fmt.lower()}
+
+        # Check for bulk import (multiple commands in one message)
+        # Detect if message has multiple lines starting with /
+        lines = message.strip().split('\n')
+        commands = [l.strip() for l in lines if l.strip().startswith('/')]
+        if len(commands) > 1:
+            # Process each command individually (recursive but won't re-trigger bulk)
+            results = []
+            for cmd in commands:
+                # Temporarily set a flag to prevent infinite recursion
+                if not hasattr(self, '_in_bulk_import'):
+                    self._in_bulk_import = True
+                    result = self.parse_user_command(cmd)
+                    self._in_bulk_import = False
+                    if result and result.get("type") != "bulk_import":
+                        results.append(result)
+            if results:
+                return {"type": "bulk_import", "count": len(results), "results": results}
+
+        return None
+
+    # -------------------------------------------------------------------------
+    # Edit/Delete/Move/Undo operations
+    # -------------------------------------------------------------------------
+
+    def _edit_scene(self, scene_num: int, new_title: str) -> bool:
+        """Edit a scene's title."""
+        scene = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+        if not scene:
+            return False
+
+        # Track for undo
+        old_data = {"number": scene_num, "title": scene.get("title"), "description": scene.get("description")}
+        self._add_to_history("edit", "scene", old_data)
+
+        scene["title"] = new_title
+        return True
+
+    def _edit_character(self, name: str, new_description: str) -> bool:
+        """Edit a character's description."""
+        char = next((c for c in self.fields["characters"] if c.get("name", "").lower() == name.lower()), None)
+        if not char:
+            return False
+
+        # Track for undo
+        old_data = dict(char)
+        self._add_to_history("edit", "character", old_data)
+
+        char["description"] = new_description
+        return True
+
+    def _delete_scene(self, scene_num: int) -> bool:
+        """Delete a scene."""
+        scene = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+        if not scene:
+            return False
+
+        # Track for undo
+        self._add_to_history("delete", "scene", dict(scene))
+
+        self.fields["scenes"].remove(scene)
+        return True
+
+    def _delete_character(self, name: str) -> bool:
+        """Delete a character."""
+        char = next((c for c in self.fields["characters"] if c.get("name", "").lower() == name.lower()), None)
+        if not char:
+            return False
+
+        # Track for undo
+        self._add_to_history("delete", "character", dict(char))
+
+        self.fields["characters"].remove(char)
+        return True
+
+    def _delete_beat(self, scene_num: int, beat_idx: int) -> bool:
+        """Delete a beat from a scene."""
+        scene = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+        if not scene:
+            return False
+
+        beats = scene.get("beats", [])
+        if beat_idx < 0 or beat_idx >= len(beats):
+            return False
+
+        # Track for undo
+        beat_text = beats[beat_idx]
+        self._add_to_history("delete", "beat", {"scene": scene_num, "beat_index": beat_idx, "beat": beat_text})
+
+        beats.pop(beat_idx)
+        return True
+
+    def _move_scene(self, from_num: int, to_num: int) -> bool:
+        """Move a scene to a new position, renumbering others."""
+        scene = next((s for s in self.fields["scenes"] if s.get("number") == from_num), None)
+        if not scene:
+            return False
+
+        # Track for undo
+        old_scenes = [{"number": s["number"], "title": s.get("title")} for s in self.fields["scenes"]]
+        self._add_to_history("move", "scene", {"from": from_num, "to": to_num, "old_order": old_scenes})
+
+        # Remove scene from list
+        self.fields["scenes"].remove(scene)
+
+        # Renumber scenes
+        for s in self.fields["scenes"]:
+            num = s.get("number", 0)
+            if from_num < to_num:
+                # Moving down: decrement scenes between from and to
+                if from_num < num <= to_num:
+                    s["number"] = num - 1
+            else:
+                # Moving up: increment scenes between to and from
+                if to_num <= num < from_num:
+                    s["number"] = num + 1
+
+        # Set new number and reinsert
+        scene["number"] = to_num
+        scene["act"] = 1 if to_num <= 10 else (2 if to_num <= 20 else 3)
+        self.fields["scenes"].append(scene)
+        self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
+
+        return True
+
+    def _add_to_history(self, action_type: str, item_type: str, item_data: dict) -> None:
+        """Add an action to the undo history."""
+        if not hasattr(self, '_undo_history'):
+            self._undo_history = []
+
+        self._undo_history.append({
+            "action": action_type,
+            "type": item_type,
+            "data": item_data
+        })
+
+        # Keep only last 50 actions
+        if len(self._undo_history) > 50:
+            self._undo_history = self._undo_history[-50:]
+
+    def _undo_last_action(self) -> Optional[Dict]:
+        """Undo the last action."""
+        if not hasattr(self, '_undo_history') or not self._undo_history:
+            return None
+
+        entry = self._undo_history.pop()
+        action = entry["action"]
+        item_type = entry["type"]
+        data = entry["data"]
+
+        if action == "delete":
+            # Restore deleted item
+            if item_type == "scene":
+                self.fields["scenes"].append(data)
+                self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
+            elif item_type == "character":
+                self.fields["characters"].append(data)
+            elif item_type == "beat":
+                scene = next((s for s in self.fields["scenes"] if s.get("number") == data["scene"]), None)
+                if scene:
+                    beats = scene.get("beats", [])
+                    beats.insert(data["beat_index"], data["beat"])
+
+        elif action == "edit":
+            # Restore old value
+            if item_type == "scene":
+                scene = next((s for s in self.fields["scenes"] if s.get("number") == data["number"]), None)
+                if scene:
+                    scene["title"] = data.get("title")
+                    scene["description"] = data.get("description")
+            elif item_type == "character":
+                char = next((c for c in self.fields["characters"] if c.get("name") == data.get("name")), None)
+                if char:
+                    char.update(data)
+
+        elif action == "add":
+            # Remove added item
+            if item_type == "scene":
+                scene = next((s for s in self.fields["scenes"] if s.get("number") == data.get("number")), None)
+                if scene:
+                    self.fields["scenes"].remove(scene)
+            elif item_type == "character":
+                char = next((c for c in self.fields["characters"] if c.get("name") == data.get("name")), None)
+                if char:
+                    self.fields["characters"].remove(char)
+
+        elif action == "move":
+            # Restore old scene order
+            if item_type == "scene":
+                old_order = data.get("old_order", [])
+                for old_scene in old_order:
+                    scene = next((s for s in self.fields["scenes"] if s.get("title") == old_scene.get("title")), None)
+                    if scene:
+                        scene["number"] = old_scene["number"]
+                        scene["act"] = 1 if old_scene["number"] <= 10 else (2 if old_scene["number"] <= 20 else 3)
+                self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
+
+        return entry
+
+    def export_to_markdown(self) -> str:
+        """Export the current session to markdown format."""
+        lines = []
+
+        # Title
+        title = self.fields.get("title") or "Untitled Project"
+        lines.append(f"# {title}")
+        lines.append("")
+
+        # Logline
+        logline = self.fields.get("logline")
+        if logline:
+            lines.append("## Logline")
+            lines.append(f"> {logline}")
+            lines.append("")
+
+        # Theme/Tone/Comps
+        if self.fields.get("theme") or self.fields.get("tone") or self.fields.get("comps"):
+            lines.append("## Story Details")
+            if self.fields.get("theme"):
+                lines.append(f"**Theme:** {self.fields['theme']}")
+            if self.fields.get("tone"):
+                lines.append(f"**Tone:** {self.fields['tone']}")
+            if self.fields.get("comps"):
+                lines.append(f"**Comparable Films:** {self.fields['comps']}")
+            lines.append("")
+
+        # Characters
+        characters = self.fields.get("characters", [])
+        if characters:
+            lines.append("## Characters")
+            lines.append("")
+            for char in characters:
+                name = char.get("name", "Unnamed")
+                role = char.get("role", "").replace("_", " ").title()
+                lines.append(f"### {name} ({role})")
+                if char.get("description"):
+                    lines.append(char["description"])
+                if char.get("flaw"):
+                    lines.append(f"**Flaw:** {char['flaw']}")
+                if char.get("arc"):
+                    lines.append(f"**Arc:** {char['arc']}")
+                lines.append("")
+
+        # Scenes by Act
+        scenes = self.fields.get("scenes", [])
+        if scenes:
+            for act_num, act_name in [(1, "Act 1: Setup"), (2, "Act 2: Confrontation"), (3, "Act 3: Resolution")]:
+                act_scenes = [s for s in scenes if s.get("act") == act_num]
+                if act_scenes:
+                    lines.append(f"## {act_name}")
+                    lines.append("")
+                    for scene in sorted(act_scenes, key=lambda x: x.get("number", 0)):
+                        num = scene.get("number", 0)
+                        title = scene.get("title", "Untitled")
+                        lines.append(f"### Scene {num}: {title}")
+                        if scene.get("description"):
+                            lines.append(f"*{scene['description']}*")
+                        beats = scene.get("beats", [])
+                        if beats:
+                            lines.append("")
+                            for beat in beats:
+                                lines.append(f"- {beat}")
+                        lines.append("")
+
+        # Notebook
+        notebook = self.fields.get("notebook", [])
+        if notebook:
+            lines.append("## Notebook")
+            lines.append("")
+            for note in notebook:
+                lines.append(f"- {note}")
+            lines.append("")
+
+        return "\n".join(lines)
+
+    def _fallback_parse_response(self, response: str, user_message: str) -> List[Dict]:
+        """
+        Fallback parsing to extract structured data from LLM response
+        when it doesn't emit proper directives.
+
+        Looks for patterns like:
+        - "Title locked: **Title**"
+        - "Scene 3 - Title" patterns
+        - Character mentions with roles
+
+        Returns:
+            List of extracted directives to execute
+        """
+        import re
+        extracted = []
+
+        # Check for title lock patterns: "Title locked: **X**" or "✓ Title locked: X"
+        title_patterns = [
+            r'Title locked[:\s]+\*\*([^*]+)\*\*',
+            r'✓\s*Title locked[:\s]+\*\*([^*]+)\*\*',
+            r'Title locked[:\s]+([^\n]+)',
+        ]
+        for pattern in title_patterns:
+            match = re.search(pattern, response, re.IGNORECASE)
+            if match and not self.locked.get("title"):
+                title = match.group(1).strip().strip('*')
+                if title and len(title) > 1:
+                    extracted.append({"action": "title", "params": {"title": title}})
+                    break
+
+        # Check for logline lock patterns
+        logline_patterns = [
+            r'Logline locked[:\s]+\*\*([^*]+)\*\*',
+            r'✓\s*Logline locked',
+        ]
+        for pattern in logline_patterns:
+            if re.search(pattern, response, re.IGNORECASE) and not self.locked.get("logline"):
+                # Try to extract the actual logline from nearby text
+                logline_text_match = re.search(r'(?:logline[:\s]+)?[""]([^""]+)[""]', response, re.IGNORECASE)
+                if logline_text_match:
+                    extracted.append({"action": "logline", "params": {"logline": logline_text_match.group(1)}})
+                    break
+
+        # Check for scene definitions: "Scene X – Title" or "**Scene X – Title**"
+        scene_pattern = r'\*?\*?Scene\s+(\d+)\s*[–-]\s*([^*\n]+?)\*?\*?(?:\n|$)'
+        for match in re.finditer(scene_pattern, response, re.IGNORECASE):
+            scene_num = int(match.group(1))
+            title = match.group(2).strip()
+            # Only add if we don't already have this scene
+            existing = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+            if not existing and title:
+                extracted.append({
+                    "action": "scene",
+                    "params": {"number": str(scene_num), "title": title, "description": ""}
+                })
+
+        # Check for character definitions in structured format
+        # "**Name** – role, description" or "- **Name**: description"
+        char_pattern = r'\*\*(\w+)\*\*\s*[–:-]\s*([^,\n]+)'
+        for match in re.finditer(char_pattern, response):
+            name = match.group(1).strip()
+            desc = match.group(2).strip()
+            # Only if this looks like a character definition and we don't have them
+            if name and len(name) > 1 and not any(c.get("name") == name for c in self.fields["characters"]):
+                # Try to infer role
+                role = "supporting"
+                desc_lower = desc.lower()
+                if "protagonist" in desc_lower:
+                    role = "protagonist"
+                elif "love interest" in desc_lower:
+                    role = "love_interest"
+                elif "best friend" in desc_lower:
+                    role = "best_friend"
+                # Only add if it seems like a character (not just bold text)
+                if any(word in desc_lower for word in ["barista", "businessman", "friend", "character", "protagonist", "love", "interest", "coworker"]):
+                    extracted.append({
+                        "action": "character",
+                        "params": {"name": name, "role": role, "description": desc}
+                    })
+
+        return extracted
+
     def _execute_directive(self, directive: Dict) -> None:
         """
         Execute a single directive to update state.
@@ -997,24 +1673,67 @@ class IdeateSession:
 
         elif action == "note":
             idea = params.get("idea")
-            if idea:
+            if idea and idea not in self.fields["notebook"]:
                 self.fields["notebook"].append(idea)
 
         elif action == "scene":
-            self.fields["beats"].append({
-                "number": params.get("number"),
-                "title": params.get("title"),
-                "description": params.get("description")
-            })
-            if len(self.fields["beats"]) >= 30:
-                self.populated["beats"] = True
+            scene_num = int(params.get("number", 0))
+
+            # Skip if this scene was saved by backend parsing in current request
+            # This prevents LLM directives from overwriting user-specified scenes
+            if scene_num in self._backend_saved_scenes:
+                print(f"⏭️  Skipping LLM directive for scene {scene_num} - already saved by backend")
+                return
+
+            # Check if scene already exists
+            existing = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+            if existing:
+                # Update existing scene, but don't overwrite real titles with placeholders
+                new_title = params.get("title")
+                if new_title:
+                    # Don't overwrite a real title with "Scene X" placeholder
+                    is_placeholder = new_title.strip().lower() == f"scene {scene_num}".lower()
+                    existing_is_real = existing.get("title") and existing["title"].strip().lower() != f"scene {scene_num}".lower()
+                    if not (is_placeholder and existing_is_real):
+                        existing["title"] = new_title
+                if params.get("description"):
+                    existing["description"] = params.get("description")
+            else:
+                # Add new scene
+                self.fields["scenes"].append({
+                    "number": scene_num,
+                    "title": params.get("title"),
+                    "description": params.get("description"),
+                    "act": 1 if scene_num <= 10 else (2 if scene_num <= 20 else 3),
+                    "beats": []
+                })
+                # Sort scenes by number (ensure int comparison)
+                self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
+
+            if len(self.fields["scenes"]) >= 30:
+                self.populated["scenes"] = True
 
         elif action == "beat":
-            beat = params.get("beat")
-            if beat:
-                self.fields["outline"].append(beat)
-                if len(self.fields["outline"]) >= 5:
-                    self.populated["outline"] = True
+            # Add beat to a specific scene
+            scene_num = int(params.get("scene", 0))
+            beat_text = params.get("beat")
+            if scene_num and beat_text:
+                # Find the scene
+                scene = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+                if scene:
+                    # Avoid duplicate beats
+                    if beat_text not in scene["beats"]:
+                        scene["beats"].append(beat_text)
+                else:
+                    # Scene doesn't exist yet, create it with this beat
+                    self.fields["scenes"].append({
+                        "number": scene_num,
+                        "title": f"Scene {scene_num}",
+                        "description": "",
+                        "act": 1 if scene_num <= 10 else (2 if scene_num <= 20 else 3),
+                        "beats": [beat_text]
+                    })
+                    self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
 
         # Update stage
         if all(self.locked.values()) and all(self.populated.values()):
@@ -1354,13 +2073,66 @@ PLAYS (patterns, dynamics, archetypes):
         Returns:
             Dict with stage, fields, locked/populated status
         """
+        # Calculate handoff readiness with detailed validation
+        handoff_validation = self._validate_handoff_readiness()
+
         return {
             "stage": self.stage,
             "fields": self.fields,
             "locked": self.locked,
             "populated": self.populated,
             "message_count": len(self.messages),
-            "ready_for_handoff": all(self.locked.values()) and all(self.populated.values()),
+            "ready_for_handoff": handoff_validation["ready"],
+            "handoff_validation": handoff_validation,
+        }
+
+    def _validate_handoff_readiness(self) -> Dict:
+        """
+        Validate if the session is ready for handoff to BRAINSTORM phase.
+
+        Requirements:
+        - Title locked
+        - Logline locked
+        - At least 3 characters with names and roles
+        - At least 10 scenes with titles
+        - At least some beats across scenes
+
+        Returns:
+            Dict with ready status and detailed checklist
+        """
+        checks = {
+            "title_locked": {
+                "passed": bool(self.locked.get("title") and self.fields.get("title")),
+                "label": "Title locked",
+                "value": self.fields.get("title") or "Not set"
+            },
+            "logline_locked": {
+                "passed": bool(self.locked.get("logline") and self.fields.get("logline")),
+                "label": "Logline locked",
+                "value": "Set" if self.fields.get("logline") else "Not set"
+            },
+            "characters_defined": {
+                "passed": len(self.fields.get("characters", [])) >= 3,
+                "label": "Characters (3+ required)",
+                "value": f"{len(self.fields.get('characters', []))} defined"
+            },
+            "scenes_created": {
+                "passed": len(self.fields.get("scenes", [])) >= 10,
+                "label": "Scenes (10+ required)",
+                "value": f"{len(self.fields.get('scenes', []))}/30"
+            },
+            "beats_added": {
+                "passed": sum(len(s.get("beats", [])) for s in self.fields.get("scenes", [])) >= 5,
+                "label": "Beats (5+ required)",
+                "value": f"{sum(len(s.get('beats', [])) for s in self.fields.get('scenes', []))} total"
+            }
+        }
+
+        all_passed = all(c["passed"] for c in checks.values())
+
+        return {
+            "ready": all_passed,
+            "checks": checks
         }
 
     # -------------------------------------------------------------------------
@@ -1426,15 +2198,24 @@ PLAYS (patterns, dynamics, archetypes):
                 relationships=char.get("relationships") or ""
             )
 
-        # Save beats as scenes if populated
-        beats = self.fields.get("beats", [])
-        for beat in beats:
+        # Save scenes with nested beats
+        scenes = self.fields.get("scenes", [])
+        for scene in scenes:
+            # Combine beats into description
+            beats_list = scene.get("beats", [])
+            beats_text = "\n".join(f"- {b}" for b in beats_list) if beats_list else ""
+
+            # Build full description with beats
+            description = scene.get("description") or ""
+            if beats_text:
+                description = f"{description}\n\nBeats:\n{beats_text}" if description else f"Beats:\n{beats_text}"
+
             db.insert_scene(
-                scene_number=beat.get("number") or 0,
-                title=beat.get("title") or "",
-                description=beat.get("description") or "",
-                characters=beat.get("characters") or "",
-                tone=beat.get("tone") or ""
+                scene_number=scene.get("number") or 0,
+                title=scene.get("title") or "",
+                description=description,
+                characters=scene.get("characters") or "",
+                tone=scene.get("tone") or ""
             )
 
         return project_id

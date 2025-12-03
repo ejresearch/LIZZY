@@ -632,3 +632,115 @@ class Database:
                 ORDER BY created_at ASC
             """, (session_id,))
             return [dict(row) for row in cursor.fetchall()]
+
+    # =========================================================================
+    # IDEATE HISTORY/UNDO METHODS
+    # =========================================================================
+
+    def create_ideate_history_table(self) -> None:
+        """Create table for tracking session state history (for undo)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    action_type TEXT NOT NULL,  -- 'add', 'edit', 'delete'
+                    item_type TEXT NOT NULL,    -- 'scene', 'character', 'beat', 'note'
+                    item_data TEXT NOT NULL,    -- JSON of the item before/after change
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES ideate_sessions(id)
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ideate_history_session
+                ON ideate_history(session_id, created_at DESC)
+            """)
+
+    def add_ideate_history(self, session_id: int, action_type: str, item_type: str, item_data: dict) -> int:
+        """
+        Add a history entry for undo functionality.
+
+        Args:
+            session_id: Session ID
+            action_type: 'add', 'edit', or 'delete'
+            item_type: 'scene', 'character', 'beat', 'note'
+            item_data: The item data (before state for edit/delete, new state for add)
+
+        Returns:
+            History entry ID
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_history (session_id, action_type, item_type, item_data)
+                VALUES (?, ?, ?, ?)
+            """, (session_id, action_type, item_type, json.dumps(item_data)))
+            return cursor.lastrowid
+
+    def get_ideate_history(self, session_id: int, limit: int = 20) -> List[dict]:
+        """
+        Get recent history entries for a session.
+
+        Args:
+            session_id: Session ID
+            limit: Max entries to return
+
+        Returns:
+            List of history entries (most recent first)
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, action_type, item_type, item_data, created_at
+                FROM ideate_history
+                WHERE session_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (session_id, limit))
+            entries = []
+            for row in cursor.fetchall():
+                entry = dict(row)
+                try:
+                    entry['item_data'] = json.loads(entry['item_data'])
+                except:
+                    pass
+                entries.append(entry)
+            return entries
+
+    def pop_ideate_history(self, session_id: int) -> Optional[dict]:
+        """
+        Pop the most recent history entry (for undo).
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            The popped history entry, or None
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Get most recent
+            cursor.execute("""
+                SELECT id, action_type, item_type, item_data, created_at
+                FROM ideate_history
+                WHERE session_id = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            entry = dict(row)
+            try:
+                entry['item_data'] = json.loads(entry['item_data'])
+            except:
+                pass
+
+            # Delete it
+            cursor.execute("DELETE FROM ideate_history WHERE id = ?", (entry['id'],))
+            return entry
