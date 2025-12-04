@@ -351,6 +351,8 @@ AVAILABLE DIRECTIVES:
 - [DIRECTIVE:logline|logline:X] - Lock the logline (after user confirmation)
 - [DIRECTIVE:scene|number:N|title:X|description:Y] - Add a beat sheet scene (via /scene OR proactively when outlining)
 - [DIRECTIVE:beat|scene:N|beat:X] - Add a beat to a scene (via /beat OR proactively when outlining scenes)
+- [DIRECTIVE:lock|type:character|name:X] - Lock a character (finalize, no more changes)
+- [DIRECTIVE:lock|type:scene|number:N] - Lock a scene (finalize, no more changes)
 
 MANUAL COMMANDS:
 When the user types a command starting with /, respond with the appropriate directive:
@@ -373,6 +375,14 @@ When the user types a command starting with /, respond with the appropriate dire
 /note [idea] - Save an idea to the notebook
 - Emit directive with the provided idea
 - Example: User says "/note Rain scene at the end" → [DIRECTIVE:note|idea:Rain scene at the end]
+
+/lock [type] [identifier] - Lock a character or scene (finalize it, no more changes)
+- Type is either "character" or "scene"
+- For character: identifier is the character name
+- For scene: identifier is the scene number
+- Example: User says "/lock character Emma" → [DIRECTIVE:lock|type:character|name:Emma]
+- Example: User says "/lock scene 5" → [DIRECTIVE:lock|type:scene|number:5]
+- You can also lock proactively when a character/scene feels complete
 
 WHEN TO USE DIRECTIVES - CRITICAL RULES:
 
@@ -420,6 +430,24 @@ You: "That breakfast scene sounds like a great inciting incident.
 [DIRECTIVE:note|idea:Inciting incident - breakfast scene where they realize they both texted Lars]
 
 What happens next?"
+
+RULE 4 - LOCK CHARACTERS & SCENES:
+When a character or scene feels complete, you can lock it to finalize it. Users can also request "/lock character X" or "/lock scene N".
+
+CORRECT:
+User: "/lock character Emma"
+You: "Emma is now finalized!
+
+[DIRECTIVE:lock|type:character|name:Emma]
+
+Her character arc is set - no more changes. Ready to lock more elements?"
+
+CORRECT (proactive):
+You: "Emma's character is really solid now - great backstory, clear flaw, compelling arc. Let me lock her in.
+
+[DIRECTIVE:lock|type:character|name:Emma]
+
+Character locked. Want to finalize any scenes next?"
 
 EXAMPLES WITH DIRECTIVES (Study These):
 
@@ -1773,6 +1801,22 @@ class IdeateSession:
                         "beats": [beat_text]
                     })
                     self.fields["scenes"].sort(key=lambda s: int(s.get("number", 0)))
+
+        elif action == "lock":
+            # Lock a character or scene
+            lock_type = params.get("type")
+            if lock_type == "character":
+                char_name = params.get("name")
+                if char_name:
+                    char = next((c for c in self.fields["characters"] if c.get("name") == char_name), None)
+                    if char:
+                        char["locked"] = True
+            elif lock_type == "scene":
+                scene_num = int(params.get("number", 0))
+                if scene_num:
+                    scene = next((s for s in self.fields["scenes"] if s.get("number") == scene_num), None)
+                    if scene:
+                        scene["locked"] = True
 
         # Update stage
         if all(self.locked.values()) and all(self.populated.values()):
