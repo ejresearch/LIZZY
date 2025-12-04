@@ -349,8 +349,8 @@ AVAILABLE DIRECTIVES:
 - [DIRECTIVE:note|idea:X] - Save a good idea/fragment (auto-track during conversation)
 - [DIRECTIVE:title|title:X] - Lock the project title (after user confirmation)
 - [DIRECTIVE:logline|logline:X] - Lock the logline (after user confirmation)
-- [DIRECTIVE:beat|beat:X] - Add an outline beat (triggered via /beat command)
-- [DIRECTIVE:scene|number:N|title:X|description:Y] - Add a beat sheet scene (triggered via /scene command)
+- [DIRECTIVE:scene|number:N|title:X|description:Y] - Add a beat sheet scene (via /scene OR proactively when outlining)
+- [DIRECTIVE:beat|scene:N|beat:X] - Add a beat to a scene (via /beat OR proactively when outlining scenes)
 
 MANUAL COMMANDS:
 When the user types a command starting with /, respond with the appropriate directive:
@@ -459,6 +459,37 @@ BE PROACTIVE: Add directives as soon as information becomes clear. Don't wait fo
 
 NOTE ON CHARACTER TRACKING:
 Characters are tracked manually via commands (e.g., /character). Do NOT automatically emit character directives during conversation. Focus on helping the user develop rich, compelling characters through discussion.
+
+PROACTIVE SCENE & BEAT TRACKING:
+When you outline scenes or describe scene beats in detail, EMIT DIRECTIVES to save them automatically.
+
+⚠️ THIS IS CRITICAL: If you write out scene outlines with beats, you MUST emit directives to save them.
+
+Example - When outlining scenes for the user:
+"Here's how I see the first few scenes shaping up:
+
+**Scene 1 – Apartment Status Quo**
+- Beautiful, curated apartment; Ivy's one dorky decor item is sidelined
+- Maude on phone talking PR, casually name-dropping
+- Ivy comes home with grad-school gear, notices her decor moved and shrugs
+- Sisterly banter: inside jokes, comfortable shorthand
+- Maude pushes Ivy to go out; Ivy reluctantly agrees
+
+[DIRECTIVE:scene|number:1|title:Apartment Status Quo|description:Establish Ivy/Maude dynamic and class contrast]
+[DIRECTIVE:beat|scene:1|beat:Beautiful, curated apartment; Ivy's one dorky decor item is sidelined]
+[DIRECTIVE:beat|scene:1|beat:Maude on phone talking PR, casually name-dropping]
+[DIRECTIVE:beat|scene:1|beat:Ivy comes home with grad-school gear, notices her decor moved and shrugs]
+[DIRECTIVE:beat|scene:1|beat:Sisterly banter: inside jokes, comfortable shorthand]
+[DIRECTIVE:beat|scene:1|beat:Maude pushes Ivy to go out; Ivy reluctantly agrees]
+
+**Scene 2 – Night Out / Meet-Cute**
+...
+
+[DIRECTIVE:scene|number:2|title:Night Out / Meet-Cute|description:Ivy meets Lars at the bar]
+..."
+
+When the user asks you to "add these beats" or "save this outline" - emit ALL the relevant directives immediately.
+You can emit multiple directives in one response. They are invisible to the user and get processed automatically.
 
 QUICK REFERENCE - COPY/PASTE THESE PATTERNS:
 

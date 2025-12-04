@@ -8,6 +8,7 @@ Then open: http://localhost:8888
 import os
 import json
 import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,13 +16,6 @@ from pathlib import Path
 
 from .ideate import IdeateSession
 from .database import Database
-
-app = FastAPI()
-
-# Serve static files
-STATIC_DIR = Path(__file__).parent / "static"
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Database path for session persistence
 DB_PATH = Path(__file__).parent.parent / "ideate_sessions.db"
@@ -31,12 +25,22 @@ session = None
 current_session_id = None
 db = None
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
     global db
     db = Database(DB_PATH)
     db.initialize_schema()
     print(f"Database initialized at {DB_PATH}")
+    yield
+    # Shutdown (nothing to clean up)
+
+app = FastAPI(lifespan=lifespan)
+
+# Serve static files
+STATIC_DIR = Path(__file__).parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # =============================================================================
 # SESSION MANAGEMENT ENDPOINTS
@@ -1286,6 +1290,106 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             box-shadow: none;
         }
 
+        #sendButton.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        #sendButton.loading::after {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Autosave indicator */
+        .autosave-indicator {
+            font-size: 11px;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+        }
+
+        .autosave-indicator.saving {
+            color: #DC3545;
+        }
+
+        .autosave-indicator.saved {
+            color: #20C997;
+        }
+
+        /* Celebration animation */
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            top: 0;
+            z-index: 10001;
+            animation: confetti-fall 3s ease-out forwards;
+        }
+
+        /* Error retry button */
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .retry-btn {
+            background: #DC3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            width: fit-content;
+        }
+
+        .retry-btn:hover {
+            background: #c82333;
+        }
+
+        /* Onboarding empty state */
+        .onboarding-tip {
+            background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.1) 100%);
+            border: 1px dashed rgba(220, 53, 69, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 8px 0;
+        }
+
+        .onboarding-tip h4 {
+            color: #DC3545;
+            margin: 0 0 8px 0;
+            font-size: 13px;
+        }
+
+        .onboarding-tip p {
+            color: #666;
+            font-size: 12px;
+            margin: 0;
+            line-height: 1.5;
+        }
+
         .typing-dots-container {
             display: flex !important;
             flex-direction: row !important;
@@ -1794,16 +1898,42 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .editable {
             cursor: pointer;
             border-radius: 4px;
-            transition: background-color 0.15s ease;
+            transition: all 0.15s ease;
+            position: relative;
+            padding: 2px 4px;
+            margin: -2px -4px;
         }
 
         .editable:hover {
-            background-color: rgba(0, 0, 0, 0.05);
+            background-color: rgba(220, 53, 69, 0.08);
+            outline: 1px dashed rgba(220, 53, 69, 0.3);
+        }
+
+        .editable:hover::after {
+            content: 'click to edit';
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: #DC3545;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            opacity: 0.9;
+            pointer-events: none;
+            white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
         .editable.editing {
             background-color: white;
             cursor: text;
+            outline: none;
+        }
+
+        .editable.editing::after {
+            display: none;
         }
 
         .inline-edit-input {
@@ -1811,14 +1941,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             padding: 4px 8px;
             font-size: inherit;
             font-family: inherit;
-            border: 2px solid #FF6B9D;
+            border: 2px solid #DC3545;
             border-radius: 4px;
             outline: none;
             box-sizing: border-box;
         }
 
         .inline-edit-input:focus {
-            box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2);
         }
 
         .edit-hint {
@@ -1826,6 +1956,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             color: #888;
             font-style: italic;
             margin-top: 2px;
+        }
+
+        /* Beat text needs special handling for the edit hint */
+        .beat-text.editable:hover::after {
+            right: 30px; /* Account for delete button */
+        }
+
+        /* Scene title in header needs adjustment */
+        .scene-title.editable:hover::after {
+            right: 80px; /* Account for action buttons */
         }
     </style>
 </head>
@@ -1884,12 +2024,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 <div class="foundation-content">
                     <div class="field-block" id="titleBlock">
                         <div class="field-label">Title</div>
-                        <div class="field-value pending" id="titleValue">Untitled</div>
+                        <div class="field-value pending editable" id="titleValue" data-field="title">Untitled</div>
                     </div>
 
                     <div class="field-block" id="loglineBlock">
                         <div class="field-label">Logline</div>
-                        <div class="field-value pending" id="loglineValue">What's the one-sentence pitch?</div>
+                        <div class="field-value pending editable" id="loglineValue" data-field="logline">What's the one-sentence pitch?</div>
                     </div>
 
                     <div class="field-block">
@@ -2096,9 +2236,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         }
 
         // Global event delegation for all editable elements (including dynamically rendered ones)
-        document.addEventListener('dblclick', function(e) {
+        // Use single click for more responsive editing
+        document.addEventListener('click', function(e) {
             const el = e.target.closest('.editable');
             if (!el || el.classList.contains('editing')) return;
+
+            // Don't trigger edit when clicking on action buttons within the same container
+            if (e.target.closest('.action-btn') || e.target.closest('.item-actions')) return;
 
             const fieldType = el.dataset.field || el.id?.replace('Value', '') || null;
             if (!fieldType) return;
@@ -2111,20 +2255,6 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (el.dataset.oldName) extraData.old_name = el.dataset.oldName;
 
             makeEditable(el, fieldType, extraData);
-        });
-
-        // Add editable class to title/logline on load
-        document.addEventListener('DOMContentLoaded', function() {
-            const titleValue = document.getElementById('titleValue');
-            const loglineValue = document.getElementById('loglineValue');
-            if (titleValue) {
-                titleValue.classList.add('editable');
-                titleValue.dataset.field = 'title';
-            }
-            if (loglineValue) {
-                loglineValue.classList.add('editable');
-                loglineValue.dataset.field = 'logline';
-            }
         });
 
         function updateBuildingTab(state) {
@@ -2298,9 +2428,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             this.style.height = Math.min(this.scrollHeight, 120) + 'px';
         });
 
-        // Send message on Enter (Shift+Enter for new line)
+        // Send message on Enter (Shift+Enter for new line) or Cmd/Ctrl+Enter
         messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 sendMessage();
             }
@@ -2337,8 +2471,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     }
                 });
             } else {
-                // Show welcome message for new sessions
+                // Show welcome message for new sessions with onboarding tips
                 addAssistantMessage("Hi! I'm Syd. Got an idea for a romantic comedy?\\n\\nTell me anything - a character, a situation, a vibe.");
+                showOnboardingTips();
             }
 
             // Load current state
@@ -2371,6 +2506,47 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             messageDiv.appendChild(avatar);
             messageDiv.appendChild(content);
             messagesDiv.appendChild(messageDiv);
+        }
+
+        // Show onboarding tips for new sessions
+        function showOnboardingTips() {
+            const tipsDiv = document.createElement('div');
+            tipsDiv.className = 'onboarding-tips';
+            tipsDiv.innerHTML = `
+                <div class="onboarding-tip">
+                    <strong>Getting Started</strong>
+                    <p>Start by pitching your romcom idea - a character, a situation, or just a vibe!</p>
+                </div>
+                <div class="onboarding-tip">
+                    <strong>Quick Commands</strong>
+                    <p>Use <code>/character</code>, <code>/scene</code>, and <code>/beat</code> to add elements directly.</p>
+                </div>
+                <div class="onboarding-tip">
+                    <strong>Lock Your Decisions</strong>
+                    <p>Say "lock the title" or "lock the logline" when you're happy with them.</p>
+                </div>
+            `;
+            messagesDiv.appendChild(tipsDiv);
+        }
+
+        // Confetti celebration for handoff ready
+        let hasShownCelebration = false;
+        function showCelebration() {
+            if (hasShownCelebration) return;
+            hasShownCelebration = true;
+
+            const colors = ['#DC3545', '#20C997', '#FFD700', '#FF69B4', '#4169E1'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                document.body.appendChild(confetti);
+                setTimeout(() => confetti.remove(), 5000);
+            }
+            showToast('Your romcom is ready for BRAINSTORM!', 'success');
         }
 
         // Load session on page load
@@ -2412,18 +2588,27 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         });
 
-        async function sendMessage() {
-            const message = messageInput.value.trim();
+        // Store last message for retry
+        let lastMessage = '';
+
+        async function sendMessage(retryMessage = null) {
+            const message = retryMessage || messageInput.value.trim();
             if (!message) return;
 
-            // Add user message
-            addMessage(message, 'user');
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
+            lastMessage = message;
+
+            // Add user message (only if not a retry)
+            if (!retryMessage) {
+                addMessage(message, 'user');
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
 
             // Send to backend and stream response
             sendButton.disabled = true;
+            sendButton.classList.add('loading');
             showTypingIndicator();
+            updateAutosaveIndicator('saving');
 
             try {
                 const response = await fetch('/chat', {
@@ -2462,18 +2647,80 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                                     messagesDiv.scrollTop = messagesDiv.scrollHeight;
                                 } else if (parsed.type === 'state') {
                                     updateSidebar(parsed.state);
+                                    updateAutosaveIndicator('saved');
                                 }
                             } catch (e) {}
                         }
                     }
                 }
+                updateAutosaveIndicator('saved');
             } catch (error) {
                 removeTypingIndicator();
-                addMessage('Error: Could not connect to server', 'assistant');
+                addErrorMessage('Could not connect to server');
+                updateAutosaveIndicator('error');
             }
 
             sendButton.disabled = false;
+            sendButton.classList.remove('loading');
             messageInput.focus();
+        }
+
+        function addErrorMessage(errorText) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message assistant';
+
+            const avatar = document.createElement('div');
+            avatar.className = 'message-avatar';
+            avatar.innerHTML = '<img src="/static/syd_logo.png" alt="Syd">';
+
+            const content = document.createElement('div');
+            content.className = 'message-content error-message';
+            content.innerHTML = `
+                <span>Error: ${errorText}</span>
+                <button class="retry-btn" onclick="retryLastMessage()">Retry</button>
+            `;
+
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(content);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function retryLastMessage() {
+            if (lastMessage) {
+                // Remove the error message
+                const messages = messagesDiv.querySelectorAll('.message');
+                const lastMsg = messages[messages.length - 1];
+                if (lastMsg && lastMsg.querySelector('.error-message')) {
+                    lastMsg.remove();
+                }
+                sendMessage(lastMessage);
+            }
+        }
+
+        function updateAutosaveIndicator(status) {
+            let indicator = document.getElementById('autosaveIndicator');
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'autosaveIndicator';
+                indicator.className = 'autosave-indicator';
+                const inputContainer = document.querySelector('.input-container');
+                if (inputContainer) {
+                    inputContainer.insertBefore(indicator, inputContainer.firstChild);
+                }
+            }
+
+            if (status === 'saving') {
+                indicator.className = 'autosave-indicator saving';
+                indicator.innerHTML = 'Saving...';
+            } else if (status === 'saved') {
+                indicator.className = 'autosave-indicator saved';
+                const now = new Date();
+                indicator.innerHTML = `Saved ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+            } else if (status === 'error') {
+                indicator.className = 'autosave-indicator';
+                indicator.innerHTML = 'Save failed';
+            }
         }
 
         function addMessage(text, sender) {
@@ -2559,11 +2806,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (fields.title) {
                 const changed = !previousState || previousState.fields.title !== fields.title;
                 titleValue.textContent = fields.title;
-                titleValue.className = 'field-value locked';
+                titleValue.className = 'field-value locked editable';
+                titleValue.dataset.field = 'title';
                 if (changed) animateUpdate('titleValue');
             } else {
                 titleValue.textContent = 'Untitled';
-                titleValue.className = 'field-value pending';
+                titleValue.className = 'field-value pending editable';
+                titleValue.dataset.field = 'title';
             }
 
             // Logline
@@ -2571,11 +2820,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             if (fields.logline) {
                 const changed = !previousState || previousState.fields.logline !== fields.logline;
                 loglineValue.textContent = fields.logline;
-                loglineValue.className = 'field-value locked';
+                loglineValue.className = 'field-value locked editable';
+                loglineValue.dataset.field = 'logline';
                 if (changed) animateUpdate('loglineValue');
             } else {
                 loglineValue.textContent = "What's the one-sentence pitch?";
-                loglineValue.className = 'field-value pending';
+                loglineValue.className = 'field-value pending editable';
+                loglineValue.dataset.field = 'logline';
             }
 
             // Character count
@@ -2671,6 +2922,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
             // Enable/disable handoff button
             handoffButton.disabled = !validation.ready;
+
+            // Celebrate when handoff becomes ready
+            if (validation.ready) {
+                showCelebration();
+            }
         }
     </script>
 </body>
