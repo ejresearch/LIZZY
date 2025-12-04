@@ -46,16 +46,16 @@ builtins.print = _filtered_print
 
 
 # =============================================================================
-# GPT-5-mini completion function for LightRAG bucket queries
+# GPT-4.1-mini completion function for LightRAG bucket queries
 # =============================================================================
 
-async def gpt_5_1_complete(
+async def gpt_4_1_mini_complete(
     prompt: str,
     system_prompt: str = None,
     history_messages: list = None,
     **kwargs
 ) -> str:
-    """GPT-5.1 completion function compatible with LightRAG."""
+    """GPT-4.1-mini completion function compatible with LightRAG."""
     client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     messages = []
@@ -66,10 +66,10 @@ async def gpt_5_1_complete(
     messages.append({"role": "user", "content": prompt})
 
     response = await client.chat.completions.create(
-        model="gpt-5.1",
+        model="gpt-4.1-mini",
         messages=messages,
         temperature=kwargs.get("temperature", 0.7),
-        max_completion_tokens=kwargs.get("max_tokens", 2000)
+        max_tokens=kwargs.get("max_tokens", 2000)
     )
 
     return response.choices[0].message.content
@@ -828,7 +828,7 @@ class IdeateSession:
 
         # Generate response with tool calling
         response = await self.client.chat.completions.create(
-            model="gpt-5.1",
+            model="gpt-4.1-mini",
             messages=[
                 {"role": "system", "content": system_content},
                 *self.messages
@@ -920,7 +920,7 @@ class IdeateSession:
         for attempt in range(max_retries):
             try:
                 stream = await self.client.chat.completions.create(
-                    model="gpt-5.1",
+                    model="gpt-4.1-mini",
                     messages=[
                         {"role": "system", "content": system_content},
                         *self.messages
@@ -2029,7 +2029,7 @@ PLAYS (patterns, dynamics, archetypes):
         self._rag_instances[bucket_name] = LightRAG(
             working_dir=str(bucket_path),
             embedding_func=openai_embed,
-            llm_model_func=gpt_5_1_complete,
+            llm_model_func=gpt_4_1_mini_complete,
         )
         return self._rag_instances[bucket_name]
 
@@ -2260,7 +2260,7 @@ Format as a numbered list:
 Return ONLY the numbered list."""
 
         response = await self.client.chat.completions.create(
-            model="gpt-5.1",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": outline_prompt}],
             temperature=0.7,
         )
@@ -2314,7 +2314,7 @@ Format as JSON array:
 Return ONLY the JSON array."""
 
         response = await self.client.chat.completions.create(
-            model="gpt-5.1",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": beats_prompt}],
             temperature=0.7,
         )
@@ -2376,7 +2376,7 @@ Format as JSON object:
 Return ONLY the JSON object."""
 
         response = await self.client.chat.completions.create(
-            model="gpt-5.1",
+            model="gpt-4.1-mini",
             messages=[{"role": "user", "content": arcs_prompt}],
             temperature=0.7,
         )
