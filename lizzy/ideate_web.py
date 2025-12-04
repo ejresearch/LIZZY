@@ -1075,6 +1075,21 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             margin-left: auto;
             font-size: 10px;
             text-transform: uppercase;
+        }
+
+        .lock-indicator {
+            font-size: 12px;
+            color: #10b981;
+            margin-left: 6px;
+            title: "Locked - finalized";
+        }
+
+        .character-card.locked {
+            border-left: 3px solid #10b981;
+        }
+
+        .scene-card.locked .scene-header {
+            border-left: 3px solid #10b981;
             letter-spacing: 1px;
             color: #aaa;
         }
@@ -2285,16 +2300,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                     else container = act3Scenes;
 
                     const card = document.createElement('div');
-                    card.className = 'scene-card';
+                    card.className = 'scene-card' + (scene.locked ? ' locked' : '');
                     card.id = 'scene-' + num;
 
                     // Get beats for this scene
                     const sceneBeats = scene.beats || [];
+                    const sceneLockIcon = scene.locked ? '<span class="lock-indicator" title="Locked - finalized">&#128274;</span>' : '';
 
                     card.innerHTML = `
                         <div class="scene-header" onclick="toggleScene(${num})">
                             <span class="scene-number">${num}</span>
-                            <span class="scene-title editable" data-field="scene_title" data-scene="${num}">${scene.title || 'Untitled'}</span>
+                            <span class="scene-title editable" data-field="scene_title" data-scene="${num}">${scene.title || 'Untitled'}</span>${sceneLockIcon}
                             <div class="item-actions">
                                 <button class="action-btn edit-btn" onclick="event.stopPropagation(); editScene(${num}, '${(scene.title || '').replace(/'/g, "\\'")}')" title="Edit">&#9998;</button>
                                 <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteScene(${num})" title="Delete">&#10005;</button>
@@ -2846,12 +2862,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
                 fields.characters.forEach((char, idx) => {
                     const card = document.createElement('div');
-                    card.className = 'character-card';
+                    card.className = 'character-card' + (char.locked ? ' locked' : '');
 
                     const escapedName = (char.name || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const lockIcon = char.locked ? '<span class="lock-indicator" title="Locked - finalized">&#128274;</span>' : '';
                     card.innerHTML = `
                         <div class="character-card-header">
-                            <span class="name editable" data-field="character_name" data-old-name="${escapedName}">${char.name || 'Unnamed'}</span>
+                            <span class="name editable" data-field="character_name" data-old-name="${escapedName}">${char.name || 'Unnamed'}</span>${lockIcon}
                             <span class="role">${(char.role || '').replace('_', ' ')}</span>
                             <div class="item-actions">
                                 <button class="action-btn edit-btn" onclick="editCharacter('${escapedName}')" title="Edit">&#9998;</button>
