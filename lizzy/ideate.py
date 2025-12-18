@@ -2275,9 +2275,35 @@ PLAYS (patterns, dynamics, archetypes):
         db = Database(db_path)
         db.initialize_schema()
 
-        # Create project
+        # Get or create project
         project_name = self.fields.get("title") or self.project_name or "Untitled Project"
-        project_id = db.insert_project(project_name)
+
+        # Check if project already exists
+        existing = db.get_project()
+        if existing and existing.get("name") == project_name:
+            project_id = existing.get("id")
+            # Clear existing data for fresh handoff
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM characters")
+                cursor.execute("DELETE FROM scenes")
+                cursor.execute("DELETE FROM brainstorm_sessions")
+                conn.commit()
+        else:
+            # Try to insert, handle UNIQUE constraint
+            try:
+                project_id = db.insert_project(project_name)
+            except Exception:
+                # Project exists with same name, get it and clear data
+                with db.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT id FROM projects WHERE name = ?", (project_name,))
+                    row = cursor.fetchone()
+                    project_id = row[0] if row else 1
+                    cursor.execute("DELETE FROM characters")
+                    cursor.execute("DELETE FROM scenes")
+                    cursor.execute("DELETE FROM brainstorm_sessions")
+                    conn.commit()
 
         # Prepare notebook as braindump
         notebook = self.fields.get("notebook", [])

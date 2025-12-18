@@ -25,13 +25,46 @@ session = None
 current_session_id = None
 db = None
 
+# Brainstorm progress tracking
+brainstorm_progress = {
+    "active": False,
+    "project_id": None,
+    "total_scenes": 0,
+    "completed_scenes": 0,
+    "current_scene": None,
+    "current_scene_title": None,
+    "status": "idle",  # idle, running, awaiting_vote, checkpoint, completed, error
+    "error": None,
+    "started_at": None,
+
+    # Expert voting
+    "current_expert_perspectives": None,  # {books: str, plays: str, scripts: str}
+    "awaiting_vote_for_scene": None,      # Scene number waiting for vote
+
+    # Checkpoints
+    "checkpoint_act": None,               # 1, 2, or None
+    "completed_scenes_data": [],          # List of {scene_num, title, blueprint_preview}
+
+    # User votes
+    "scene_votes": {}                     # {scene_num: {books: 1-3, plays: 1-3, scripts: 1-3}}
+}
+
+# Async events for interactive brainstorm signaling
+vote_received_event = None  # Will be initialized as asyncio.Event()
+checkpoint_continue_event = None  # Will be initialized as asyncio.Event()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global db
+    global db, vote_received_event, checkpoint_continue_event
     db = Database(DB_PATH)
     db.initialize_schema()
     print(f"Database initialized at {DB_PATH}")
+
+    # Initialize async events for interactive brainstorm
+    vote_received_event = asyncio.Event()
+    checkpoint_continue_event = asyncio.Event()
+
     yield
     # Shutdown (nothing to clean up)
 
@@ -359,6 +392,223 @@ async def update_field(request: Request):
         return {"error": str(e)}
 
 
+# =============================================================================
+# BRAINSTORM INTEGRATION
+# =============================================================================
+
+async def run_brainstorm_with_progress(db_path: Path, project_id: int):
+    """
+    Run automated brainstorm with progress tracking.
+    Updates global brainstorm_progress as scenes complete.
+    """
+    global brainstorm_progress
+    from datetime import datetime
+
+    try:
+        from .automated_brainstorm import AutomatedBrainstorm
+
+        brainstorm = AutomatedBrainstorm(db_path)
+        brainstorm.load_project_context()
+
+        if not brainstorm.scenes:
+            brainstorm_progress["status"] = "error"
+            brainstorm_progress["error"] = "No scenes found in database"
+            brainstorm_progress["active"] = False
+            return
+
+        brainstorm_progress.update({
+            "active": True,
+            "project_id": project_id,
+            "total_scenes": len(brainstorm.scenes),
+            "completed_scenes": 0,
+            "status": "running",
+            "started_at": datetime.now().isoformat(),
+            "error": None
+        })
+
+        # Process each scene
+        for scene in brainstorm.scenes:
+            scene_num = scene['scene_number']
+            scene_title = scene['title']
+
+            brainstorm_progress["current_scene"] = scene_num
+            brainstorm_progress["current_scene_title"] = scene_title
+
+            # Process the scene
+            result = await brainstorm.process_scene_for_web(scene)
+
+            brainstorm_progress["completed_scenes"] = scene_num
+
+        brainstorm_progress["status"] = "completed"
+        brainstorm_progress["current_scene"] = None
+        brainstorm_progress["current_scene_title"] = None
+        brainstorm_progress["active"] = False
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        brainstorm_progress["status"] = "error"
+        brainstorm_progress["error"] = str(e)
+        brainstorm_progress["active"] = False
+
+
+# Global reference to brainstorm instance for interactive mode
+_brainstorm_instance = None
+_current_scene_index = 0
+_current_perspectives = None
+
+
+async def run_brainstorm_interactive(db_path: Path, project_id: int):
+    """
+    Run interactive brainstorm with expert voting and checkpoints.
+    Pauses for user votes and at act checkpoints.
+    """
+    global brainstorm_progress, _brainstorm_instance, _current_scene_index, _current_perspectives
+    from datetime import datetime
+
+    try:
+        from .automated_brainstorm import AutomatedBrainstorm
+
+        _brainstorm_instance = AutomatedBrainstorm(db_path)
+        _brainstorm_instance.load_project_context()
+
+        if not _brainstorm_instance.scenes:
+            brainstorm_progress["status"] = "error"
+            brainstorm_progress["error"] = "No scenes found in database"
+            brainstorm_progress["active"] = False
+            return
+
+        # Reset progress state
+        brainstorm_progress.update({
+            "active": True,
+            "project_id": project_id,
+            "total_scenes": len(_brainstorm_instance.scenes),
+            "completed_scenes": 0,
+            "status": "running",
+            "started_at": datetime.now().isoformat(),
+            "error": None,
+            "current_expert_perspectives": None,
+            "awaiting_vote_for_scene": None,
+            "checkpoint_act": None,
+            "completed_scenes_data": [],
+            "scene_votes": {}
+        })
+
+        # Process each scene
+        for idx, scene in enumerate(_brainstorm_instance.scenes):
+            _current_scene_index = idx
+            scene_num = scene['scene_number']
+            scene_title = scene['title']
+
+            brainstorm_progress["current_scene"] = scene_num
+            brainstorm_progress["current_scene_title"] = scene_title
+            brainstorm_progress["status"] = "running"
+
+            # Query experts (no synthesis yet)
+            perspectives = await _brainstorm_instance.query_experts_for_scene(scene)
+            _current_perspectives = perspectives
+
+            # Pause for user vote
+            brainstorm_progress.update({
+                "status": "awaiting_vote",
+                "awaiting_vote_for_scene": scene_num,
+                "current_expert_perspectives": perspectives
+            })
+
+            # Wait for vote
+            await vote_received_event.wait()
+            vote_received_event.clear()
+
+            # Get votes and synthesize
+            votes = brainstorm_progress["scene_votes"].get(scene_num, {"books": 2, "plays": 2, "scripts": 2})
+            brainstorm_progress["status"] = "running"
+
+            result = await _brainstorm_instance.synthesize_with_votes(scene, perspectives, votes)
+
+            # Store completed scene data
+            brainstorm_progress["completed_scenes"] = scene_num
+            brainstorm_progress["completed_scenes_data"].append({
+                "scene_num": scene_num,
+                "title": scene_title,
+                "blueprint_preview": result.get("synthesized", "")[:500] + "..." if result.get("synthesized") else ""
+            })
+
+            # Check for checkpoint (after Act 1: scene 6, after Act 2: scene 24)
+            if scene_num == 6:
+                brainstorm_progress["status"] = "checkpoint"
+                brainstorm_progress["checkpoint_act"] = 1
+                await checkpoint_continue_event.wait()
+                checkpoint_continue_event.clear()
+            elif scene_num == 24:
+                brainstorm_progress["status"] = "checkpoint"
+                brainstorm_progress["checkpoint_act"] = 2
+                await checkpoint_continue_event.wait()
+                checkpoint_continue_event.clear()
+
+        # Complete
+        brainstorm_progress["status"] = "completed"
+        brainstorm_progress["current_scene"] = None
+        brainstorm_progress["current_scene_title"] = None
+        brainstorm_progress["active"] = False
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        brainstorm_progress["status"] = "error"
+        brainstorm_progress["error"] = str(e)
+        brainstorm_progress["active"] = False
+
+
+@app.post("/api/brainstorm/vote")
+async def submit_vote(request: Request):
+    """Submit votes for current scene's experts, trigger synthesis."""
+    global brainstorm_progress
+
+    data = await request.json()
+    scene_num = data.get("scene_num")
+    votes = data.get("votes", {})
+
+    if not scene_num or not votes:
+        return {"success": False, "error": "Missing scene_num or votes"}
+
+    if brainstorm_progress["status"] != "awaiting_vote":
+        return {"success": False, "error": "Not awaiting vote"}
+
+    if brainstorm_progress["awaiting_vote_for_scene"] != scene_num:
+        return {"success": False, "error": f"Expected vote for scene {brainstorm_progress['awaiting_vote_for_scene']}"}
+
+    # Store votes and signal to continue
+    brainstorm_progress["scene_votes"][scene_num] = votes
+    vote_received_event.set()
+
+    return {"success": True, "message": f"Votes recorded for scene {scene_num}"}
+
+
+@app.post("/api/brainstorm/checkpoint/continue")
+async def continue_from_checkpoint(request: Request):
+    """Resume processing after checkpoint review."""
+    global brainstorm_progress
+
+    if brainstorm_progress["status"] != "checkpoint":
+        return {"success": False, "error": "Not at checkpoint"}
+
+    # Signal to continue
+    checkpoint_continue_event.set()
+
+    return {"success": True, "message": f"Continuing from Act {brainstorm_progress['checkpoint_act']} checkpoint"}
+
+
+@app.get("/api/brainstorm/scene/{scene_num}")
+async def get_scene_result(scene_num: int):
+    """Get completed scene blueprint for checkpoint review."""
+    # Find scene in completed_scenes_data
+    for scene_data in brainstorm_progress.get("completed_scenes_data", []):
+        if scene_data["scene_num"] == scene_num:
+            return {"success": True, "scene": scene_data}
+
+    return {"success": False, "error": f"Scene {scene_num} not found"}
+
+
 @app.post("/api/handoff")
 async def handoff_to_brainstorm(request: Request):
     """
@@ -399,12 +649,15 @@ async def handoff_to_brainstorm(request: Request):
                 stage="handed_off"
             )
 
+        # Start interactive brainstorm in background
+        asyncio.create_task(run_brainstorm_interactive(db_path, project_id))
+
         return {
             "success": True,
             "project_id": project_id,
-            "message": "Successfully handed off to BRAINSTORM phase",
-            # Could redirect to brainstorm web interface if it exists
-            # "redirect_url": f"/brainstorm/{project_id}"
+            "message": "Handoff complete. Starting interactive brainstorm...",
+            "brainstorm_started": True,
+            "interactive": True
         }
     except Exception as e:
         import traceback
@@ -413,6 +666,40 @@ async def handoff_to_brainstorm(request: Request):
             "success": False,
             "error": str(e)
         }
+
+
+@app.get("/api/brainstorm/progress")
+async def brainstorm_progress_stream():
+    """
+    SSE endpoint for streaming brainstorm progress.
+    Client connects and receives updates as scenes complete.
+    """
+    async def generate():
+        while True:
+            # Send current state
+            yield f"data: {json.dumps(brainstorm_progress)}\n\n"
+
+            # Check if done
+            if brainstorm_progress["status"] in ["completed", "error"]:
+                yield f"data: {json.dumps({'type': 'done', 'status': brainstorm_progress['status']})}\n\n"
+                break
+
+            # If not active and idle, send done
+            if not brainstorm_progress["active"] and brainstorm_progress["status"] == "idle":
+                yield f"data: {json.dumps({'type': 'idle'})}\n\n"
+                break
+
+            # Wait before next update (every 2 seconds)
+            await asyncio.sleep(2)
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.get("/api/brainstorm/status")
+async def get_brainstorm_status():
+    """Get current brainstorm status (non-streaming)."""
+    return brainstorm_progress
+
 
 # =============================================================================
 # LANDING PAGE TEMPLATE
@@ -1982,6 +2269,331 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         .scene-title.editable:hover::after {
             right: 80px; /* Account for action buttons */
         }
+
+        /* Brainstorm Progress Overlay */
+        .brainstorm-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .brainstorm-overlay.active {
+            display: flex;
+        }
+
+        .brainstorm-progress-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .brainstorm-progress-card h2 {
+            margin: 0 0 10px 0;
+            color: #1a1a1a;
+            font-size: 24px;
+        }
+
+        .brainstorm-progress-card .subtitle {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .brainstorm-progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .brainstorm-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #20C997, #1aa37a);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .brainstorm-scene-info {
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .brainstorm-current-scene {
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 15px 0;
+            min-height: 24px;
+        }
+
+        .brainstorm-estimate {
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        .brainstorm-complete-btn {
+            padding: 14px 36px;
+            background: linear-gradient(135deg, #20C997, #1aa37a);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .brainstorm-complete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(32, 201, 151, 0.4);
+        }
+
+        /* Expert Voting Panel */
+        .expert-voting-container {
+            display: none;
+            max-width: 900px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .expert-voting-container.active {
+            display: block;
+        }
+
+        .voting-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .voting-header h2 {
+            color: #1a1a1a;
+            font-size: 22px;
+            margin: 0 0 8px 0;
+        }
+
+        .voting-header p {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .expert-cards {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .expert-card {
+            background: #f8f8f8;
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .expert-card:hover {
+            border-color: #DC3545;
+        }
+
+        .expert-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .expert-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .expert-name .emoji {
+            margin-right: 8px;
+        }
+
+        .star-rating {
+            display: flex;
+            gap: 4px;
+        }
+
+        .star-rating .star {
+            font-size: 24px;
+            cursor: pointer;
+            color: #ddd;
+            transition: color 0.15s ease;
+        }
+
+        .star-rating .star.active {
+            color: #FFD700;
+        }
+
+        .star-rating .star:hover {
+            color: #FFC107;
+        }
+
+        .expert-content {
+            font-size: 13px;
+            color: #444;
+            line-height: 1.6;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .synthesize-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin-top: 25px;
+            background: linear-gradient(135deg, #DC3545, #c82333);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .synthesize-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+        }
+
+        .synthesize-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Checkpoint Panel */
+        .checkpoint-container {
+            display: none;
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .checkpoint-container.active {
+            display: block;
+        }
+
+        .checkpoint-header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .checkpoint-header h2 {
+            color: #20C997;
+            font-size: 24px;
+            margin: 0 0 8px 0;
+        }
+
+        .checkpoint-header p {
+            color: #666;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .checkpoint-scenes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .checkpoint-scene {
+            background: #f8f8f8;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .checkpoint-scene:hover {
+            background: #f0f0f0;
+        }
+
+        .checkpoint-scene-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .checkpoint-scene-title {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .checkpoint-scene-preview {
+            display: none;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .checkpoint-scene.expanded .checkpoint-scene-preview {
+            display: block;
+        }
+
+        .continue-btn {
+            display: block;
+            width: 100%;
+            padding: 16px;
+            margin-top: 25px;
+            background: linear-gradient(135deg, #20C997, #1aa37a);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(32, 201, 151, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -2568,6 +3180,321 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         // Load session on page load
         loadSession();
 
+        // =====================================================================
+        // INTERACTIVE BRAINSTORM WITH VOTING & CHECKPOINTS
+        // =====================================================================
+
+        let brainstormEventSource = null;
+        let currentVotingSceneNum = null;
+        let currentVotes = { books: 2, plays: 2, scripts: 2 };  // Default to 2 stars
+
+        function startBrainstormProgressStream() {
+            const overlay = document.getElementById('brainstormOverlay');
+            overlay.classList.add('active');
+
+            // Initialize star rating click handlers
+            initStarRatings();
+
+            brainstormEventSource = new EventSource('/api/brainstorm/progress');
+
+            brainstormEventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'done' || data.type === 'idle') {
+                    brainstormEventSource.close();
+                    if (data.status === 'completed') {
+                        showBrainstormComplete();
+                    } else if (data.status === 'error') {
+                        showBrainstormError(data.error);
+                    }
+                    return;
+                }
+
+                // Handle different states
+                handleBrainstormState(data);
+            };
+
+            brainstormEventSource.onerror = function(error) {
+                console.error('SSE Error:', error);
+                brainstormEventSource.close();
+                pollBrainstormStatus();
+            };
+        }
+
+        function handleBrainstormState(data) {
+            const progressCard = document.getElementById('progressCard');
+            const votingPanel = document.getElementById('expertVotingPanel');
+            const checkpointPanel = document.getElementById('checkpointPanel');
+
+            // Hide all panels first
+            progressCard.style.display = 'none';
+            votingPanel.classList.remove('active');
+            checkpointPanel.classList.remove('active');
+
+            if (data.status === 'awaiting_vote') {
+                // Show voting panel
+                showExpertVotingPanel(data);
+            } else if (data.status === 'checkpoint') {
+                // Show checkpoint panel
+                showCheckpointPanel(data);
+            } else if (data.status === 'running') {
+                // Show progress
+                progressCard.style.display = 'block';
+                updateBrainstormProgress(data);
+            } else if (data.status === 'completed') {
+                showBrainstormComplete();
+            } else if (data.status === 'error') {
+                showBrainstormError(data.error);
+            }
+        }
+
+        function showExpertVotingPanel(data) {
+            const votingPanel = document.getElementById('expertVotingPanel');
+            votingPanel.classList.add('active');
+
+            currentVotingSceneNum = data.awaiting_vote_for_scene;
+            currentVotes = { books: 2, plays: 2, scripts: 2 };  // Reset to default
+
+            // Update title
+            document.getElementById('votingSceneTitle').textContent =
+                'Scene ' + data.current_scene + ': ' + data.current_scene_title;
+
+            // Update expert content
+            const perspectives = data.current_expert_perspectives || {};
+            document.getElementById('booksExpertContent').textContent =
+                perspectives.books || '(No response from this expert)';
+            document.getElementById('playsExpertContent').textContent =
+                perspectives.plays || '(No response from this expert)';
+            document.getElementById('scriptsExpertContent').textContent =
+                perspectives.scripts || '(No response from this expert)';
+
+            // Reset star ratings to default (2 stars)
+            resetStarRatings();
+        }
+
+        function showCheckpointPanel(data) {
+            const checkpointPanel = document.getElementById('checkpointPanel');
+            checkpointPanel.classList.add('active');
+
+            const actNum = data.checkpoint_act;
+            document.getElementById('checkpointTitle').textContent = 'Act ' + actNum + ' Complete!';
+
+            // Populate scenes list
+            const scenesContainer = document.getElementById('checkpointScenes');
+            scenesContainer.innerHTML = '';
+
+            const completedScenes = data.completed_scenes_data || [];
+            completedScenes.forEach(scene => {
+                const sceneEl = document.createElement('div');
+                sceneEl.className = 'checkpoint-scene';
+                sceneEl.innerHTML = `
+                    <div class="checkpoint-scene-header">
+                        <span class="checkpoint-scene-title">Scene ${scene.scene_num}: ${scene.title}</span>
+                        <span style="color: #888; font-size: 12px;">Click to expand</span>
+                    </div>
+                    <div class="checkpoint-scene-preview">${scene.blueprint_preview || 'No preview available'}</div>
+                `;
+                sceneEl.onclick = function() {
+                    this.classList.toggle('expanded');
+                };
+                scenesContainer.appendChild(sceneEl);
+            });
+
+            // Update continue button text
+            const nextAct = actNum === 1 ? 'Act 2' : 'Act 3';
+            document.getElementById('continueBtn').textContent = 'Continue to ' + nextAct;
+        }
+
+        function initStarRatings() {
+            document.querySelectorAll('.star-rating').forEach(ratingEl => {
+                const bucket = ratingEl.dataset.bucket;
+                ratingEl.querySelectorAll('.star').forEach(star => {
+                    star.onclick = function() {
+                        const value = parseInt(this.dataset.value);
+                        setStarRating(bucket, value);
+                    };
+                });
+            });
+        }
+
+        function setStarRating(bucket, value) {
+            currentVotes[bucket] = value;
+
+            // Update visual
+            const ratingEl = document.querySelector(`.star-rating[data-bucket="${bucket}"]`);
+            ratingEl.querySelectorAll('.star').forEach(star => {
+                const starValue = parseInt(star.dataset.value);
+                if (starValue <= value) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+        }
+
+        function resetStarRatings() {
+            ['books', 'plays', 'scripts'].forEach(bucket => {
+                setStarRating(bucket, 2);  // Default to 2 stars
+            });
+        }
+
+        async function submitVotes() {
+            if (!currentVotingSceneNum) {
+                console.error('No scene number for voting');
+                return;
+            }
+
+            const btn = document.getElementById('synthesizeBtn');
+            btn.disabled = true;
+            btn.textContent = 'Synthesizing...';
+
+            try {
+                const response = await fetch('/api/brainstorm/vote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scene_num: currentVotingSceneNum,
+                        votes: currentVotes
+                    })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Vote submission failed:', result.error);
+                }
+            } catch (e) {
+                console.error('Vote submission error:', e);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Synthesize Scene Blueprint';
+        }
+
+        async function continueFromCheckpoint() {
+            const btn = document.getElementById('continueBtn');
+            btn.disabled = true;
+            btn.textContent = 'Continuing...';
+
+            try {
+                const response = await fetch('/api/brainstorm/checkpoint/continue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Checkpoint continue failed:', result.error);
+                }
+            } catch (e) {
+                console.error('Checkpoint continue error:', e);
+            }
+
+            btn.disabled = false;
+            btn.textContent = 'Continue to Next Act';
+        }
+
+        function updateBrainstormProgress(data) {
+            const fill = document.getElementById('brainstormProgressFill');
+            const sceneNum = document.getElementById('brainstormSceneNum');
+            const totalScenes = document.getElementById('brainstormTotalScenes');
+            const currentScene = document.getElementById('brainstormCurrentScene');
+            const estimate = document.getElementById('brainstormEstimate');
+
+            const completed = data.completed_scenes || 0;
+            const total = data.total_scenes || 30;
+            const percent = (completed / total) * 100;
+
+            fill.style.width = percent + '%';
+            sceneNum.textContent = completed;
+            totalScenes.textContent = total;
+
+            if (data.current_scene_title) {
+                currentScene.textContent = 'Processing: Scene ' + data.current_scene + ' - ' + data.current_scene_title;
+            } else if (data.status === 'running') {
+                currentScene.textContent = 'Synthesizing...';
+            }
+
+            const remaining = total - completed;
+            if (remaining > 0) {
+                estimate.textContent = remaining + ' scenes remaining';
+            } else {
+                estimate.textContent = 'Finishing up...';
+            }
+        }
+
+        function showBrainstormComplete() {
+            const progressCard = document.getElementById('progressCard');
+            const votingPanel = document.getElementById('expertVotingPanel');
+            const checkpointPanel = document.getElementById('checkpointPanel');
+
+            votingPanel.classList.remove('active');
+            checkpointPanel.classList.remove('active');
+            progressCard.style.display = 'block';
+
+            progressCard.innerHTML = `
+                <h2 style="color: #20C997;">Brainstorm Complete!</h2>
+                <p class="subtitle">All scene blueprints have been generated with your input.</p>
+                <p style="color: #666; margin: 20px 0; font-size: 14px;">
+                    Your romcom is now ready for the WRITE phase.
+                </p>
+                <button onclick="closeBrainstormOverlay()" class="brainstorm-complete-btn">
+                    Done
+                </button>
+            `;
+        }
+
+        function showBrainstormError(error) {
+            const progressCard = document.getElementById('progressCard');
+            progressCard.style.display = 'block';
+            progressCard.innerHTML = `
+                <h2 style="color: #DC3545;">Brainstorm Error</h2>
+                <p class="subtitle">${error || 'An error occurred during brainstorm generation.'}</p>
+                <button onclick="closeBrainstormOverlay()" class="brainstorm-complete-btn" style="background: #DC3545;">
+                    Close
+                </button>
+            `;
+        }
+
+        function closeBrainstormOverlay() {
+            document.getElementById('brainstormOverlay').classList.remove('active');
+            // Reset panels
+            document.getElementById('progressCard').style.display = 'block';
+            document.getElementById('expertVotingPanel').classList.remove('active');
+            document.getElementById('checkpointPanel').classList.remove('active');
+        }
+
+        // Fallback polling if SSE fails
+        async function pollBrainstormStatus() {
+            const overlay = document.getElementById('brainstormOverlay');
+            while (overlay.classList.contains('active')) {
+                try {
+                    const response = await fetch('/api/brainstorm/status');
+                    const data = await response.json();
+
+                    if (data.status === 'completed') {
+                        showBrainstormComplete();
+                        break;
+                    } else if (data.status === 'error') {
+                        showBrainstormError(data.error);
+                        break;
+                    } else if (!data.active && data.status === 'idle') {
+                        break;
+                    }
+
+                    handleBrainstormState(data);
+                    await new Promise(r => setTimeout(r, 2000));
+                } catch (e) {
+                    console.error('Polling error:', e);
+                    break;
+                }
+            }
+        }
+
+        // =====================================================================
+        // HANDOFF BUTTON HANDLER
+        // =====================================================================
+
         // Handoff button handler
         handoffButton.addEventListener('click', async function() {
             handoffButton.disabled = true;
@@ -2584,10 +3511,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
                 const result = await response.json();
 
                 if (result.success) {
-                    handoffStatus.textContent = 'Handoff complete!';
+                    handoffStatus.textContent = 'Handoff complete! Starting brainstorm...';
                     handoffStatus.className = 'handoff-status';
-                    // Optionally redirect to BRAINSTORM
-                    if (result.redirect_url) {
+
+                    // Start brainstorm progress stream if brainstorm was started
+                    if (result.brainstorm_started) {
+                        setTimeout(() => {
+                            startBrainstormProgressStream();
+                        }, 500);
+                    } else if (result.redirect_url) {
+                        // Fallback to redirect if no brainstorm
                         setTimeout(() => {
                             window.location.href = result.redirect_url;
                         }, 1500);
@@ -2946,6 +3879,90 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             }
         }
     </script>
+
+    <!-- Brainstorm Progress Overlay -->
+    <div class="brainstorm-overlay" id="brainstormOverlay">
+        <!-- Progress Card (shown during running/synthesizing) -->
+        <div class="brainstorm-progress-card" id="progressCard">
+            <h2>Generating Scene Blueprints</h2>
+            <p class="subtitle">Consulting expert knowledge bases for each scene...</p>
+            <div class="brainstorm-progress-bar">
+                <div class="brainstorm-progress-fill" id="brainstormProgressFill"></div>
+            </div>
+            <div class="brainstorm-scene-info">
+                <span id="brainstormSceneNum">0</span> of <span id="brainstormTotalScenes">30</span> scenes complete
+            </div>
+            <div class="brainstorm-current-scene" id="brainstormCurrentScene">
+                Preparing...
+            </div>
+            <div class="brainstorm-estimate" id="brainstormEstimate">
+                Estimated time: ~25-45 minutes
+            </div>
+        </div>
+
+        <!-- Expert Voting Panel (shown during awaiting_vote) -->
+        <div class="expert-voting-container" id="expertVotingPanel">
+            <div class="voting-header">
+                <h2 id="votingSceneTitle">Scene 1: Title</h2>
+                <p>Rate each expert's guidance (click stars). Higher ratings = more influence on the final blueprint.</p>
+            </div>
+            <div class="expert-cards">
+                <!-- Books Expert -->
+                <div class="expert-card" data-bucket="books">
+                    <div class="expert-card-header">
+                        <span class="expert-name"><span class="emoji">📚</span>Structure Expert</span>
+                        <div class="star-rating" data-bucket="books">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star active" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                        </div>
+                    </div>
+                    <div class="expert-content" id="booksExpertContent">Loading...</div>
+                </div>
+                <!-- Plays Expert -->
+                <div class="expert-card" data-bucket="plays">
+                    <div class="expert-card-header">
+                        <span class="expert-name"><span class="emoji">🎭</span>Story Patterns Expert</span>
+                        <div class="star-rating" data-bucket="plays">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star active" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                        </div>
+                    </div>
+                    <div class="expert-content" id="playsExpertContent">Loading...</div>
+                </div>
+                <!-- Scripts Expert -->
+                <div class="expert-card" data-bucket="scripts">
+                    <div class="expert-card-header">
+                        <span class="expert-name"><span class="emoji">🎬</span>Reference Expert</span>
+                        <div class="star-rating" data-bucket="scripts">
+                            <span class="star" data-value="1">★</span>
+                            <span class="star active" data-value="2">★</span>
+                            <span class="star" data-value="3">★</span>
+                        </div>
+                    </div>
+                    <div class="expert-content" id="scriptsExpertContent">Loading...</div>
+                </div>
+            </div>
+            <button class="synthesize-btn" id="synthesizeBtn" onclick="submitVotes()">
+                Synthesize Scene Blueprint
+            </button>
+        </div>
+
+        <!-- Checkpoint Panel (shown during checkpoint) -->
+        <div class="checkpoint-container" id="checkpointPanel">
+            <div class="checkpoint-header">
+                <h2 id="checkpointTitle">Act 1 Complete!</h2>
+                <p>Review your scene blueprints before continuing. Click a scene to expand its preview.</p>
+            </div>
+            <div class="checkpoint-scenes" id="checkpointScenes">
+                <!-- Scenes populated dynamically -->
+            </div>
+            <button class="continue-btn" id="continueBtn" onclick="continueFromCheckpoint()">
+                Continue to Next Act
+            </button>
+        </div>
+    </div>
 </body>
 </html>
 """
