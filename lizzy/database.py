@@ -89,6 +89,11 @@ class Database:
                     description TEXT,
                     role TEXT,  -- protagonist, love_interest, antagonist, supporting
                     arc TEXT,   -- character arc/transformation
+                    age TEXT,   -- character age
+                    personality TEXT,  -- personality traits
+                    flaw TEXT,  -- character flaw/weakness
+                    backstory TEXT,  -- character backstory
+                    relationships TEXT,  -- relationships to other characters
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -157,6 +162,7 @@ class Database:
                     tone TEXT,
                     comps TEXT,  -- Comparable titles
                     braindump TEXT,
+                    outline TEXT,  -- JSON array of outline beats
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -174,7 +180,45 @@ class Database:
                 )
             """)
 
+            # Ideate sessions table - IDEATE phase conversation state
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_sessions (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,  -- Project/session name
+                    stage TEXT DEFAULT 'explore',  -- explore, build_out, complete
+                    title TEXT,  -- Locked title
+                    logline TEXT,  -- Locked logline
+                    title_locked INTEGER DEFAULT 0,
+                    logline_locked INTEGER DEFAULT 0,
+                    characters TEXT,  -- JSON array of character objects
+                    outline TEXT,  -- JSON array of outline beats
+                    beats TEXT,  -- JSON array of scene beats
+                    notebook TEXT,  -- JSON array of notebook ideas
+                    theme TEXT,
+                    tone TEXT,
+                    comps TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Ideate messages table - conversation history for ideate sessions
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    role TEXT NOT NULL,  -- 'user' or 'assistant'
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES ideate_sessions(id)
+                )
+            """)
+
             # Create indices for performance
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ideate_messages_session
+                ON ideate_messages(session_id)
+            """)
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_scenes_number
                 ON scenes(scene_number)
@@ -233,7 +277,8 @@ class Database:
         inspiration: str = "",
         tone: str = "",
         comps: str = "",
-        braindump: str = ""
+        braindump: str = "",
+        outline: str = ""
     ) -> int:
         """Insert or update writer notes."""
         with self.get_connection() as conn:
@@ -248,19 +293,70 @@ class Database:
                 cursor.execute("""
                     UPDATE writer_notes
                     SET logline = ?, theme = ?, inspiration = ?,
-                        tone = ?, comps = ?, braindump = ?,
+                        tone = ?, comps = ?, braindump = ?, outline = ?,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE id = ?
-                """, (logline, theme, inspiration, tone, comps, braindump, existing[0]))
+                """, (logline, theme, inspiration, tone, comps, braindump, outline, existing[0]))
                 return existing[0]
             else:
                 # Insert new
                 cursor.execute("""
                     INSERT INTO writer_notes
-                    (logline, theme, inspiration, tone, comps, braindump)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (logline, theme, inspiration, tone, comps, braindump))
+                    (logline, theme, inspiration, tone, comps, braindump, outline)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (logline, theme, inspiration, tone, comps, braindump, outline))
                 return cursor.lastrowid
+
+    def insert_character(
+        self,
+        name: str,
+        role: str = "",
+        description: str = "",
+        arc: str = "",
+        age: str = "",
+        personality: str = "",
+        flaw: str = "",
+        backstory: str = "",
+        relationships: str = ""
+    ) -> int:
+        """Insert a character into the characters table."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO characters
+                (name, role, description, arc, age, personality, flaw, backstory, relationships)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (name, role, description, arc, age, personality, flaw, backstory, relationships))
+            return cursor.lastrowid
+
+    def get_characters(self) -> List[dict]:
+        """Get all characters for the project."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM characters ORDER BY created_at")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def insert_scene(
+        self,
+        scene_number: int,
+        title: str = "",
+        description: str = "",
+        characters: str = "",
+        tone: str = ""
+    ) -> int:
+        """Insert or update a scene in the scenes table."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO scenes (scene_number, title, description, characters, tone)
+                VALUES (?, ?, ?, ?, ?)
+                ON CONFLICT(scene_number) DO UPDATE SET
+                    title = excluded.title,
+                    description = excluded.description,
+                    characters = excluded.characters,
+                    tone = excluded.tone
+            """, (scene_number, title, description, characters, tone))
+            return cursor.lastrowid
 
     def insert_chat_message(
         self,
@@ -333,3 +429,318 @@ class Database:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM chat_messages")
             return cursor.rowcount
+
+    # =========================================================================
+    # IDEATE SESSION METHODS
+    # =========================================================================
+
+    def create_ideate_session(self, name: str) -> int:
+        """
+        Create a new ideate session.
+
+        Args:
+            name: Project/session name
+
+        Returns:
+            Session ID
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_sessions
+                (name, characters, outline, beats, notebook)
+                VALUES (?, ?, ?, ?, ?)
+            """, (name, '[]', '[]', '[]', '[]'))
+            return cursor.lastrowid
+
+    def get_ideate_sessions(self) -> List[dict]:
+        """
+        Get all ideate sessions.
+
+        Returns:
+            List of session dicts with id, name, stage, title, logline, created_at, updated_at
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, name, stage, title, logline, created_at, updated_at
+                FROM ideate_sessions
+                ORDER BY updated_at DESC
+            """)
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_ideate_session(self, session_id: int) -> Optional[dict]:
+        """
+        Get a specific ideate session with all fields.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            Session dict or None
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT * FROM ideate_sessions WHERE id = ?
+            """, (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            session = dict(row)
+            # Parse JSON fields
+            for field in ['characters', 'outline', 'beats', 'notebook']:
+                if session.get(field):
+                    try:
+                        session[field] = json.loads(session[field])
+                    except json.JSONDecodeError:
+                        session[field] = []
+                else:
+                    session[field] = []
+            return session
+
+    def update_ideate_session(
+        self,
+        session_id: int,
+        stage: str = None,
+        title: str = None,
+        logline: str = None,
+        title_locked: bool = None,
+        logline_locked: bool = None,
+        characters: list = None,
+        outline: list = None,
+        beats: list = None,
+        notebook: list = None,
+        theme: str = None,
+        tone: str = None,
+        comps: str = None
+    ) -> None:
+        """
+        Update an ideate session. Only updates fields that are provided.
+
+        Args:
+            session_id: Session ID
+            Other args: Fields to update
+        """
+        import json
+
+        updates = []
+        params = []
+
+        if stage is not None:
+            updates.append("stage = ?")
+            params.append(stage)
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+        if logline is not None:
+            updates.append("logline = ?")
+            params.append(logline)
+        if title_locked is not None:
+            updates.append("title_locked = ?")
+            params.append(1 if title_locked else 0)
+        if logline_locked is not None:
+            updates.append("logline_locked = ?")
+            params.append(1 if logline_locked else 0)
+        if characters is not None:
+            updates.append("characters = ?")
+            params.append(json.dumps(characters))
+        if outline is not None:
+            updates.append("outline = ?")
+            params.append(json.dumps(outline))
+        if beats is not None:
+            updates.append("beats = ?")
+            params.append(json.dumps(beats))
+        if notebook is not None:
+            updates.append("notebook = ?")
+            params.append(json.dumps(notebook))
+        if theme is not None:
+            updates.append("theme = ?")
+            params.append(theme)
+        if tone is not None:
+            updates.append("tone = ?")
+            params.append(tone)
+        if comps is not None:
+            updates.append("comps = ?")
+            params.append(comps)
+
+        if not updates:
+            return
+
+        updates.append("updated_at = CURRENT_TIMESTAMP")
+        params.append(session_id)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                UPDATE ideate_sessions
+                SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+
+    def delete_ideate_session(self, session_id: int) -> None:
+        """
+        Delete an ideate session and its messages.
+
+        Args:
+            session_id: Session ID
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM ideate_messages WHERE session_id = ?", (session_id,))
+            cursor.execute("DELETE FROM ideate_sessions WHERE id = ?", (session_id,))
+
+    def add_ideate_message(self, session_id: int, role: str, content: str) -> int:
+        """
+        Add a message to an ideate session.
+
+        Args:
+            session_id: Session ID
+            role: 'user' or 'assistant'
+            content: Message content
+
+        Returns:
+            Message ID
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_messages (session_id, role, content)
+                VALUES (?, ?, ?)
+            """, (session_id, role, content))
+            return cursor.lastrowid
+
+    def get_ideate_messages(self, session_id: int) -> List[dict]:
+        """
+        Get all messages for an ideate session.
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            List of message dicts
+        """
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, role, content, created_at
+                FROM ideate_messages
+                WHERE session_id = ?
+                ORDER BY created_at ASC
+            """, (session_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    # =========================================================================
+    # IDEATE HISTORY/UNDO METHODS
+    # =========================================================================
+
+    def create_ideate_history_table(self) -> None:
+        """Create table for tracking session state history (for undo)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS ideate_history (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id INTEGER NOT NULL,
+                    action_type TEXT NOT NULL,  -- 'add', 'edit', 'delete'
+                    item_type TEXT NOT NULL,    -- 'scene', 'character', 'beat', 'note'
+                    item_data TEXT NOT NULL,    -- JSON of the item before/after change
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (session_id) REFERENCES ideate_sessions(id)
+                )
+            """)
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_ideate_history_session
+                ON ideate_history(session_id, created_at DESC)
+            """)
+
+    def add_ideate_history(self, session_id: int, action_type: str, item_type: str, item_data: dict) -> int:
+        """
+        Add a history entry for undo functionality.
+
+        Args:
+            session_id: Session ID
+            action_type: 'add', 'edit', or 'delete'
+            item_type: 'scene', 'character', 'beat', 'note'
+            item_data: The item data (before state for edit/delete, new state for add)
+
+        Returns:
+            History entry ID
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO ideate_history (session_id, action_type, item_type, item_data)
+                VALUES (?, ?, ?, ?)
+            """, (session_id, action_type, item_type, json.dumps(item_data)))
+            return cursor.lastrowid
+
+    def get_ideate_history(self, session_id: int, limit: int = 20) -> List[dict]:
+        """
+        Get recent history entries for a session.
+
+        Args:
+            session_id: Session ID
+            limit: Max entries to return
+
+        Returns:
+            List of history entries (most recent first)
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, action_type, item_type, item_data, created_at
+                FROM ideate_history
+                WHERE session_id = ?
+                ORDER BY created_at DESC
+                LIMIT ?
+            """, (session_id, limit))
+            entries = []
+            for row in cursor.fetchall():
+                entry = dict(row)
+                try:
+                    entry['item_data'] = json.loads(entry['item_data'])
+                except:
+                    pass
+                entries.append(entry)
+            return entries
+
+    def pop_ideate_history(self, session_id: int) -> Optional[dict]:
+        """
+        Pop the most recent history entry (for undo).
+
+        Args:
+            session_id: Session ID
+
+        Returns:
+            The popped history entry, or None
+        """
+        import json
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Get most recent
+            cursor.execute("""
+                SELECT id, action_type, item_type, item_data, created_at
+                FROM ideate_history
+                WHERE session_id = ?
+                ORDER BY created_at DESC
+                LIMIT 1
+            """, (session_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+
+            entry = dict(row)
+            try:
+                entry['item_data'] = json.loads(entry['item_data'])
+            except:
+                pass
+
+            # Delete it
+            cursor.execute("DELETE FROM ideate_history WHERE id = ?", (entry['id'],))
+            return entry

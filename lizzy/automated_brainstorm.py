@@ -1053,6 +1053,238 @@ Be SPECIFIC, CONCRETE, ACTIONABLE."""
                 'error': 'No bucket results'
             }
 
+    async def process_scene_for_web(self, scene: Dict) -> Dict:
+        """
+        Process a single scene for web usage (no Rich progress bar).
+
+        Args:
+            scene: Scene dictionary
+
+        Returns:
+            Processing results
+        """
+        scene_num = scene['scene_number']
+        scene_title = scene['title']
+
+        # Ensure tone is set (may come from scene or default)
+        if not hasattr(self, 'tone') or self.tone is None:
+            self.tone = scene.get('tone') or 'romantic comedy'
+
+        # Query all three buckets in parallel
+        results = await asyncio.gather(
+            *[self.query_bucket_for_scene(scene, bucket) for bucket in self.buckets],
+            return_exceptions=True
+        )
+
+        # Filter successful results
+        bucket_results = [r for r in results if r and not isinstance(r, Exception)]
+
+        # Synthesize insights
+        if bucket_results:
+            synthesized = await self.synthesize_expert_insights(scene, bucket_results)
+
+            # Calculate confidence scores
+            confidence_scores = self.calculate_expert_agreement(bucket_results)
+            self.scene_confidence_scores[scene_num] = confidence_scores
+
+            # Save to database
+            self._save_brainstorm_session(scene, bucket_results, synthesized)
+
+            # Cache delta summary for next scene's context
+            await self._cache_delta_summary(scene)
+
+            return {
+                'scene_number': scene_num,
+                'scene_title': scene_title,
+                'success': True,
+                'synthesized': synthesized,
+                'confidence_scores': confidence_scores
+            }
+        else:
+            return {
+                'scene_number': scene_num,
+                'scene_title': scene_title,
+                'success': False,
+                'error': 'No bucket results'
+            }
+
+    async def query_experts_for_scene(self, scene: Dict) -> Dict:
+        """
+        Query all 3 expert buckets and return raw perspectives (no synthesis).
+
+        Used for interactive brainstorm where user votes on experts before synthesis.
+
+        Args:
+            scene: Scene dictionary
+
+        Returns:
+            Dict with expert perspectives: {books: str, plays: str, scripts: str}
+        """
+        scene_num = scene['scene_number']
+
+        # Ensure tone is set
+        if not hasattr(self, 'tone') or self.tone is None:
+            self.tone = scene.get('tone') or 'romantic comedy'
+
+        # Query all three buckets in parallel
+        results = await asyncio.gather(
+            *[self.query_bucket_for_scene(scene, bucket) for bucket in self.buckets],
+            return_exceptions=True
+        )
+
+        # Build perspectives dict
+        perspectives = {}
+        for result in results:
+            if result and not isinstance(result, Exception):
+                perspectives[result['bucket']] = result['response']
+            elif isinstance(result, Exception):
+                # Handle failed bucket gracefully
+                pass
+
+        # Ensure all buckets have a response (even if empty)
+        for bucket in self.buckets:
+            if bucket not in perspectives:
+                perspectives[bucket] = "(No response from this expert)"
+
+        return perspectives
+
+    async def synthesize_with_votes(
+        self,
+        scene: Dict,
+        expert_perspectives: Dict,
+        votes: Dict
+    ) -> Dict:
+        """
+        Synthesize expert insights weighted by user votes.
+
+        Args:
+            scene: Scene dictionary
+            expert_perspectives: {books: str, plays: str, scripts: str}
+            votes: {books: 1-3, plays: 1-3, scripts: 1-3}
+
+        Returns:
+            Processing result dict with synthesized content
+        """
+        scene_num = scene['scene_number']
+        scene_title = scene['title']
+
+        # Build bucket_results format for compatibility
+        bucket_results = [
+            {'bucket': bucket, 'response': response}
+            for bucket, response in expert_perspectives.items()
+            if response and response != "(No response from this expert)"
+        ]
+
+        if not bucket_results:
+            return {
+                'scene_number': scene_num,
+                'scene_title': scene_title,
+                'success': False,
+                'error': 'No expert perspectives available'
+            }
+
+        # Create weighted synthesis prompt based on votes
+        # Higher votes = more emphasis in the prompt
+        weight_labels = {1: "consider lightly", 2: "give moderate weight to", 3: "prioritize heavily"}
+
+        weighted_context = ""
+        for bucket, response in expert_perspectives.items():
+            if response and response != "(No response from this expert)":
+                vote = votes.get(bucket, 2)  # Default to moderate weight
+                weight = weight_labels.get(vote, "consider")
+                weighted_context += f"\n\n=== {bucket.upper()} EXPERT ({weight}) ===\n{response}"
+
+        # Modify synthesis to use weighted context
+        synthesized = await self._synthesize_with_weighted_context(scene, weighted_context, votes)
+
+        # Calculate confidence scores
+        confidence_scores = self.calculate_expert_agreement(bucket_results)
+        self.scene_confidence_scores[scene_num] = confidence_scores
+
+        # Save to database
+        self._save_brainstorm_session(scene, bucket_results, synthesized)
+
+        # Cache delta summary for next scene's context
+        await self._cache_delta_summary(scene)
+
+        return {
+            'scene_number': scene_num,
+            'scene_title': scene_title,
+            'success': True,
+            'synthesized': synthesized,
+            'confidence_scores': confidence_scores,
+            'votes': votes
+        }
+
+    async def _synthesize_with_weighted_context(
+        self,
+        scene: Dict,
+        weighted_expert_context: str,
+        votes: Dict
+    ) -> str:
+        """
+        Synthesize using GPT with vote-weighted expert context.
+
+        Args:
+            scene: Scene dictionary
+            weighted_expert_context: Pre-formatted expert insights with weights
+            votes: User votes for reference
+
+        Returns:
+            Synthesized blueprint string
+        """
+        from openai import AsyncOpenAI
+        client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # Build vote summary for the prompt
+        vote_summary = ", ".join([f"{b}: {'★' * v}" for b, v in votes.items()])
+
+        system_prompt = f"""You are a master romantic comedy story synthesizer.
+
+{self._romcom_framework}
+
+STORY CONTEXT:
+{self._story_outline}
+
+SCENE DETAILS:
+- Scene {scene['scene_number']}: {scene['title']}
+- Act {scene.get('act', 2)}
+- Description: {scene.get('description', 'N/A')}
+
+USER PREFERENCES (vote weights): {vote_summary}
+The user has indicated which expert perspectives they find most valuable.
+Prioritize insights from higher-rated experts while still incorporating useful elements from all.
+
+Your task: Synthesize the expert insights into a cohesive, actionable scene blueprint.
+Format your response with clear sections:
+- SCENE_BLUEPRINT
+- SUMMARY (3-5 sentences)
+- STRUCTURE_AND_PACING
+- RELATIONSHIP_DYNAMICS
+- KEY_MOMENTS
+- DIALOGUE_HOOKS
+"""
+
+        user_prompt = f"""Here are the expert perspectives (with user-assigned weights):
+
+{weighted_expert_context}
+
+Synthesize these into a unified blueprint for Scene {scene['scene_number']}: {scene['title']}.
+Respect the user's weighting preferences - give more emphasis to higher-voted experts.
+If experts disagree, lean toward the perspective the user weighted higher."""
+
+        response = await client.chat.completions.create(
+            model="gpt-5.1",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.7,
+            max_tokens=2000
+        )
+
+        return response.choices[0].message.content
+
     def _save_brainstorm_session(
         self,
         scene: Dict,
