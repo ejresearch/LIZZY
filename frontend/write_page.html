@@ -1,294 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light">
     <title>Write - Lizzy</title>
     <link rel="stylesheet" href="styles/common.css">
     <style>
-        /* Red header bar */
-        .header-bar {
-            background: var(--color-primary);
-            padding: var(--spacing-md) var(--spacing-xl);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-        }
-
-        .header-left h1 {
-            font-size: 2.5em;
-            color: var(--color-white);
-            margin: 0;
-            line-height: 1;
-        }
-
-        .header-right {
-            display: flex;
-            gap: var(--spacing-sm);
-            align-items: center;
-        }
-
-        .current-project-display {
-            padding: 12px var(--spacing-md);
-            font-size: 0.95em;
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--color-white);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 24px;
-            font-weight: 600;
-            white-space: nowrap;
-            min-width: 200px;
-            text-align: center;
-        }
-
-        .btn-back {
-            padding: 12px var(--spacing-md);
-            font-size: 0.95em;
-            background: transparent;
-            color: var(--color-white);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 24px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all var(--transition-normal);
-            height: 48px;
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-        }
-
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
-            opacity: 1;
-        }
-
-        .intro-section {
-            text-align: center;
-            margin-bottom: var(--spacing-lg);
-        }
-
-        .intro-section h2 {
-            font-size: 2.2em;
-            color: var(--color-primary);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .intro-section p {
-            font-size: 1.1em;
-            color: var(--color-text-light);
-            font-style: italic;
-        }
-
-        /* Batch Mode Styles */
-        .batch-header {
-            background: var(--color-white);
-            border-radius: var(--radius-md);
-            border: 3px solid var(--color-primary);
-            padding: var(--spacing-lg);
-            margin-bottom: var(--spacing-md);
-        }
-
-        .batch-header h3 {
-            font-size: 1.8em;
-            color: var(--color-primary);
-            margin-bottom: var(--spacing-sm);
-        }
-
+        /* Progress bar override */
         .progress-bar {
-            background: #e8d5d5;
-            height: 32px;
-            border-radius: 16px;
-            overflow: hidden;
+            height: 24px;
             margin: var(--spacing-sm) 0;
-            position: relative;
         }
 
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, var(--color-primary), #d85858);
-            transition: width 0.5s ease;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
+        .progress-bar[data-progress]::after {
+            font-size: 0.75rem;
+            color: var(--text-primary);
         }
 
-        .progress-bar::after {
-            content: attr(data-progress);
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--color-text);
-            font-weight: 600;
-            z-index: 2;
-            pointer-events: none;
-        }
-
-        .batch-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-sm);
-        }
-
-        .scenes-list {
-            background: var(--color-white);
-            border-radius: var(--radius-md);
-            border: 3px solid var(--color-primary);
-            overflow: hidden;
-        }
-
-        .scenes-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .scenes-table th {
-            background: var(--color-primary);
-            color: var(--color-white);
-            padding: var(--spacing-sm) var(--spacing-sm);
-            text-align: left;
-            font-weight: 600;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-
-        .scenes-table td {
-            padding: var(--spacing-sm) var(--spacing-sm);
-            border-bottom: 1px solid #f0e8e8;
-        }
-
-        .scenes-table tbody tr:nth-child(even) {
-            background: #fefbf8;
-        }
-
-        .scenes-table tbody tr:hover {
-            background: var(--color-primary-light);
-        }
-
-
-        .scene-title {
-            font-weight: 600;
-            color: var(--color-primary);
-        }
-
-        /* Generation Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: var(--color-white);
-            border-radius: var(--radius-md);
-            padding: var(--spacing-lg);
-            max-width: 900px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            border: 3px solid var(--color-primary);
-        }
-
-        .modal-header {
-            text-align: center;
-            margin-bottom: var(--spacing-md);
-        }
-
-        .modal-header h2 {
-            color: var(--color-primary);
-            font-size: 2em;
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .modal-header p {
-            color: var(--color-text-light);
-            font-style: italic;
-        }
-
-        .draft-preview {
-            background: #f9f9f9;
-            border-radius: var(--radius-sm);
-            padding: var(--spacing-md);
-            margin: var(--spacing-md) 0;
-        }
-
-        .draft-preview h4 {
-            color: var(--color-primary);
-            margin-bottom: var(--spacing-sm);
-        }
-
-        .draft-meta {
-            display: flex;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-sm);
-            font-size: 14px;
-            color: var(--color-text-light);
-        }
-
-        .draft-content {
-            background: var(--color-white);
-            padding: var(--spacing-sm);
-            border-radius: var(--radius-sm);
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.5;
-            max-height: 500px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-
-        .modal-footer {
-            text-align: center;
-            margin-top: var(--spacing-md);
-        }
-
-        /* Message Container */
-        #message-container {
-            position: fixed;
-            top: var(--spacing-sm);
-            right: var(--spacing-sm);
-            z-index: 1000;
-            max-width: 500px;
-        }
-
-        @keyframes slideIn {
-            from { transform: translateX(400px); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Batch Progress Modal */
+        /* Batch progress modal */
         .batch-progress-modal {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 10000;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: var(--spacing-md);
         }
 
         .batch-progress-modal.active {
@@ -296,191 +34,148 @@
         }
 
         .batch-progress-content {
-            background: white;
-            padding: 40px;
-            border-radius: 20px;
-            max-width: 1000px;
-            width: 95%;
+            background: var(--bg-primary);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            max-width: 800px;
+            width: 100%;
             max-height: 90vh;
             overflow-y: auto;
-            border: 3px solid var(--color-primary);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
 
         .batch-progress-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 1.5rem;
         }
 
         .batch-progress-header h2 {
-            color: var(--color-primary);
-            font-size: 2em;
-            margin-bottom: 5px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
         }
 
         .batch-progress-header p {
-            color: #666;
-            font-style: italic;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
         .batch-progress-bar-container {
-            background: #f5f1e8;
-            border: 2px solid var(--color-primary);
-            border-radius: 15px;
-            height: 40px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-full);
+            height: 32px;
             position: relative;
             overflow: hidden;
-            margin: 15px 0;
+            margin: 1rem 0;
         }
 
         .batch-progress-bar-fill {
-            background: linear-gradient(90deg, #b83e3e 0%, #d94f4f 50%, #b83e3e 100%);
-            background-size: 200% 100%;
-            animation: progressGradient 2s ease infinite;
+            background: var(--bg-inverse);
             height: 100%;
-            width: 0%;
-            border-radius: 12px;
+            border-radius: var(--radius-full);
             transition: width 0.5s ease;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: var(--text-inverse);
             font-weight: 600;
-            font-size: 1em;
-            box-shadow: 0 2px 8px rgba(184, 62, 62, 0.4);
-        }
-
-        @keyframes progressGradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
+            font-size: 0.875rem;
         }
 
         .batch-metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1.5rem 0;
         }
 
         .batch-metric-card {
-            background: #f5f1e8;
-            padding: 20px;
-            border-radius: 12px;
-            border: 2px solid #e0d5c7;
+            background: var(--bg-secondary);
+            padding: 1.25rem;
+            border-radius: var(--radius-md);
             text-align: center;
-            transition: all 0.3s ease;
-        }
-
-        .batch-metric-card.pulse {
-            animation: cardPulse 0.6s ease;
-        }
-
-        @keyframes cardPulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(184, 62, 62, 0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 0 20px 5px rgba(184, 62, 62, 0.2); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(184, 62, 62, 0); }
+            border: 1px solid var(--border);
         }
 
         .batch-metric-label {
-            font-size: 0.85em;
-            color: #666;
+            font-size: 0.75rem;
+            color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
         }
 
         .batch-metric-value {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: var(--color-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
         }
 
         .batch-output-section {
-            margin-top: 25px;
+            margin-top: 1.5rem;
         }
 
         .batch-output-header {
-            font-size: 1.1em;
+            font-size: 0.875rem;
             font-weight: 600;
-            color: #2d2d2d;
-            margin-bottom: 10px;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0.5rem;
         }
 
         .batch-spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 3px solid var(--color-primary);
-            border-top-color: transparent;
-            border-right-color: transparent;
+            width: 14px;
+            height: 14px;
+            border: 2px solid var(--bg-tertiary);
+            border-top-color: var(--text-primary);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite, spinPulse 1.6s ease-in-out infinite;
-            box-shadow: 0 0 10px rgba(184, 62, 62, 0.3);
-        }
-
-        @keyframes spinPulse {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(180deg) scale(1.2); }
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            animation: spin 0.8s linear infinite;
         }
 
         .batch-status-log {
-            background: #2d2d2d;
-            border: 3px solid var(--color-primary);
-            border-radius: 12px;
-            padding: 20px;
-            min-height: 300px;
-            max-height: 400px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            min-height: 200px;
+            max-height: 300px;
             overflow-y: auto;
             font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-            font-size: 13px;
+            font-size: 0.75rem;
             line-height: 1.6;
-            color: #e0e0e0;
         }
 
         .batch-status-log div {
-            margin-bottom: 8px;
-            opacity: 0;
-            animation: fadeIn 0.5s forwards;
+            margin-bottom: 0.5rem;
+            animation: fadeIn 0.25s ease;
         }
 
         @keyframes fadeIn {
+            from { opacity: 0; }
             to { opacity: 1; }
         }
 
-        /* Active project indicator pulse animation */
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
-            }
-            50% {
-                opacity: 0.8;
-                box-shadow: 0 0 0 4px rgba(72, 187, 120, 0);
-            }
+        .batch-status-log .success { color: var(--success); }
+        .batch-status-log .error { color: var(--error); }
+        .batch-status-log .processing { color: var(--text-secondary); }
+        .batch-status-log .info { color: var(--warning); }
+
+        /* Filter section */
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: var(--spacing-sm);
         }
 
-        .batch-status-log .success {
-            color: #87ceeb;
+        .filter-section label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
         }
 
-        .batch-status-log .error {
-            color: #ff6b6b;
-        }
-
-        .batch-status-log .processing {
-            color: #90ee90;
-        }
-
-        .batch-status-log .info {
-            color: #ffd700;
+        .filter-section select {
+            width: 140px;
         }
     </style>
 </head>
@@ -491,21 +186,23 @@
         </div>
         <div class="header-right">
             <div class="current-project-display" id="header-project-name">No project selected</div>
-            <a href="/" class="btn-back">← Home</a>
+            <a href="/" class="btn-back">Home</a>
+            <div class="theme-toggle">
+                <div class="toggle-switch" id="themeToggle"></div>
+            </div>
         </div>
     </div>
 
     <div class="container">
         <div class="intro-section">
             <h2>Generate Scene Drafts</h2>
-            <p>Transform brainstormed blueprints into professionally formatted screenplay scenes</p>
+            <p>Transform brainstorms into screenplay scenes</p>
         </div>
 
-        <!-- Batch Mode -->
         <div id="batch-mode">
             <div class="batch-header">
                 <h3>Batch Process Scenes</h3>
-                <p style="color: #666; font-style: italic; margin-bottom: 20px;">
+                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
                     Generate screenplay drafts for multiple scenes
                 </p>
 
@@ -513,69 +210,58 @@
                     <div class="progress-fill" id="batch-progress" style="width: 0%"></div>
                 </div>
 
-                <!-- Batch Actions -->
                 <div class="batch-actions">
-                    <button class="btn btn-primary" onclick="generateAllIncomplete()">
-                        Generate All Drafts
-                    </button>
-                    <button class="btn btn-primary" onclick="generateRemainingDrafts()">
-                        Generate Remaining
-                    </button>
+                    <button class="btn btn-primary" onclick="generateAllIncomplete()">Generate All</button>
+                    <button class="btn btn-primary" onclick="generateRemainingDrafts()">Generate Remaining</button>
                     <button class="btn btn-primary" id="generate-selected-btn" onclick="generateSelectedDrafts()" style="display: none;">
                         Generate Selected (<span id="selected-count">0</span>)
                     </button>
-                    <button class="btn" onclick="loadScenes()">
-                        Refresh Status
-                    </button>
+                    <button class="btn btn-secondary" onclick="loadScenes()">Refresh</button>
                 </div>
             </div>
-        </div>
 
-        <!-- Filter Section -->
-        <div style="display: flex; justify-content: flex-start; align-items: center; margin-bottom: 16px;">
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <label for="scene-filter-write" style="font-weight: 600; color: var(--color-text);">Filter by Act:</label>
-                <select id="scene-filter-write" class="form-select" onchange="filterScenes()" style="width: 150px;">
+            <div class="filter-section">
+                <label for="scene-filter-write">Filter:</label>
+                <select id="scene-filter-write" class="form-select" onchange="filterScenes()">
                     <option value="all">All Acts</option>
                     <option value="1">Act 1</option>
                     <option value="2">Act 2</option>
                     <option value="3">Act 3</option>
                 </select>
             </div>
-        </div>
 
-        <div class="scenes-list">
-            <table class="scenes-table">
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">
-                            <input type="checkbox" id="select-all-write" onchange="toggleSelectAllWrite()" style="cursor: pointer;">
-                        </th>
-                        <th style="width: 120px;">Status</th>
-                        <th style="width: 60px;">#</th>
-                        <th>Scene</th>
-                        <th style="width: 150px;">Drafts</th>
-                        <th style="width: 180px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="scenes-list">
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
-                            Loading scenes...
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+            <div class="scenes-list">
+                <table class="scenes-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">
+                                <input type="checkbox" id="select-all-write" onchange="toggleSelectAllWrite()">
+                            </th>
+                            <th style="width: 100px;">Status</th>
+                            <th style="width: 60px;">#</th>
+                            <th>Scene</th>
+                            <th style="width: 100px;">Drafts</th>
+                            <th style="width: 150px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scenes-list">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                Loading scenes...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- Batch Progress Modal -->
     <div id="batch-progress-modal" class="batch-progress-modal">
         <div class="batch-progress-content">
             <div class="batch-progress-header">
-                <h2>📝 Generating Drafts</h2>
+                <h2>Generating Drafts</h2>
                 <p id="batch-progress-subtitle">Processing scenes...</p>
-                <p id="batch-current-scene" style="font-size: 14px; color: #666; margin-top: 5px;"></p>
+                <p id="batch-current-scene" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;"></p>
             </div>
 
             <div class="batch-progress-bar-container">
@@ -599,26 +285,38 @@
                     <span>Live Output</span>
                 </div>
                 <div id="batch-status-log" class="batch-status-log">
-                    <div class="processing">Initializing batch generation...</div>
+                    <div class="processing">Initializing...</div>
                 </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <button class="btn btn-primary" onclick="closeBatchModal()">Close</button>
             </div>
         </div>
     </div>
 
-    <!-- Message Container -->
     <div id="message-container"></div>
 
     <script src="js/common.js"></script>
     <script>
+        // Theme
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        html.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+        themeToggle.addEventListener('click', () => {
+            const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+
         let currentProject = null;
 
-        // Initialize page
         async function init() {
             const urlParams = new URLSearchParams(window.location.search);
             const projectName = urlParams.get('project') || localStorage.getItem('currentProject');
 
             if (!projectName) {
-                showMessage('No project selected. Redirecting to home...', 'error');
+                showMessage('No project selected. Redirecting...', 'error');
                 setTimeout(() => window.location.href = '/', 2000);
                 return;
             }
@@ -626,7 +324,11 @@
             currentProject = projectName;
             localStorage.setItem('currentProject', projectName);
             updateHeaderProjectName();
+            loadScenes();
+        }
 
+        function closeBatchModal() {
+            document.getElementById('batch-progress-modal').classList.remove('active');
             loadScenes();
         }
 
@@ -634,97 +336,67 @@
             const tbody = document.getElementById('scenes-list');
 
             try {
-                // Load scenes from batch status (same as Brainstorm page)
                 const batchResponse = await fetch(`/api/brainstorm/batch/status?project=${currentProject}`);
                 const batchData = await batchResponse.json();
 
-                console.log('Batch data:', batchData);
-
                 if (!batchData.scenes || batchData.scenes.length === 0) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 40px; color: #999;">
-                                No scenes found. Please create scenes in Manager first.
-                            </td>
-                        </tr>
-                    `;
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">No scenes found.</td></tr>`;
                     return;
                 }
 
-                const scenes = batchData.scenes;
-
-                // Load brainstorm status
                 const brainstormResponse = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
                 const brainstormData = await brainstormResponse.json();
-                console.log('Brainstorm data:', brainstormData);
 
                 const brainstormsMap = {};
-                if (brainstormData.brainstorms && Array.isArray(brainstormData.brainstorms)) {
+                if (brainstormData.brainstorms) {
                     brainstormData.brainstorms.forEach(bs => {
-                        brainstormsMap[bs.scene_number] = bs.brainstorm ? true : false;
+                        brainstormsMap[bs.scene_number] = !!bs.brainstorm;
                     });
                 }
 
-                // Load draft status
                 const draftsResponse = await fetch(`/api/write/drafts/${currentProject}`);
                 const draftsData = await draftsResponse.json();
-                console.log('Drafts data:', draftsData);
 
                 const draftsMap = {};
-                if (draftsData.drafts && Array.isArray(draftsData.drafts)) {
+                if (draftsData.drafts) {
                     draftsData.drafts.forEach(draft => {
-                        if (!draftsMap[draft.scene_number]) {
-                            draftsMap[draft.scene_number] = 0;
-                        }
-                        draftsMap[draft.scene_number]++;
+                        draftsMap[draft.scene_number] = (draftsMap[draft.scene_number] || 0) + 1;
                     });
                 }
 
-                // Update progress bar
                 const completed = Object.keys(draftsMap).length;
-                const total = scenes.length;
+                const total = batchData.scenes.length;
                 const percentage = Math.round((completed / total) * 100);
 
-                const progressFill = document.getElementById('batch-progress');
-                const progressContainer = document.getElementById('progress-bar-container');
-                progressFill.style.width = percentage + '%';
-                progressContainer.setAttribute('data-progress', `${completed}/${total} scenes`);
+                document.getElementById('batch-progress').style.width = percentage + '%';
+                document.getElementById('progress-bar-container').setAttribute('data-progress', `${completed}/${total} scenes`);
 
-                // Render scenes
-                tbody.innerHTML = scenes.map(scene => {
+                tbody.innerHTML = batchData.scenes.map(scene => {
                     const hasBrainstorm = brainstormsMap[scene.scene_number];
                     const draftCount = draftsMap[scene.scene_number] || 0;
                     const canGenerate = hasBrainstorm;
 
-                    let statusBadge = '';
-                    if (hasBrainstorm) {
-                        statusBadge = '<span class="status status-success">✓ Ready</span>';
-                    } else {
-                        statusBadge = '<span class="status status-pending">⚠ No Brainstorm</span>';
-                    }
+                    const statusBadge = hasBrainstorm
+                        ? '<span class="status status-success">Ready</span>'
+                        : '<span class="status status-pending">No Brainstorm</span>';
 
-                    // Calculate act number (1-10 = Act 1, 11-20 = Act 2, 21-30 = Act 3)
                     const act = Math.ceil(scene.scene_number / 10);
 
                     return `
                         <tr data-act="${act}">
                             <td style="text-align: center;">
-                                <input type="checkbox" class="scene-checkbox-write" value="${scene.scene_number}" onchange="updateSelectionWrite()" style="cursor: ${!canGenerate ? 'not-allowed' : 'pointer'};" ${!canGenerate ? 'disabled title="⚠️ Generate brainstorm first"' : ''}>
+                                <input type="checkbox" class="scene-checkbox-write" value="${scene.scene_number}"
+                                    onchange="updateSelectionWrite()" ${!canGenerate ? 'disabled' : ''}>
                             </td>
                             <td>${statusBadge}</td>
                             <td><strong>${scene.scene_number}</strong></td>
-                            <td>
-                                <span class="scene-title">${scene.title || 'Untitled'}</span>
-                            </td>
-                            <td>${draftCount > 0 ? `<strong>${draftCount} version${draftCount > 1 ? 's' : ''}</strong>` : 'None yet'}</td>
+                            <td><span class="scene-title">${scene.title || 'Untitled'}</span></td>
+                            <td>${draftCount > 0 ? `<strong>${draftCount}</strong>` : 'None'}</td>
                             <td style="text-align: center;">
-                                <div style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 0.5rem; justify-content: center;">
                                     ${draftCount > 0 ? `<button class="btn-small" onclick="viewDraft(${scene.scene_number})">View</button>` : ''}
-                                    <button
-                                        class="btn-small ${canGenerate ? '' : ''}"
-                                        onclick="navigateToGenerate(${scene.scene_number})"
-                                        ${!canGenerate ? 'disabled' : ''}>
-                                        ${draftCount > 0 ? 'New Version' : 'Generate'}
+                                    <button class="btn-small" onclick="navigateToGenerate(${scene.scene_number})" ${!canGenerate ? 'disabled' : ''}>
+                                        ${draftCount > 0 ? 'New' : 'Generate'}
                                     </button>
                                 </div>
                             </td>
@@ -733,86 +405,45 @@
                 }).join('');
 
             } catch (error) {
-                console.error('Error loading scenes:', error);
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px; color: #dc3545;">
-                            Error loading scenes: ${error.message}
-                        </td>
-                    </tr>
-                `;
+                console.error('Error:', error);
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--error);">Error: ${error.message}</td></tr>`;
             }
         }
 
         function navigateToGenerate(sceneNumber) {
-            // Navigate to dedicated generation page (like Brainstorm does)
             window.location.href = `/write/generate?project=${encodeURIComponent(currentProject)}&scene=${sceneNumber}`;
         }
 
         function viewDraft(sceneNumber) {
-            // Navigate to manager page screenplay tab and auto-open this scene
             window.location.href = `/manager?project=${currentProject}&view=draft&scene=${sceneNumber}`;
         }
 
         function filterScenes() {
-            const filterValue = document.getElementById('scene-filter-write').value;
-            filterTableByAct('scenes-list', filterValue);
+            const value = document.getElementById('scene-filter-write').value;
+            filterTableByAct('scenes-list', value);
         }
-
-        // ===== SELECTION MANAGEMENT =====
 
         function updateSelectionWrite() {
             const checkboxes = document.querySelectorAll('.scene-checkbox-write:not(:disabled)');
             const checked = Array.from(checkboxes).filter(cb => cb.checked);
             const selectAll = document.getElementById('select-all-write');
 
-            // Update select-all checkbox
             selectAll.checked = checked.length === checkboxes.length && checkboxes.length > 0;
             selectAll.indeterminate = checked.length > 0 && checked.length < checkboxes.length;
 
-            // Update selected count and button visibility
-            const selectedCount = document.getElementById('selected-count');
-            const generateSelectedBtn = document.getElementById('generate-selected-btn');
-
-            selectedCount.textContent = checked.length;
-
-            if (checked.length > 0) {
-                generateSelectedBtn.style.display = 'inline-block';
-            } else {
-                generateSelectedBtn.style.display = 'none';
-            }
+            document.getElementById('selected-count').textContent = checked.length;
+            document.getElementById('generate-selected-btn').style.display = checked.length > 0 ? 'inline-flex' : 'none';
         }
 
         function toggleSelectAllWrite() {
             const selectAll = document.getElementById('select-all-write');
-            const checkboxes = document.querySelectorAll('.scene-checkbox-write:not(:disabled)');
-
-            checkboxes.forEach(cb => {
-                // Only select visible rows
-                const row = cb.closest('tr');
-                if (row.style.display !== 'none') {
-                    cb.checked = selectAll.checked;
-                }
+            document.querySelectorAll('.scene-checkbox-write:not(:disabled)').forEach(cb => {
+                if (cb.closest('tr').style.display !== 'none') cb.checked = selectAll.checked;
             });
-
             updateSelectionWrite();
         }
 
-        async function generateAllIncomplete() {
-            const incompleteCheckboxes = document.querySelectorAll('.scene-checkbox-write:not(:disabled)');
-            const sceneNumbers = Array.from(incompleteCheckboxes).map(cb => parseInt(cb.value));
-
-            if (sceneNumbers.length === 0) {
-                showMessage('All scenes already have drafts!', 'info');
-                return;
-            }
-
-            const cost = formatCostEstimate(sceneNumbers.length, 'write');
-            if (!confirm(`Generate drafts for all ${sceneNumbers.length} incomplete scenes?\n\nEstimated cost: ${cost}\nEstimated time: ${Math.ceil(sceneNumbers.length * 1.5)}-${Math.ceil(sceneNumbers.length * 2)} minutes`)) {
-                return;
-            }
-
-            // Show progress modal
+        async function runBatchGeneration(sceneNumbers, type = 'write') {
             const modal = document.getElementById('batch-progress-modal');
             const progressBar = document.getElementById('batch-progress-bar-fill');
             const currentSceneText = document.getElementById('batch-current-scene');
@@ -820,260 +451,122 @@
             const subtitle = document.getElementById('batch-progress-subtitle');
 
             modal.classList.add('active');
-            subtitle.textContent = `Processing ${sceneNumbers.length} scene${sceneNumbers.length > 1 ? 's' : ''}...`;
+            subtitle.textContent = `Processing ${sceneNumbers.length} scenes...`;
             statusLog.innerHTML = '';
 
-            function addLog(message, type = 'processing') {
-                const logEntry = document.createElement('div');
-                logEntry.className = type;
-                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                statusLog.appendChild(logEntry);
+            function addLog(message, logType = 'processing') {
+                const entry = document.createElement('div');
+                entry.className = logType;
+                entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+                statusLog.appendChild(entry);
                 statusLog.scrollTop = statusLog.scrollHeight;
             }
 
-            addLog(`Starting generation for ${sceneNumbers.length} scene${sceneNumbers.length > 1 ? 's' : ''}...`, 'processing');
+            addLog(`Starting ${sceneNumbers.length} scenes...`, 'processing');
 
-            // Start timer
             const startTime = Date.now();
             const timerInterval = setInterval(() => {
                 const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const minutes = Math.floor(elapsed / 60);
-                const seconds = elapsed % 60;
-                document.getElementById('batch-time-elapsed').textContent =
-                    minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                document.getElementById('batch-time-elapsed').textContent = elapsed < 60 ? `${elapsed}s` : `${Math.floor(elapsed/60)}m ${elapsed%60}s`;
             }, 1000);
 
-            // Initialize counters
             const scenesCountEl = document.getElementById('batch-scenes-count');
             scenesCountEl.textContent = `0/${sceneNumbers.length}`;
 
-            // Process each scene sequentially
-            let completed = 0;
-            let failed = 0;
+            let completed = 0, failed = 0;
 
             for (let i = 0; i < sceneNumbers.length; i++) {
                 const sceneNumber = sceneNumbers[i];
-                const progress = Math.round(((i) / sceneNumbers.length) * 100);
-
-                progressBar.style.width = `${progress}%`;
+                progressBar.style.width = `${Math.round((i / sceneNumbers.length) * 100)}%`;
                 progressBar.textContent = `${i}/${sceneNumbers.length}`;
-                currentSceneText.textContent = `Processing Scene ${sceneNumber}...`;
+                currentSceneText.textContent = `Scene ${sceneNumber}...`;
                 addLog(`Processing Scene ${sceneNumber}...`, 'processing');
 
                 try {
                     const response = await fetch('/api/write/generate-scene', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            project: currentProject,
-                            scene_number: sceneNumber
-                        })
+                        body: JSON.stringify({ project: currentProject, scene_number: sceneNumber })
                     });
-
                     const data = await response.json();
 
                     if (data.success) {
                         completed++;
-                        addLog(`✓ Scene ${sceneNumber} completed successfully!`, 'success');
+                        addLog(`Scene ${sceneNumber} completed`, 'success');
                     } else {
                         failed++;
-                        addLog(`✗ Scene ${sceneNumber} failed: ${data.error}`, 'error');
+                        addLog(`Scene ${sceneNumber} failed: ${data.error}`, 'error');
                     }
 
-                    // Update counter with pulse animation
                     scenesCountEl.textContent = `${completed}/${sceneNumbers.length}`;
-                    const completedCard = scenesCountEl.closest('.batch-metric-card');
-                    completedCard.classList.add('pulse');
-                    setTimeout(() => completedCard.classList.remove('pulse'), 600);
-
-                    // Refresh the scene list
                     await loadScenes();
                 } catch (error) {
                     failed++;
-                    addLog(`✗ Scene ${sceneNumber} error: ${error.message}`, 'error');
+                    addLog(`Scene ${sceneNumber} error: ${error.message}`, 'error');
                 }
             }
 
-            // Update final progress
+            clearInterval(timerInterval);
             progressBar.style.width = '100%';
             progressBar.textContent = `${completed}/${sceneNumbers.length}`;
-            currentSceneText.textContent = 'Complete!';
+            currentSceneText.textContent = 'Complete';
+            addLog(failed === 0 ? `All ${completed} scenes completed!` : `${completed} completed, ${failed} failed`, failed ? 'error' : 'success');
+            document.getElementById('batch-spinner').style.display = 'none';
+        }
 
-            // Final summary
-            if (failed === 0) {
-                addLog(`✓ All ${completed} scenes completed successfully!`, 'success');
-            } else {
-                addLog(`Completed ${completed} scenes, ${failed} failed`, failed > 0 ? 'error' : 'success');
+        async function generateAllIncomplete() {
+            const checkboxes = document.querySelectorAll('.scene-checkbox-write:not(:disabled)');
+            const sceneNumbers = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (sceneNumbers.length === 0) {
+                showMessage('All scenes have drafts!', 'info');
+                return;
             }
 
-            // Clear timer interval
-            clearInterval(timerInterval);
-
-            // Close modal after 3 seconds
-            setTimeout(() => {
-                modal.classList.remove('active');
-            }, 3000);
+            if (!confirm(`Generate drafts for ${sceneNumbers.length} scenes?`)) return;
+            await runBatchGeneration(sceneNumbers);
         }
 
         async function generateRemainingDrafts() {
-            // Fetch scenes with brainstorm status and draft counts
             try {
                 const batchResponse = await fetch(`/api/brainstorm/batch/status?project=${currentProject}`);
                 const batchData = await batchResponse.json();
 
-                if (!batchData.scenes || batchData.scenes.length === 0) {
-                    showMessage('No scenes found', 'error');
-                    return;
-                }
-
-                // Load draft status
                 const draftsResponse = await fetch(`/api/write/drafts/${currentProject}`);
                 const draftsData = await draftsResponse.json();
 
-                const draftsMap = {};
-                if (draftsData.drafts && Array.isArray(draftsData.drafts)) {
-                    draftsData.drafts.forEach(draft => {
-                        if (!draftsMap[draft.scene_number]) {
-                            draftsMap[draft.scene_number] = 0;
-                        }
-                        draftsMap[draft.scene_number]++;
-                    });
-                }
-
-                // Load brainstorm status
                 const brainstormResponse = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
                 const brainstormData = await brainstormResponse.json();
 
-                const brainstormsMap = {};
-                if (brainstormData.brainstorms && Array.isArray(brainstormData.brainstorms)) {
-                    brainstormData.brainstorms.forEach(bs => {
-                        brainstormsMap[bs.scene_number] = bs.brainstorm ? true : false;
+                const draftsMap = {};
+                if (draftsData.drafts) {
+                    draftsData.drafts.forEach(draft => {
+                        draftsMap[draft.scene_number] = true;
                     });
                 }
 
-                // Filter for scenes that have brainstorms but no drafts
-                const remainingScenes = batchData.scenes.filter(scene => {
-                    const hasBrainstorm = brainstormsMap[scene.scene_number];
-                    const hasDraft = draftsMap[scene.scene_number] > 0;
-                    return hasBrainstorm && !hasDraft;
+                const brainstormsMap = {};
+                if (brainstormData.brainstorms) {
+                    brainstormData.brainstorms.forEach(bs => {
+                        brainstormsMap[bs.scene_number] = !!bs.brainstorm;
+                    });
+                }
+
+                const remaining = batchData.scenes.filter(scene => {
+                    return brainstormsMap[scene.scene_number] && !draftsMap[scene.scene_number];
                 });
 
-                const sceneNumbers = remainingScenes.map(s => s.scene_number);
+                const sceneNumbers = remaining.map(s => s.scene_number);
 
                 if (sceneNumbers.length === 0) {
-                    showMessage('All scenes with brainstorms already have drafts!', 'info');
+                    showMessage('All ready scenes have drafts!', 'info');
                     return;
                 }
 
-                const cost = formatCostEstimate(sceneNumbers.length, 'write');
-                if (!confirm(`Generate drafts for ${sceneNumbers.length} remaining scene${sceneNumbers.length > 1 ? 's' : ''}?\n\nEstimated cost: ${cost}\nEstimated time: ${Math.ceil(sceneNumbers.length * 1.5)}-${Math.ceil(sceneNumbers.length * 2)} minutes`)) {
-                    return;
-                }
-
-                // Show progress modal
-                const modal = document.getElementById('batch-progress-modal');
-                const progressBar = document.getElementById('batch-progress-bar-fill');
-                const currentSceneText = document.getElementById('batch-current-scene');
-                const statusLog = document.getElementById('batch-status-log');
-                const subtitle = document.getElementById('batch-progress-subtitle');
-
-                modal.classList.add('active');
-                subtitle.textContent = `Processing ${sceneNumbers.length} remaining scene${sceneNumbers.length > 1 ? 's' : ''}...`;
-                statusLog.innerHTML = '';
-
-                function addLog(message, type = 'processing') {
-                    const logEntry = document.createElement('div');
-                    logEntry.className = type;
-                    logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                    statusLog.appendChild(logEntry);
-                    statusLog.scrollTop = statusLog.scrollHeight;
-                }
-
-                addLog(`Starting generation for ${sceneNumbers.length} scene${sceneNumbers.length > 1 ? 's' : ''}...`, 'processing');
-
-                // Start timer
-                const startTime = Date.now();
-                const timerInterval = setInterval(() => {
-                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                    const minutes = Math.floor(elapsed / 60);
-                    const seconds = elapsed % 60;
-                    document.getElementById('batch-time-elapsed').textContent =
-                        minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-                }, 1000);
-
-                // Initialize counters
-                const scenesCountEl = document.getElementById('batch-scenes-count');
-                scenesCountEl.textContent = `0/${sceneNumbers.length}`;
-
-                // Process each scene sequentially
-                let completed = 0;
-                let failed = 0;
-
-                for (let i = 0; i < sceneNumbers.length; i++) {
-                    const sceneNumber = sceneNumbers[i];
-                    const progress = Math.round(((i) / sceneNumbers.length) * 100);
-
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.textContent = `${i}/${sceneNumbers.length}`;
-                    currentSceneText.textContent = `Processing Scene ${sceneNumber}...`;
-                    addLog(`Processing Scene ${sceneNumber}...`, 'processing');
-
-                    try {
-                        const response = await fetch('/api/write/generate-scene', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                project: currentProject,
-                                scene_number: sceneNumber
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            completed++;
-                            addLog(`✓ Scene ${sceneNumber} completed successfully!`, 'success');
-                        } else {
-                            failed++;
-                            addLog(`✗ Scene ${sceneNumber} failed: ${data.error}`, 'error');
-                        }
-
-                        // Update counter with pulse animation
-                        scenesCountEl.textContent = `${completed}/${sceneNumbers.length}`;
-                        const completedCard = scenesCountEl.closest('.batch-metric-card');
-                        completedCard.classList.add('pulse');
-                        setTimeout(() => completedCard.classList.remove('pulse'), 600);
-
-                        // Refresh the scene list
-                        await loadScenes();
-                    } catch (error) {
-                        failed++;
-                        addLog(`✗ Scene ${sceneNumber} error: ${error.message}`, 'error');
-                    }
-                }
-
-                // Update final progress
-                progressBar.style.width = '100%';
-                progressBar.textContent = `${completed}/${sceneNumbers.length}`;
-                currentSceneText.textContent = 'Complete!';
-
-                // Final summary
-                if (failed === 0) {
-                    addLog(`✓ All ${completed} scenes completed successfully!`, 'success');
-                } else {
-                    addLog(`Completed ${completed} scenes, ${failed} failed`, failed > 0 ? 'error' : 'success');
-                }
-
-                // Clear timer interval
-                clearInterval(timerInterval);
-
-                // Close modal after 3 seconds
-                setTimeout(() => {
-                    modal.classList.remove('active');
-                }, 3000);
-
+                if (!confirm(`Generate ${sceneNumbers.length} remaining drafts?`)) return;
+                await runBatchGeneration(sceneNumbers);
             } catch (error) {
-                showMessage(`Error fetching scenes: ${error.message}`, 'error');
+                showMessage(`Error: ${error.message}`, 'error');
             }
         }
 
@@ -1086,123 +579,10 @@
                 return;
             }
 
-            const cost = formatCostEstimate(sceneNumbers.length, 'write');
-            if (!confirm(`Generate drafts for ${sceneNumbers.length} selected scene${sceneNumbers.length > 1 ? 's' : ''}?\n\nEstimated cost: ${cost}\nEstimated time: ${Math.ceil(sceneNumbers.length * 1.5)}-${Math.ceil(sceneNumbers.length * 2)} minutes`)) {
-                return;
-            }
-
-            // Show progress modal
-            const modal = document.getElementById('batch-progress-modal');
-            const progressBar = document.getElementById('batch-progress-bar-fill');
-            const currentSceneText = document.getElementById('batch-current-scene');
-            const statusLog = document.getElementById('batch-status-log');
-            const subtitle = document.getElementById('batch-progress-subtitle');
-
-            modal.classList.add('active');
-            subtitle.textContent = `Processing ${sceneNumbers.length} scene${sceneNumbers.length > 1 ? 's' : ''}...`;
-            statusLog.innerHTML = '';
-
-            function addLog(message, type = 'processing') {
-                const logEntry = document.createElement('div');
-                logEntry.className = type;
-                logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-                statusLog.appendChild(logEntry);
-                statusLog.scrollTop = statusLog.scrollHeight;
-            }
-
-            addLog(`Starting generation for ${sceneNumbers.length} scene${sceneNumbers.length > 1 ? 's' : ''}...`, 'processing');
-
-            // Start timer
-            const startTime = Date.now();
-            const timerInterval = setInterval(() => {
-                const elapsed = Math.floor((Date.now() - startTime) / 1000);
-                const minutes = Math.floor(elapsed / 60);
-                const seconds = elapsed % 60;
-                document.getElementById('batch-time-elapsed').textContent =
-                    minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
-            }, 1000);
-
-            // Initialize counters
-            const scenesCountEl = document.getElementById('batch-scenes-count');
-            scenesCountEl.textContent = `0/${sceneNumbers.length}`;
-
-            // Process each selected scene sequentially
-            let completed = 0;
-            let failed = 0;
-
-            for (let i = 0; i < sceneNumbers.length; i++) {
-                const sceneNumber = sceneNumbers[i];
-                const progress = Math.round(((i) / sceneNumbers.length) * 100);
-
-                progressBar.style.width = `${progress}%`;
-                progressBar.textContent = `${i}/${sceneNumbers.length}`;
-                currentSceneText.textContent = `Processing Scene ${sceneNumber}...`;
-                addLog(`Processing Scene ${sceneNumber}...`, 'processing');
-
-                try {
-                    const response = await fetch('/api/write/generate-scene', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            project: currentProject,
-                            scene_number: sceneNumber
-                        })
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        completed++;
-                        addLog(`✓ Scene ${sceneNumber} completed successfully!`, 'success');
-                    } else {
-                        failed++;
-                        addLog(`✗ Scene ${sceneNumber} failed: ${data.error}`, 'error');
-                    }
-
-                    // Update counter with pulse animation
-                    scenesCountEl.textContent = `${completed}/${sceneNumbers.length}`;
-                    const completedCard = scenesCountEl.closest('.batch-metric-card');
-                    completedCard.classList.add('pulse');
-                    setTimeout(() => completedCard.classList.remove('pulse'), 600);
-
-                    // Refresh the scene list after each completion
-                    await loadScenes();
-
-                } catch (error) {
-                    failed++;
-                    addLog(`✗ Scene ${sceneNumber} error: ${error.message}`, 'error');
-                }
-            }
-
-            // Update final progress
-            progressBar.style.width = '100%';
-            progressBar.textContent = `${completed}/${sceneNumbers.length}`;
-            currentSceneText.textContent = 'Complete!';
-
-            // Final summary
-            if (failed === 0) {
-                addLog(`✓ All ${completed} scenes completed successfully!`, 'success');
-            } else {
-                addLog(`Completed ${completed} scenes, ${failed} failed`, failed > 0 ? 'error' : 'success');
-            }
-
-            // Clear timer interval
-            clearInterval(timerInterval);
-
-            // Close modal after 3 seconds
-            setTimeout(() => {
-                modal.classList.remove('active');
-
-                // Clear selection
-                const checkboxes2 = document.querySelectorAll('.scene-checkbox-write');
-                checkboxes2.forEach(cb => cb.checked = false);
-                updateSelectionWrite();
-            }, 3000);
+            if (!confirm(`Generate ${sceneNumbers.length} drafts?`)) return;
+            await runBatchGeneration(sceneNumbers);
         }
 
-        // Utility functions moved to common.js
-
-        // Initialize on load
         init();
     </script>
 </body>

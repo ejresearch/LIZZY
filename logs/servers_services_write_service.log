@@ -92,3 +92,7 @@ ModuleNotFoundError: No module named 'reportlab'
 2025-11-12 14:39:25 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love by the Numbers
 2025-11-12 14:40:39 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track
 2025-11-12 14:42:43 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track
+2025-12-23 10:18:31 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:20:15 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:21:32 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:22:47 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track

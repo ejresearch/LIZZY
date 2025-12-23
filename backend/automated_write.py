@@ -476,14 +476,14 @@ async def main():
     projects_dir = Path("projects")
     if not projects_dir.exists():
         console.print("[red]No projects directory found![/red]")
-        console.print("Run [cyan]python3 -m lizzy.start[/cyan] first.\n")
+        console.print("Run [cyan]python3 -m backend.start[/cyan] first.\n")
         return
 
     project_dirs = [d for d in projects_dir.iterdir() if d.is_dir()]
 
     if not project_dirs:
         console.print("[red]No projects found![/red]")
-        console.print("Run [cyan]python3 -m lizzy.start[/cyan] to create a project.\n")
+        console.print("Run [cyan]python3 -m backend.start[/cyan] to create a project.\n")
         return
 
     # Show available projects

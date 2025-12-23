@@ -7,8 +7,8 @@
 ### Python API
 
 ```python
-from lizzy.prompt_studio import assemble_prompt
-from lizzy.prompt_studio.blocks import SceneBlock, CharacterBiosBlock
+from backend.prompt_studio import assemble_prompt
+from backend.prompt_studio.blocks import SceneBlock, CharacterBiosBlock
 
 blocks = [
     SceneBlock(scene_number=5),
@@ -52,7 +52,7 @@ python3 prompt_studio_cli.py
 ### Basic Scene Prompt
 
 ```python
-from lizzy.prompt_studio.blocks import SceneBlock, SectionHeaderBlock
+from backend.prompt_studio.blocks import SceneBlock, SectionHeaderBlock
 
 blocks = [
     SectionHeaderBlock(title="SCENE CONTEXT"),
@@ -65,7 +65,7 @@ prompt = assemble_prompt(blocks, project_name="my_project")
 ### RAG Query
 
 ```python
-from lizzy.prompt_studio.blocks import BooksQueryBlock
+from backend.prompt_studio.blocks import BooksQueryBlock
 
 blocks = [
     BooksQueryBlock(query="romantic comedy structure", mode="hybrid"),
@@ -77,7 +77,7 @@ prompt = assemble_prompt(blocks, project_name="my_project")
 ### With Metadata
 
 ```python
-from lizzy.prompt_studio import PromptEngine
+from backend.prompt_studio import PromptEngine
 
 engine = PromptEngine()
 result = engine.assemble(blocks, project_name="my_project")
@@ -103,12 +103,12 @@ print(f"Total chars: {result.total_chars}")
 
 ```python
 # Import everything
-from lizzy.prompt_studio import (
+from backend.prompt_studio import (
     PromptEngine,
     assemble_prompt,
     BlockRegistry,
 )
-from lizzy.prompt_studio.blocks import (
+from backend.prompt_studio.blocks import (
     # SQL
     SceneBlock,
     CharacterBiosBlock,
@@ -142,7 +142,7 @@ block = BlockRegistry.create_block('scene', scene_number=5)
 
 ```bash
 # Quick test
-python3 -c "from lizzy.prompt_studio import BlockRegistry; print(len(BlockRegistry.list_blocks()), 'blocks available')"
+python3 -c "from backend.prompt_studio import BlockRegistry; print(len(BlockRegistry.list_blocks()), 'blocks available')"
 
 # Run examples
 python3 example_prompt_studio.py

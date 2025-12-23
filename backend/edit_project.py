@@ -1,12 +1,13 @@
 """
-INTAKE Module - Story Element Capture
+Edit Project Module - Project Content Editor
 
-Purpose: Captures essential story elements and foundational metadata.
+Purpose: Edit and manage characters, scenes, and metadata for existing projects.
 
-From Lizzy White Paper:
-"Offers a user-friendly interface for inputting details such as character
-profiles, scene outlines, or structural components specific to the project type.
-Establishes a clear blueprint that preserves the creative vision."
+Note: For creating NEW projects, use IDEATE instead:
+    python -m backend.ideate_web     # Web UI (guided or quick mode)
+    python -m backend.ideate --quick # CLI quick mode
+
+This module is for editing projects AFTER they've been created.
 """
 
 from pathlib import Path
@@ -19,18 +20,20 @@ from .database import Database
 console = Console()
 
 
-class IntakeModule:
+class ProjectEditor:
     """
-    Handles character and scene input with Rich UI.
+    Edit characters, scenes, and metadata for existing projects.
 
-    Simple, focused interface for capturing:
-    - Characters (name, description, role)
-    - Scenes (number, title, description, characters)
+    Provides a Rich UI for:
+    - Adding/editing/deleting characters
+    - Adding/editing/deleting scenes
+    - Managing writer notes
+    - Viewing brainstorm sessions and drafts
     """
 
     def __init__(self, db_path: Path):
         """
-        Initialize Intake module.
+        Initialize project editor.
 
         Args:
             db_path: Path to project database
@@ -40,9 +43,9 @@ class IntakeModule:
 
     def run_interactive(self) -> None:
         """
-        Run interactive intake session.
+        Run interactive editing session.
 
-        Main menu for adding/viewing characters and scenes.
+        Main menu for managing project content.
         """
         while True:
             console.clear()
@@ -94,16 +97,16 @@ class IntakeModule:
             elif choice == "12":
                 self._view_drafts()
             elif choice == "13":
-                console.print("\n[green]Intake complete![/green]")
-                console.print("\n[cyan]Next step:[/cyan]")
+                console.print("\n[green]Editing complete![/green]")
+                console.print("\n[cyan]Next steps:[/cyan]")
                 project = self.db.get_project()
                 if project:
-                    console.print(f"  python -m lizzy.brainstorm \"{project['name']}\"")
+                    console.print(f"  python -m backend.automated_brainstorm")
                     console.print("  [dim](Generate creative ideas for your scenes)[/dim]")
                 break
 
     def _show_status(self) -> None:
-        """Display project status with counts for all 6 tables."""
+        """Display project status with counts for all tables."""
         project = self.db.get_project()
 
         if project:
@@ -122,7 +125,7 @@ class IntakeModule:
                 draft_count = cursor.fetchone()[0]
 
             console.print(Panel.fit(
-                f"[bold cyan]{project['name']}[/bold cyan]\n\n"
+                f"[bold cyan]{project['name']}[/bold cyan] [dim](Edit Mode)[/dim]\n\n"
                 f"Genre: {project['genre']}\n\n"
                 f"[bold]Core Elements:[/bold]\n"
                 f"  Characters: {char_count} | Scenes: {scene_count}\n"
@@ -594,7 +597,7 @@ class IntakeModule:
         if not rows:
             console.print("\n[yellow]No brainstorm sessions yet[/yellow]")
             console.print("[dim]Run BRAINSTORM module to generate creative ideas[/dim]")
-            console.print("[cyan]  python -m lizzy.brainstorm \"Project Name\"[/cyan]")
+            console.print("[cyan]  python -m backend.automated_brainstorm[/cyan]")
             Prompt.ask("\n[dim]Press Enter to continue[/dim]", default="")
             return
 
@@ -662,7 +665,7 @@ class IntakeModule:
         if not rows:
             console.print("\n[yellow]No drafts yet[/yellow]")
             console.print("[dim]Run WRITE module to generate screenplay drafts[/dim]")
-            console.print("[cyan]  python -m lizzy.write \"Project Name\"[/cyan]")
+            console.print("[cyan]  python -m backend.automated_write[/cyan]")
             Prompt.ask("\n[dim]Press Enter to continue[/dim]", default="")
             return
 
@@ -715,43 +718,47 @@ class IntakeModule:
 
 def main():
     """
-    CLI entrypoint for INTAKE module.
+    CLI entrypoint for project editor.
 
     Usage:
-        python -m lizzy.intake              # Interactive project selection
-        python -m lizzy.intake "Project Name"  # Direct project access
+        python -m backend.edit_project              # Interactive project selection
+        python -m backend.edit_project "Project Name"  # Direct project access
+
+    Note: To CREATE new projects, use IDEATE instead:
+        python -m backend.ideate_web     # Web UI
+        python -m backend.ideate --quick # CLI quick mode
     """
     import sys
     import argparse
-    from .start import StartModule
+    from .project_creator import list_projects, get_project_path
 
     parser = argparse.ArgumentParser(
-        description="Add characters and scenes to your project"
+        description="Edit characters, scenes, and metadata for existing projects"
     )
     parser.add_argument("project_name", nargs='?', help="Project name (optional)")
 
     args = parser.parse_args()
 
-    start = StartModule()
-
     # If no project name provided, show selector
     if not args.project_name:
         console.print(Panel.fit(
-            "[bold cyan]Lizzy Intake - Character & Scene Builder[/bold cyan]\n\n"
-            "Select a project to work on",
+            "[bold cyan]Lizzy Project Editor[/bold cyan]\n\n"
+            "Edit characters, scenes, and metadata for existing projects.\n\n"
+            "[dim]To create NEW projects, use:[/dim]\n"
+            "  python -m backend.ideate_web",
             border_style="cyan"
         ))
 
-        existing = start.list_projects()
+        existing = list_projects()
 
         if not existing:
             console.print("\n[yellow]No projects found.[/yellow]")
             console.print("\n[cyan]Create one first:[/cyan]")
-            console.print("  python -m lizzy.start")
+            console.print("  python -m backend.ideate_web     # Web UI (recommended)")
+            console.print("  python -m backend.ideate --quick # CLI quick mode")
             sys.exit(0)
 
         # Show project table
-        from rich.table import Table
         table = Table(title="Available Projects", show_header=True, header_style="bold cyan")
         table.add_column("#", style="dim")
         table.add_column("Project Name", style="green")
@@ -772,18 +779,22 @@ def main():
         project_name = args.project_name
 
     # Get project database path
-    db_path = start.get_project_path(project_name)
+    db_path = get_project_path(project_name)
 
     if not db_path:
         console.print(f"[red]Error:[/red] Project '{project_name}' not found")
         console.print("\n[yellow]Available projects:[/yellow]")
-        for project in start.list_projects():
+        for project in list_projects():
             console.print(f"  - {project}")
         sys.exit(1)
 
-    # Run intake
-    intake = IntakeModule(db_path)
-    intake.run_interactive()
+    # Run editor
+    editor = ProjectEditor(db_path)
+    editor.run_interactive()
+
+
+# Backwards compatibility alias
+IntakeModule = ProjectEditor
 
 
 if __name__ == "__main__":

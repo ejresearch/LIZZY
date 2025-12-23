@@ -227,7 +227,7 @@ def create_and_populate_bucket_sync(
 
     Example:
         from pathlib import Path
-        from lizzy.bucket_manager import create_and_populate_bucket_sync
+        from backend.bucket_manager import create_and_populate_bucket_sync
 
         files = list(Path("./books").glob("*.docx"))
         stats = create_and_populate_bucket_sync(
@@ -274,7 +274,7 @@ def install_bucket(source_path: Path, bucket_name: str = None, overwrite: bool =
 
     Example:
         from pathlib import Path
-        from lizzy.bucket_manager import install_bucket
+        from backend.bucket_manager import install_bucket
 
         # Install bucket from ender2
         stats = install_bucket(

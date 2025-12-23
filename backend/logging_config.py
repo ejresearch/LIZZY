@@ -102,7 +102,7 @@ def get_logger(name: str) -> logging.Logger:
         Configured logger
 
     Example:
-        from lizzy.logging_config import get_logger
+        from backend.logging_config import get_logger
         logger = get_logger(__name__)
         logger.info("Started processing")
     """

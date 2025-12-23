@@ -1149,7 +1149,7 @@ async def main():
         if not existing:
             console.print("\n[yellow]No projects found.[/yellow]")
             console.print("\n[cyan]Create one first:[/cyan]")
-            console.print("  python -m lizzy.start")
+            console.print("  python -m backend.start")
             sys.exit(0)
 
         # Show project table

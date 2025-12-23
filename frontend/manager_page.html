@@ -1,200 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light">
     <title>Manager - Lizzy</title>
     <link rel="stylesheet" href="styles/common.css">
     <style>
-        /* Red header bar */
+        /* Header - clean design */
         .header-bar {
-            background: var(--color-primary);
-            padding: var(--spacing-md) var(--spacing-xl);
+            background: var(--bg-primary);
+            padding: 1rem 2rem;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
         }
 
         .header-left h1 {
-            font-size: 2.5em;
-            color: var(--color-white);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
             margin: 0;
-            line-height: 1;
         }
 
         .header-right {
             display: flex;
-            gap: var(--spacing-sm);
+            gap: 0.75rem;
             align-items: center;
         }
 
         .current-project-display {
-            padding: 12px var(--spacing-md);
-            font-size: 0.95em;
-            background: rgba(255, 255, 255, 0.2);
-            color: var(--color-white);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 24px;
-            font-weight: 600;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            font-weight: 500;
             white-space: nowrap;
-            min-width: 200px;
+            min-width: 150px;
             text-align: center;
-        }
-
-
-        .btn-back {
-            padding: 12px var(--spacing-md);
-            font-size: 0.95em;
-            background: transparent;
-            color: var(--color-white);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 24px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all var(--transition-normal);
-            height: 48px;
             display: flex;
             align-items: center;
-            white-space: nowrap;
+            gap: 0.5rem;
         }
 
-        .btn-back:hover {
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.5);
-            opacity: 1;
+        .current-project-display::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--text-primary);
+            border-radius: 50%;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 20px 40px 40px 40px;
+            padding: var(--spacing-lg) var(--spacing-md);
         }
 
         /* Project List View */
         .project-list {
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #b83e3e;
-            padding: 40px;
-            margin-bottom: 30px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         .project-list h2 {
-            font-size: 2em;
-            color: #b83e3e;
-            margin-bottom: 30px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
         }
 
         .project-item {
-            background: #fef5f5;
-            border: 2px solid #e8d5d5;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
 
         .project-item:hover {
-            border-color: #b83e3e;
-            transform: translateX(5px);
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
         }
 
         .project-info h3 {
-            font-size: 1.5em;
-            color: #b83e3e;
-            margin-bottom: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
         }
 
         .project-info p {
-            color: #666;
-            font-style: italic;
-            font-size: 0.95em;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
 
         .project-actions {
             display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            padding: 10px 24px;
-            border: 2px solid #b83e3e;
-            background: white;
-            color: #b83e3e;
-            border-radius: 25px;
-            font-family: 'Georgia', serif;
-            font-size: 0.9em;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .btn:hover {
-            background: #b83e3e;
-            color: white;
-        }
-
-        .btn-primary {
-            background: #b83e3e;
-            color: white;
-            font-size: 1.1em;
-            padding: 15px 40px;
-        }
-
-        .btn-primary:hover {
-            background: #9a3232;
+            gap: 0.5rem;
         }
 
         .btn-danger {
-            border-color: #dc3545;
-            color: #dc3545;
+            border-color: var(--error);
+            color: var(--error);
+            background: transparent;
         }
 
         .btn-danger:hover {
-            background: #dc3545;
+            background: var(--error);
             color: white;
-        }
-
-        .btn-back {
-            background: #b83e3e;
-            color: white;
-            border: 2px solid white;
-        }
-
-        .btn-back:hover {
-            background: #9a3232;
-            color: white;
-            border-color: white;
         }
 
         .btn-generate-inline {
-            padding: 10px 20px;
-            border: 2px solid #e8d5d5;
-            background: white;
-            color: #b83e3e;
-            font-family: 'Georgia', serif;
-            font-size: 0.95em;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
             cursor: pointer;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-            font-weight: 600;
-            white-space: nowrap;
+            border-radius: 2rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
         }
 
         .btn-generate-inline:hover {
-            background: #fef5f5;
-            border-color: #b83e3e;
-            transform: translateY(-1px);
-        }
-
-        .btn-generate-inline:active {
-            transform: scale(0.98);
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border-color: var(--bg-inverse);
         }
 
         /* Export Buttons */
@@ -204,7 +147,7 @@
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            font-family: 'Georgia', serif;
+            font-family: inherit;
             font-size: 1em;
             font-weight: 600;
             transition: all 0.3s ease;
@@ -220,27 +163,27 @@
         }
 
         .btn-export-txt {
-            background: #666;
+            background: var(--text-secondary);
         }
 
         .btn-export-txt:hover {
-            background: #555;
+            background: var(--text-muted);
         }
 
         .btn-export-docx {
-            background: #b83e3e;
+            background: var(--text-primary);
         }
 
         .btn-export-docx:hover {
-            background: #9a3232;
+            background: var(--text-secondary);
         }
 
         .btn-export-pdf {
-            background: #2c5f8d;
+            background: var(--text-primary);
         }
 
         .btn-export-pdf:hover {
-            background: #234a6d;
+            background: var(--text-secondary);
         }
 
         /* Small export buttons for individual scenes */
@@ -257,7 +200,7 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-family: 'Georgia', serif;
+            font-family: inherit;
             font-size: 0.9em;
             font-weight: 600;
             transition: all 0.3s ease;
@@ -273,47 +216,46 @@
         }
 
         .btn-select-all {
-            background: #4a9d5f;
+            background: var(--text-primary);
         }
 
         .btn-select-all:hover {
-            background: #3d8550;
+            background: var(--text-secondary);
         }
 
         .btn-deselect-all {
-            background: #666;
+            background: var(--text-secondary);
         }
 
         .btn-deselect-all:hover {
-            background: #555;
+            background: var(--text-muted);
         }
 
         .btn-select-act {
-            background: #2c5f8d;
+            background: var(--text-primary);
         }
 
         .btn-select-act:hover {
-            background: #234a6d;
+            background: var(--text-secondary);
         }
 
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
-            color: #666;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
         }
 
         .empty-state p {
-            font-size: 1.2em;
-            font-style: italic;
-            margin-bottom: 30px;
+            font-size: 0.9375rem;
+            margin-bottom: 1.5rem;
         }
 
         /* Project Editor */
         .project-editor {
             display: none;
-            background: white;
-            border-radius: 20px;
-            border: 3px solid #b83e3e;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
             overflow: hidden;
         }
 
@@ -321,40 +263,38 @@
             display: block;
         }
 
-
         .tabs {
             display: flex;
-            background: #fef5f5;
-            border-bottom: 2px solid #e8d5d5;
-            border-radius: 20px 20px 0 0;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            gap: 0;
         }
 
         .tab {
-            padding: 20px 40px;
+            padding: 1rem 1.5rem;
             border: none;
             background: transparent;
-            color: #666;
-            font-family: 'Georgia', serif;
-            font-size: 1.1em;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
         }
 
         .tab:hover {
-            background: white;
-            color: #b83e3e;
+            color: var(--text-primary);
         }
 
         .tab.active {
-            background: white;
-            color: #b83e3e;
-            border-bottom-color: #b83e3e;
+            color: var(--text-primary);
+            border-bottom-color: var(--text-primary);
         }
 
         .tab-content {
             display: none;
-            padding: 40px;
+            padding: 2rem;
             max-height: 600px;
             overflow-y: auto;
         }
@@ -364,17 +304,17 @@
         }
 
         .tab-content h3 {
-            font-size: 1.6em;
-            color: #b83e3e;
-            margin-bottom: 24px;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
             font-weight: 600;
         }
 
         .spinner {
             width: 50px;
             height: 50px;
-            border: 5px solid #f0f0f0;
-            border-top: 5px solid #b83e3e;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--text-primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -390,12 +330,12 @@
             align-items: center;
             margin-bottom: 24px;
             padding-bottom: 16px;
-            border-bottom: 2px solid #f0e8e8;
+            border-bottom: 1px solid var(--border);
         }
 
         .tab-section-header h3 {
-            font-size: 1.8em;
-            color: #b83e3e;
+            font-size: 1.25rem;
+            color: var(--text-primary);
             margin: 0;
         }
 
@@ -406,40 +346,49 @@
 
         /* Form Elements */
         .form-group {
-            margin-bottom: 30px;
+            margin-bottom: 1.5rem;
         }
 
         .form-group label {
             display: block;
-            font-size: 1.1em;
-            color: #b83e3e;
-            margin-bottom: 10px;
-            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
         }
 
         .form-group input[type="text"],
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e8d5d5;
-            border-radius: 8px;
-            font-family: 'Georgia', serif;
-            font-size: 1em;
-            background: white;
-            color: #2d2d2d;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:hover,
+        .form-group textarea:hover,
+        .form-group select:hover {
+            border-color: var(--text-muted);
         }
 
         .form-group input:focus,
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #b83e3e;
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px var(--accent-light);
         }
 
         .form-group textarea {
-            min-height: 120px;
+            min-height: 100px;
             resize: vertical;
+            line-height: 1.6;
         }
 
         .radio-group {
@@ -464,7 +413,7 @@
             margin: 0;
             cursor: pointer;
             font-weight: normal;
-            color: #666;
+            color: var(--text-secondary);
         }
 
         /* Character/Scene Lists */
@@ -478,8 +427,8 @@
         }
 
         .item {
-            background: white;
-            border: 1px solid #e8d5d5;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 15px;
@@ -492,37 +441,34 @@
         .data-table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
         .data-table th {
-            background: #b83e3e;
-            color: white;
-            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 0.875rem 1rem;
             text-align: left;
             font-weight: 600;
-            font-size: 0.95em;
-            letter-spacing: 0.3px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
             position: sticky;
             top: 0;
             z-index: 10;
+            border-bottom: 1px solid var(--border);
         }
 
         .data-table td {
-            padding: 16px 20px;
-            border-bottom: 1px solid #f0e8e8;
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--border-light);
             vertical-align: top;
         }
 
-        .data-table tbody tr:nth-child(even) {
-            background: #fefbf8;
-        }
-
-        .data-table tbody tr:nth-child(odd) {
-            background: white;
+        .data-table tbody tr {
+            background: var(--bg-primary);
         }
 
         .data-table tr:last-child td {
@@ -530,28 +476,27 @@
         }
 
         .data-table tbody tr:hover {
-            background: #fef5f5;
-            box-shadow: 0 2px 4px rgba(184, 62, 62, 0.1);
+            background: var(--bg-secondary);
         }
 
         .data-table input[type="text"],
         .data-table textarea {
             width: 100%;
-            padding: 10px 14px;
-            border: 2px solid #e8d5d5;
-            border-radius: 6px;
-            font-family: 'Georgia', serif;
-            font-size: 0.95em;
-            background: white;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             transition: all 0.2s ease;
         }
 
         .data-table input:focus,
         .data-table textarea:focus {
             outline: none;
-            border-color: #b83e3e;
-            background: #fffbf8;
-            box-shadow: 0 0 0 3px rgba(184, 62, 62, 0.1);
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px var(--accent-light);
         }
 
         .data-table textarea {
@@ -562,17 +507,17 @@
 
         .data-table select {
             padding: 10px 14px;
-            border: 2px solid #e8d5d5;
+            border: 2px solid var(--border);
             border-radius: 6px;
-            font-family: 'Georgia', serif;
-            background: white;
+            font-family: inherit;
+            background: var(--bg-primary);
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .data-table select:focus {
             outline: none;
-            border-color: #b83e3e;
+            border-color: var(--text-primary);
             box-shadow: 0 0 0 3px rgba(184, 62, 62, 0.1);
         }
 
@@ -584,18 +529,18 @@
         .btn-icon {
             padding: 6px 12px;
             font-size: 0.85em;
-            border: 1px solid #e8d5d5;
-            background: white;
-            color: #666;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
 
         .btn-icon:hover {
-            background: #b83e3e;
+            background: var(--text-primary);
             color: white;
-            border-color: #b83e3e;
+            border-color: var(--text-primary);
         }
 
         .btn-icon.danger:hover {
@@ -604,13 +549,13 @@
         }
 
         .item-content h4 {
-            font-size: 1.2em;
-            color: #b83e3e;
+            font-size: 1rem;
+            color: var(--text-primary);
             margin-bottom: 8px;
         }
 
         .item-content p {
-            color: #666;
+            color: var(--text-secondary);
             font-style: italic;
             font-size: 0.95em;
             line-height: 1.6;
@@ -630,7 +575,7 @@
             display: inline-block;
             width: 40px;
             height: 40px;
-            background: #b83e3e;
+            background: var(--text-primary);
             color: white;
             border-radius: 50%;
             text-align: center;
@@ -642,8 +587,8 @@
         /* Footer Actions */
         .editor-footer {
             padding: 30px 40px;
-            background: #fef5f5;
-            border-top: 2px solid #e8d5d5;
+            background: var(--bg-secondary);
+            border-top: 2px solid var(--border);
             display: flex;
             justify-content: center;
             border-radius: 0 0 20px 20px;
@@ -704,20 +649,20 @@
 
         .message.success::before {
             content: '✓';
-            font-size: 1.5em;
+            font-size: 1.125rem;
             font-weight: bold;
             color: #48bb78;
         }
 
         .message.error {
             background: #f8d7da;
-            border: 3px solid #dc3545;
+            border: 2px solid #dc3545;
             color: #721c24;
         }
 
         .message.error::before {
             content: '✕';
-            font-size: 1.5em;
+            font-size: 1.125rem;
             font-weight: bold;
             color: #dc3545;
         }
@@ -748,7 +693,7 @@
         .thinking-dot {
             width: 12px;
             height: 12px;
-            background: var(--color-primary);
+            background: var(--bg-inverse);
             border-radius: 50%;
             animation: thinking-bounce 1.4s infinite ease-in-out both;
         }
@@ -778,9 +723,7 @@
 
         /* AI Control Button Styles */
         #ai-cancel-btn:hover {
-            background: #c82333;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+            background: var(--text-secondary);
         }
 
         #ai-cancel-btn:active {
@@ -795,7 +738,10 @@
         </div>
         <div class="header-right">
             <div class="current-project-display" id="header-project-name">No project selected</div>
-            <a href="/" class="btn-back">← Home</a>
+            <a href="/" class="btn-back">Home</a>
+            <div class="theme-toggle">
+                <div class="toggle-switch" id="themeToggle"></div>
+            </div>
         </div>
     </div>
 
@@ -804,10 +750,10 @@
 
     <!-- AI Generation Progress Modal -->
     <div id="ai-progress-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
-        <div style="background: white; padding: 40px; border-radius: 20px; max-width: 500px; text-align: center; border: 3px solid var(--color-primary);">
-            <div style="font-size: 3em; margin-bottom: 20px;">🎬</div>
-            <h3 id="ai-progress-title" style="color: var(--color-primary); margin-bottom: 10px; font-size: 1.8em;">AI is Thinking...</h3>
-            <p id="ai-progress-text" style="color: #666; margin-bottom: 30px; font-size: 1.1em; font-style: italic;">Generating your romantic comedy</p>
+        <div style="background: var(--bg-primary); padding: 40px; border-radius: 12px; max-width: 500px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 2rem; margin-bottom: 20px;">🎬</div>
+            <h3 id="ai-progress-title" style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.25rem;">AI is Thinking...</h3>
+            <p id="ai-progress-text" style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.875rem; font-style: italic;">Generating your romantic comedy</p>
 
             <!-- Animated thinking dots -->
             <div id="ai-thinking-dots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
@@ -817,13 +763,13 @@
             </div>
 
             <!-- Progress bar -->
-            <div style="background: #f0e8e8; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 20px;">
-                <div id="ai-progress-bar" style="background: linear-gradient(90deg, var(--color-primary), #d85858); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            <div style="background: var(--bg-tertiary); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 20px;">
+                <div id="ai-progress-bar" style="background: var(--text-primary); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
             </div>
 
             <!-- Control buttons -->
             <div id="ai-control-buttons" style="display: flex; gap: 12px; justify-content: center; margin-top: 30px;">
-                <button id="ai-cancel-btn" onclick="cancelGeneration()" style="padding: 12px 32px; background: #dc3545; color: white; border: none; border-radius: 8px; font-size: 1em; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                <button id="ai-cancel-btn" onclick="cancelGeneration()" style="padding: 10px 24px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
                     ⏹️ Stop
                 </button>
             </div>
@@ -851,17 +797,6 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Genre</label>
-                    <select id="project-genre">
-                        <option>Romantic Comedy</option>
-                        <option>Drama</option>
-                        <option>Thriller</option>
-                        <option>Comedy</option>
-                        <option>Action</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
                     <label>Logline</label>
                     <textarea id="project-logline" placeholder="A one-sentence summary of your story..."></textarea>
                 </div>
@@ -883,21 +818,21 @@
                             </button>
                         </div>
                     </div>
-                    <p style="color: #999; font-style: italic; font-size: 0.85em; margin-top: 8px;">
+                    <p style="color: var(--text-muted); font-style: italic; font-size: 0.85em; margin-top: 8px;">
                         Use the dice to let AI generate a complete rom-com with characters, scenes, and notes
                     </p>
                 </div>
 
                 <!-- Project Actions -->
-                <div class="form-group" style="margin-top: 50px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
+                <div class="form-group" style="margin-top: 50px; padding-top: 30px; border-top: 1px solid var(--border);">
                     <div style="display: flex; gap: 15px; align-items: center;">
-                        <button class="btn" id="export-backup-btn" onclick="exportProjectBackup()" style="background: #2196F3; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
-                            💾 Export Backup
+                        <button class="btn" id="export-backup-btn" onclick="exportProjectBackup()" style="background: var(--text-primary); color: var(--bg-primary); border: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            Export Backup
                         </button>
-                        <button class="btn-danger" id="delete-project-btn" onclick="deleteCurrentProject()" style="background: #d32f2f; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
-                            🗑️ Delete
+                        <button class="btn" id="delete-project-btn" onclick="deleteCurrentProject()" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            Delete
                         </button>
-                        <span style="color: #999; font-size: 0.9em; font-style: italic;">Export a backup before deleting</span>
+                        <span style="color: var(--text-muted); font-size: 0.875rem; font-style: italic;">Export a backup before deleting</span>
                     </div>
                 </div>
             </div>
@@ -979,14 +914,14 @@
             <!-- Brainstorm Tab -->
             <div id="brainstorm-tab" class="tab-content">
                 <div style="margin-bottom: 30px;">
-                    <h3 style="color: #b83e3e; margin-bottom: 16px;">Scene Brainstorms</h3>
-                    <p style="color: #666; font-style: italic; margin-bottom: 24px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">Scene Brainstorms</h3>
+                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 24px;">
                         View generated scene brainstorms from the 3 expert knowledge graphs
                     </p>
                 </div>
 
                 <div id="brainstorms-list">
-                    <div style="text-align: center; padding: 40px; color: #999;">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                         Save project first to load brainstorms
                     </div>
                 </div>
@@ -995,8 +930,8 @@
             <!-- Screenplay Tab -->
             <div id="screenplay-tab" class="tab-content">
                 <div style="margin-bottom: 30px;">
-                    <h3 style="color: #b83e3e; margin-bottom: 16px;">Scene Drafts & Export</h3>
-                    <p style="color: #666; font-style: italic; margin-bottom: 24px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">Scene Drafts & Export</h3>
+                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 24px;">
                         View and export scene drafts as professionally formatted screenplays
                     </p>
 
@@ -1009,7 +944,7 @@
 
                 <!-- Individual Scene Drafts View -->
                 <div id="drafts-list">
-                    <div style="text-align: center; padding: 40px; color: #999;">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
                         Save project first to load drafts
                     </div>
                 </div>
@@ -1017,8 +952,8 @@
                 <!-- Full Screenplay View -->
                 <div id="full-screenplay-view" style="display: none;">
                     <!-- Scene Selection Panel -->
-                    <div style="background: white; border: 2px solid #e0e0e0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                        <h4 style="color: #b83e3e; margin-bottom: 16px;">Scene Selection</h4>
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                        <h4 style="color: var(--text-primary); margin-bottom: 16px;">Scene Selection</h4>
                         <div style="display: flex; gap: 12px; margin-bottom: 16px;">
                             <button onclick="selectAllScenes()" class="btn-scene-select btn-select-all">Select All</button>
                             <button onclick="deselectAllScenes()" class="btn-scene-select btn-deselect-all">Deselect All</button>
@@ -1026,22 +961,22 @@
                             <button onclick="selectByAct(2)" class="btn-scene-select btn-select-act">Act 2</button>
                             <button onclick="selectByAct(3)" class="btn-scene-select btn-select-act">Act 3</button>
                         </div>
-                        <div id="scene-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: #f9f9f9; border-radius: 6px;">
+                        <div id="scene-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
                             <!-- Scene checkboxes will be populated here -->
                         </div>
-                        <p id="selected-scene-count" style="margin-top: 12px; color: #666; font-size: 0.9em; font-style: italic;">0 scenes selected</p>
+                        <p id="selected-scene-count" style="margin-top: 12px; color: var(--text-secondary); font-size: 0.875rem; font-style: italic;">0 scenes selected</p>
                     </div>
 
-                    <div style="background: white; border: 3px solid #b83e3e; border-radius: 12px; padding: 40px; margin-bottom: 24px;">
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 40px; margin-bottom: 24px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                            <h3 style="color: #b83e3e; margin: 0;">Full Screenplay Preview</h3>
+                            <h3 style="color: var(--text-primary); margin: 0;">Full Screenplay Preview</h3>
                             <div style="display: flex; gap: 12px;">
                                 <button onclick="exportFullScreenplay('txt')" class="btn-export btn-export-txt">Export TXT</button>
                                 <button onclick="exportFullScreenplay('docx')" class="btn-export btn-export-docx">Export DOCX</button>
                                 <button onclick="exportFullScreenplay('pdf')" class="btn-export btn-export-pdf">Export PDF</button>
                             </div>
                         </div>
-                        <pre id="full-screenplay-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: #2d2d2d; padding: 24px; background: #f9f9f9; border-radius: 8px; max-height: 800px; overflow-y: auto; border: 2px solid #e0e0e0;">Loading full screenplay...</pre>
+                        <pre id="full-screenplay-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: var(--text-primary); padding: 24px; background: var(--bg-secondary); border-radius: 6px; max-height: 800px; overflow-y: auto; border: 1px solid var(--border);">Loading full screenplay...</pre>
                     </div>
                 </div>
             </div>
@@ -1085,7 +1020,6 @@
 
                 // Populate form
                 document.getElementById('project-name').value = data.name || '';
-                document.getElementById('project-genre').value = data.genre || 'Romantic Comedy';
                 document.getElementById('project-logline').value = data.logline || '';
 
                 // Load characters
@@ -1119,7 +1053,6 @@
 
             // Clear form
             document.getElementById('project-name').value = '';
-            document.getElementById('project-genre').value = 'Romantic Comedy';
             document.getElementById('project-logline').value = '';
             document.getElementById('template-beatsheet').checked = true;
 
@@ -1154,7 +1087,7 @@
 
         async function loadBrainstorms() {
             const container = document.getElementById('brainstorms-list');
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Loading brainstorms...</div>';
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading brainstorms...</div>';
 
             try {
                 const response = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
@@ -1163,7 +1096,7 @@
                 allBrainstorms = data.brainstorms;
                 renderBrainstorms();
             } catch (error) {
-                container.innerHTML = `<div style="text-align: center; padding: 40px; color: #b83e3e;">Error loading brainstorms: ${error.message}</div>`;
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-primary);">Error loading brainstorms: ${error.message}</div>`;
             }
         }
 
@@ -1171,7 +1104,7 @@
             const container = document.getElementById('brainstorms-list');
 
             if (allBrainstorms.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No brainstorms generated yet.</div>';
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No brainstorms generated yet.</div>';
                 return;
             }
 
@@ -1182,19 +1115,19 @@
             let html = '';
 
             if (completed.length > 0) {
-                html += `<div style="margin-bottom: 30px;"><h4 style="color: #b83e3e; margin-bottom: 20px;">Completed (${completed.length})</h4>`;
+                html += `<div style="margin-bottom: 30px;"><h4 style="color: var(--text-primary); margin-bottom: 20px;">Completed (${completed.length})</h4>`;
 
                 completed.forEach(bs => {
                     const versionCount = (bs.versions && bs.versions.length) || 0;
                     const hasExpertConsults = bs.experts && bs.experts.length > 0;
 
                     html += `
-                        <div style="background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 16px;" id="brainstorm-card-${bs.scene_number}">
+                        <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px;" id="brainstorm-card-${bs.scene_number}">
                             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                                 <div style="flex: 1;">
-                                    <h3 style="color: #b83e3e; margin-bottom: 8px;">Scene ${bs.scene_number}: ${bs.title || 'Untitled'}</h3>
-                                    <p style="color: #666; font-style: italic; margin-bottom: 8px;">${bs.description || ''}</p>
-                                    <p style="color: #999; font-size: 13px;">
+                                    <h3 style="color: var(--text-primary); margin-bottom: 8px;">Scene ${bs.scene_number}: ${bs.title || 'Untitled'}</h3>
+                                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 8px;">${bs.description || ''}</p>
+                                    <p style="color: var(--text-muted); font-size: 13px;">
                                         ${versionCount > 0 ? `${versionCount} version${versionCount > 1 ? 's' : ''}` : 'Latest brainstorm'}
                                         ${hasExpertConsults ? ` • ${bs.experts.length} expert consultation${bs.experts.length > 1 ? 's' : ''}` : ''}
                                     </p>
@@ -1206,17 +1139,17 @@
 
                             <!-- Version History Panel -->
                             ${versionCount > 1 ? `
-                            <div id="brainstorm-history-${bs.scene_number}" style="display: none; background: #f9f9f9; border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid #e0e0e0;">
-                                <h4 style="color: #b83e3e; margin-bottom: 12px; font-size: 14px;">Brainstorm Versions</h4>
+                            <div id="brainstorm-history-${bs.scene_number}" style="display: none; background: var(--bg-secondary); border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border);">
+                                <h4 style="color: var(--text-primary); margin-bottom: 12px; font-size: 14px;">Brainstorm Versions</h4>
                                 <div style="display: grid; gap: 8px;">
                                     ${bs.versions.map((v, idx) => `
-                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: white; border-radius: 4px; font-size: 13px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--bg-primary); border-radius: 4px; font-size: 13px;">
                                             <div>
-                                                <strong style="color: #b83e3e;">${idx === 0 ? 'Latest' : `Version ${versionCount - idx}`}</strong> •
+                                                <strong style="color: var(--text-primary);">${idx === 0 ? 'Latest' : `Version ${versionCount - idx}`}</strong> •
                                                 ${v.created_at ? new Date(v.created_at).toLocaleString() : 'Unknown date'}
                                                 ${v.tone ? ` • Tone: ${v.tone}` : ''}
                                             </div>
-                                            <button onclick="viewBrainstormVersion(${bs.scene_number}, ${idx})" style="padding: 4px 12px; background: #2c5f8d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
+                                            <button onclick="viewBrainstormVersion(${bs.scene_number}, ${idx})" style="padding: 4px 12px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1226,13 +1159,13 @@
                             <!-- Expert Consultations Panel -->
                             ${hasExpertConsults ? `
                             <details style="margin-bottom: 16px;">
-                                <summary style="cursor: pointer; color: #2c5f8d; font-weight: 600; font-size: 14px;">📚 Expert Consultations (${bs.experts.length})</summary>
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600; font-size: 14px;">📚 Expert Consultations (${bs.experts.length})</summary>
                                 <div style="margin-top: 12px; display: grid; gap: 12px;">
                                     ${bs.experts.map(expert => `
-                                        <div style="background: #f5f1e8; padding: 12px; border-radius: 4px; border-left: 4px solid #2c5f8d;">
-                                            <strong style="color: #2c5f8d; text-transform: capitalize;">${expert.bucket}</strong>
-                                            <p style="color: #666; font-size: 13px; margin-top: 4px;">${expert.created_at ? new Date(expert.created_at).toLocaleString() : ''}</p>
-                                            <pre style="white-space: pre-wrap; font-family: 'Georgia', serif; line-height: 1.6; color: #2d2d2d; margin-top: 8px; font-size: 13px;">${expert.content}</pre>
+                                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 4px; border-left: 3px solid var(--text-primary);">
+                                            <strong style="color: var(--text-primary); text-transform: capitalize;">${expert.bucket}</strong>
+                                            <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${expert.created_at ? new Date(expert.created_at).toLocaleString() : ''}</p>
+                                            <pre style="white-space: pre-wrap; font-family: inherit; line-height: 1.6; color: var(--text-primary); margin-top: 8px; font-size: 13px;">${expert.content}</pre>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1240,8 +1173,8 @@
                             ` : ''}
 
                             <details style="margin-top: 16px;" id="brainstorm-details-${bs.scene_number}">
-                                <summary style="cursor: pointer; color: #b83e3e; font-weight: 600;">View Brainstorm ${versionCount > 1 ? '(Latest)' : ''}</summary>
-                                <pre id="brainstorm-content-${bs.scene_number}" style="white-space: pre-wrap; font-family: 'Georgia', serif; line-height: 1.7; color: #2d2d2d; margin-top: 16px; padding: 16px; background: #f5f1e8; border-radius: 4px;">${bs.brainstorm}</pre>
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600;">View Brainstorm ${versionCount > 1 ? '(Latest)' : ''}</summary>
+                                <pre id="brainstorm-content-${bs.scene_number}" style="white-space: pre-wrap; font-family: inherit; line-height: 1.7; color: var(--text-primary); margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 4px;">${bs.brainstorm}</pre>
                             </details>
                         </div>
                     `;
@@ -1250,7 +1183,7 @@
             }
 
             if (pending.length > 0) {
-                html += `<p style="color: #999; font-style: italic;">Pending: ${pending.length} scenes without brainstorms</p>`;
+                html += `<p style="color: var(--text-muted); font-style: italic;">Pending: ${pending.length} scenes without brainstorms</p>`;
             }
 
             container.innerHTML = html;
@@ -1292,7 +1225,7 @@
 
         async function loadDrafts() {
             const container = document.getElementById('drafts-list');
-            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Loading drafts...</div>';
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading drafts...</div>';
 
             try {
                 const response = await fetch(`/api/write/drafts/${currentProject}`);
@@ -1301,7 +1234,7 @@
                 allDrafts = data.drafts || [];
                 renderDrafts();
             } catch (error) {
-                container.innerHTML = `<div style="text-align: center; padding: 40px; color: #b83e3e;">Error loading drafts: ${error.message}</div>`;
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-primary);">Error loading drafts: ${error.message}</div>`;
             }
         }
 
@@ -1309,7 +1242,7 @@
             const container = document.getElementById('drafts-list');
 
             if (allDrafts.length === 0) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">No scene drafts generated yet. Use WRITE module to create drafts.</div>';
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No scene drafts generated yet. Use WRITE module to create drafts.</div>';
                 return;
             }
 
@@ -1337,28 +1270,28 @@
 
             let html = `
                 <!-- Aggregate Stats Panel -->
-                <div style="background: white; border: 2px solid #e8d5d5; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
-                    <h3 style="margin-bottom: 16px; font-size: 18px; font-weight: 600; color: #b83e3e;">Project Statistics</h3>
+                <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1rem; font-weight: 600; color: var(--text-primary);">Project Statistics</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
-                        <div style="background: #fef5f5; padding: 16px; border-radius: 8px; border: 1px solid #e8d5d5;">
-                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total Drafts</div>
-                            <div style="font-size: 24px; font-weight: 700; color: #b83e3e;">${allDrafts.length}</div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">${uniqueScenes.size} scene${uniqueScenes.size !== 1 ? 's' : ''}</div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Drafts</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${allDrafts.length}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${uniqueScenes.size} scene${uniqueScenes.size !== 1 ? 's' : ''}</div>
                         </div>
-                        <div style="background: #fef5f5; padding: 16px; border-radius: 8px; border: 1px solid #e8d5d5;">
-                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total Words</div>
-                            <div style="font-size: 24px; font-weight: 700; color: #b83e3e;">${totalWords.toLocaleString()}</div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">~${Math.round(totalWords / 250)} pages</div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Words</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${totalWords.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">~${Math.round(totalWords / 250)} pages</div>
                         </div>
-                        <div style="background: #fef5f5; padding: 16px; border-radius: 8px; border: 1px solid #e8d5d5;">
-                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total Tokens</div>
-                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: #b83e3e;">${totalTokens.toLocaleString()}</div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">All versions</div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Tokens</div>
+                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text-primary);">${totalTokens.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">All versions</div>
                         </div>
-                        <div style="background: #fef5f5; padding: 16px; border-radius: 8px; border: 1px solid #e8d5d5;">
-                            <div style="font-size: 12px; color: #666; margin-bottom: 4px;">Total Cost</div>
-                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: #b83e3e;">$${totalCost.toFixed(2)}</div>
-                            <div style="font-size: 11px; color: #999; margin-top: 4px;">All generations</div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Cost</div>
+                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text-primary);">$${totalCost.toFixed(2)}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">All generations</div>
                         </div>
                     </div>
                 </div>
@@ -1370,22 +1303,22 @@
                 const latestDraft = drafts[0];
 
                 html += `
-                    <div style="background: white; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px;" id="draft-card-${sceneNum}">
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 20px;" id="draft-card-${sceneNum}">
                         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
                             <div style="flex: 1;">
-                                <h3 style="color: #b83e3e; margin-bottom: 8px;">Scene ${sceneNum}</h3>
-                                <p style="color: #666; font-size: 14px; margin-bottom: 6px;" id="draft-info-${sceneNum}">
+                                <h3 style="color: var(--text-primary); margin-bottom: 8px;">Scene ${sceneNum}</h3>
+                                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 6px;" id="draft-info-${sceneNum}">
                                     ${drafts.length} version${drafts.length > 1 ? 's' : ''} •
                                     ${latestDraft.word_count} words •
                                     Latest: v${latestDraft.version}
                                 </p>
-                                <p style="color: #999; font-size: 12px; font-family: 'Courier New', monospace;" id="draft-meta-${sceneNum}">
+                                <p style="color: var(--text-muted); font-size: 12px; font-family: 'Courier New', monospace;" id="draft-meta-${sceneNum}">
                                     ${latestDraft.tokens_used ? `🎯 ${latestDraft.tokens_used.toLocaleString()} tokens` : ''}
                                     ${latestDraft.cost_estimate ? `• 💰 $${latestDraft.cost_estimate.toFixed(4)}` : ''}
                                 </p>
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
-                                <select id="version-select-${sceneNum}" onchange="switchDraftVersion(${sceneNum})" style="padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; background: white; font-size: 14px;">
+                                <select id="version-select-${sceneNum}" onchange="switchDraftVersion(${sceneNum})" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px;">
                                     ${drafts.map(d => `<option value="${d.version}" data-words="${d.word_count}" data-date="${d.created_at || ''}">v${d.version} (${d.word_count}w)</option>`).join('')}
                                 </select>
                                 ${drafts.length > 1 ? `<button onclick="toggleVersionHistory(${sceneNum})" class="btn-scene-select btn-deselect-all" style="padding: 6px 12px; font-size: 14px;" title="View version history">📋</button>` : ''}
@@ -1397,23 +1330,23 @@
 
                         <!-- Version History Panel (hidden by default) -->
                         ${drafts.length > 1 ? `
-                        <div id="version-history-${sceneNum}" style="display: none; background: #f9f9f9; border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid #e0e0e0;">
-                            <h4 style="color: #b83e3e; margin-bottom: 12px; font-size: 14px;">Version History</h4>
+                        <div id="version-history-${sceneNum}" style="display: none; background: var(--bg-secondary); border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 12px; font-size: 14px;">Version History</h4>
                             <div style="display: grid; gap: 8px;">
                                 ${drafts.map(d => `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 4px; font-size: 13px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-primary); border-radius: 4px; font-size: 13px;">
                                         <div style="flex: 1;">
                                             <div style="margin-bottom: 4px;">
-                                                <strong style="color: #b83e3e;">v${d.version}</strong> •
+                                                <strong style="color: var(--text-primary);">v${d.version}</strong> •
                                                 ${d.word_count} words •
                                                 ${d.created_at ? new Date(d.created_at).toLocaleString() : 'Unknown date'}
                                             </div>
-                                            <div style="color: #999; font-size: 11px; font-family: 'Courier New', monospace;">
+                                            <div style="color: var(--text-muted); font-size: 11px; font-family: 'Courier New', monospace;">
                                                 ${d.tokens_used ? `🎯 ${d.tokens_used.toLocaleString()} tokens` : 'No token data'}
                                                 ${d.cost_estimate ? ` • 💰 $${d.cost_estimate.toFixed(4)}` : ''}
                                             </div>
                                         </div>
-                                        <button onclick="viewDraftVersion(${sceneNum}, ${d.version})" style="padding: 4px 12px; background: #2c5f8d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
+                                        <button onclick="viewDraftVersion(${sceneNum}, ${d.version})" style="padding: 4px 12px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
                                     </div>
                                 `).join('')}
                             </div>
@@ -1421,8 +1354,8 @@
                         ` : ''}
 
                         <details style="margin-top: 12px;" id="draft-details-${sceneNum}">
-                            <summary style="cursor: pointer; color: #b83e3e; font-weight: 600;">View Full Draft (v${latestDraft.version})</summary>
-                            <pre id="draft-content-${sceneNum}" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: #2d2d2d; margin-top: 16px; padding: 16px; background: #f9f9f9; border-radius: 4px; overflow-x: auto; max-height: 600px; overflow-y: auto;">${latestDraft.content}</pre>
+                            <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600;">View Full Draft (v${latestDraft.version})</summary>
+                            <pre id="draft-content-${sceneNum}" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: var(--text-primary); margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 4px; overflow-x: auto; max-height: 600px; overflow-y: auto;">${latestDraft.content}</pre>
                         </details>
                     </div>
                 `;
@@ -1496,7 +1429,7 @@
             const version = parseInt(versionSelect.value);
 
             const statusDiv = document.createElement('div');
-            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2c5f8d; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: var(--bg-primary); padding: 16px 24px; border-radius: 6px; box-shadow: 0 4px 12px var(--shadow); z-index: 10000;';
             statusDiv.textContent = `Exporting Scene ${sceneNumber} v${version} as ${format.toUpperCase()}...`;
             document.body.appendChild(statusDiv);
 
@@ -1515,7 +1448,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    statusDiv.style.background = '#4a9d5f';
+                    statusDiv.style.background = 'var(--success)';
                     statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
 
                     // Trigger download
@@ -1531,14 +1464,14 @@
                         document.body.removeChild(statusDiv);
                     }, 3000);
                 } else {
-                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.style.background = 'var(--text-primary)';
                     statusDiv.textContent = `✗ Export failed: ${result.error}`;
                     setTimeout(() => {
                         document.body.removeChild(statusDiv);
                     }, 5000);
                 }
             } catch (error) {
-                statusDiv.style.background = '#b83e3e';
+                statusDiv.style.background = 'var(--text-primary)';
                 statusDiv.textContent = `✗ Error: ${error.message}`;
                 setTimeout(() => {
                     document.body.removeChild(statusDiv);
@@ -1575,7 +1508,7 @@
             const grid = document.getElementById('scene-selection-grid');
 
             if (allDrafts.length === 0) {
-                grid.innerHTML = '<p style="color: #999; font-style: italic;">No scenes available</p>';
+                grid.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">No scenes available</p>';
                 return;
             }
 
@@ -1592,9 +1525,9 @@
             let html = '';
             sceneNumbers.forEach(sceneNum => {
                 html += `
-                    <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: white; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                    <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s;">
                         <input type="checkbox" class="scene-checkbox" value="${sceneNum}" checked onchange="updateSceneSelection()" style="cursor: pointer;">
-                        <span style="font-size: 0.9em; color: #333;">Scene ${sceneNum}</span>
+                        <span style="font-size: 0.9em; color: var(--text-primary);">Scene ${sceneNum}</span>
                     </label>
                 `;
             });
@@ -1692,7 +1625,7 @@
 
             if (selectedScenes.length === 0) {
                 const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #b83e3e; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+                errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
                 errorDiv.textContent = 'Please select at least one scene to export.';
                 document.body.appendChild(errorDiv);
                 setTimeout(() => {
@@ -1702,7 +1635,7 @@
             }
 
             const statusDiv = document.createElement('div');
-            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #2c5f8d; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: var(--bg-primary); padding: 16px 24px; border-radius: 6px; box-shadow: 0 4px 12px var(--shadow); z-index: 10000;';
             statusDiv.textContent = `Exporting ${selectedScenes.length} scene${selectedScenes.length > 1 ? 's' : ''} as ${format.toUpperCase()}...`;
             document.body.appendChild(statusDiv);
 
@@ -1726,7 +1659,7 @@
                     }));
 
                 if (scenes.length === 0) {
-                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.style.background = 'var(--text-primary)';
                     statusDiv.textContent = 'Selected scenes have no drafts. Generate drafts first.';
                     setTimeout(() => {
                         document.body.removeChild(statusDiv);
@@ -1748,7 +1681,7 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    statusDiv.style.background = '#4a9d5f';
+                    statusDiv.style.background = 'var(--success)';
                     statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
 
                     // Trigger download
@@ -1764,7 +1697,7 @@
                         document.body.removeChild(statusDiv);
                     }, 3000);
                 } else {
-                    statusDiv.style.background = '#b83e3e';
+                    statusDiv.style.background = 'var(--text-primary)';
                     statusDiv.textContent = `✗ Export failed: ${result.error}`;
                     setTimeout(() => {
                         document.body.removeChild(statusDiv);
@@ -1772,7 +1705,7 @@
                 }
 
             } catch (error) {
-                statusDiv.style.background = '#b83e3e';
+                statusDiv.style.background = 'var(--text-primary)';
                 statusDiv.textContent = `✗ Error: ${error.message}`;
                 setTimeout(() => {
                     document.body.removeChild(statusDiv);
@@ -1787,7 +1720,6 @@
 
             try {
                 const nameEl = document.getElementById('project-name');
-                const genreEl = document.getElementById('project-genre');
                 const loglineEl = document.getElementById('project-logline');
                 const templateEl = document.querySelector('input[name="template"]:checked');
 
@@ -1799,7 +1731,6 @@
                 showLoading(saveBtn, 'Saving...');
 
                 const name = nameEl.value.trim();
-                const genre = genreEl ? genreEl.value : 'Romantic Comedy';
                 const logline = loglineEl ? loglineEl.value.trim() : '';
                 const template = templateEl ? templateEl.value : 'beatsheet';
 
@@ -1813,7 +1744,6 @@
 
                 const projectData = {
                     name,
-                    genre,
                     logline,
                     template,
                     is_new: !currentProject,
@@ -2031,7 +1961,7 @@
             const tbody = document.getElementById('characters-tbody');
 
             if (charactersData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666; padding: 40px;">No characters yet. Click "+ Add Character" to get started.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">No characters yet. Click "+ Add Character" to get started.</td></tr>';
                 return;
             }
 
@@ -2094,7 +2024,7 @@
             }
 
             if (filteredScenes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: #666; padding: 40px;">No scenes found.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">No scenes found.</td></tr>';
                 return;
             }
 
@@ -2109,8 +2039,8 @@
                 return `
                     <tr data-act="${scene.act || 1}">
                         <td style="text-align: center;">
-                            <div style="font-weight: bold; color: #b83e3e; font-size: 1.1em;">${scene.scene_number}</div>
-                            <div style="font-size: 0.75em; color: #999;">${actBadge}</div>
+                            <div style="font-weight: bold; color: var(--text-primary); font-size: 1.1em;">${scene.scene_number}</div>
+                            <div style="font-size: 0.75em; color: var(--text-muted);">${actBadge}</div>
                         </td>
                         <td><input type="text" value="${scene.title || ''}" onchange="updateScene(${actualIndex}, 'title', this.value)" /></td>
                         <td><textarea onchange="updateScene(${actualIndex}, 'description', this.value)">${scene.description || ''}</textarea></td>
@@ -2157,10 +2087,10 @@
                 const progressBar = document.getElementById('ai-progress-bar');
 
                 progressTitle.textContent = 'Cancelled';
-                progressTitle.style.color = '#dc3545';
+                progressTitle.style.color = 'var(--error)';
                 progressText.textContent = 'Generation stopped';
                 thinkingDots.style.display = 'none';
-                progressBar.style.background = '#dc3545';
+                progressBar.style.background = 'var(--error)';
 
                 // Clear stage interval
                 if (generationStageInterval) {
@@ -2261,7 +2191,6 @@
 
                     // Fill in the form with generated data
                     document.getElementById('project-name').value = data.project.name || '';
-                    document.getElementById('project-genre').value = 'Romantic Comedy';
                     document.getElementById('project-logline').value = data.project.logline || '';
                     document.getElementById('template-beatsheet').checked = true;
 
@@ -2319,6 +2248,16 @@
 
         // Initialize page when DOM is ready
         document.addEventListener('DOMContentLoaded', async function() {
+            // Theme toggle
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('themeToggle');
+            html.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+            themeToggle.addEventListener('click', () => {
+                const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+            });
+
             // Load projects on page load
             await loadProjects();
 

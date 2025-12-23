@@ -11,7 +11,7 @@ from openai import OpenAI
 
 from ..config import config
 from ..logging_config import get_logger
-from lizzy.write import WriteModule
+from backend.write import WriteModule
 
 logger = get_logger(__name__)
 
@@ -20,8 +20,15 @@ class GenerationService:
     """Service for AI-powered content generation."""
 
     def __init__(self, projects_dir: Path = None):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self._client = None
         self.projects_dir = projects_dir or config.projects_dir
+
+    @property
+    def client(self):
+        """Lazy initialization of OpenAI client."""
+        if self._client is None:
+            self._client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        return self._client
 
     async def generate_random_romcom(self) -> Dict:
         """Generate a random romantic comedy project using AI."""

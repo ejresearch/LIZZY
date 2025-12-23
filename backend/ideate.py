@@ -582,6 +582,59 @@ QUICK REFERENCE - COPY/PASTE THESE PATTERNS:
 ✓ Logline locked.
 
 NEVER confirm something is saved without including the [DIRECTIVE:...] syntax.
+
+QUICK MODE - EXPERIENCED WRITERS:
+
+Sometimes a writer knows exactly what they want. They're not here to explore—they have their outline and just need to get it into the system. Recognize this and adapt.
+
+SIGNALS THEY WANT QUICK MODE:
+- "I already have my outline"
+- "I know what I want"
+- "Just need to get this into the system"
+- "Let me just give you the details"
+- "I have everything mapped out"
+- "Quick setup" or "fast track"
+
+WHEN YOU DETECT QUICK MODE:
+
+Switch to efficient capture mode. Skip the exploratory conversation—they're ready.
+
+1. ACKNOWLEDGE: "Got it—you know your story. Let's get it captured quickly."
+
+2. GATHER ESSENTIALS (rapid-fire, but still one at a time):
+   - Title: "What's the title?"
+   - Logline: "One-sentence logline?"
+   - Characters: "Who are the main players? Give me name and role for each."
+   - Scenes: "Walk me through your 30 beats, or paste them if you have them."
+
+3. CAPTURE EFFICIENTLY:
+   - As they give you info, emit directives immediately
+   - Don't add commentary or suggestions unless asked
+   - Confirm each piece briefly: "Got it. Next?"
+
+4. WRAP UP:
+   - "All captured. Ready to create your project?"
+   - Lock title and logline, confirm characters and scenes are tracked
+
+EXAMPLE QUICK MODE EXCHANGE:
+
+User: "I have my outline ready, just need to get it in the system"
+
+Syd: "Perfect—let's capture it quickly. What's your title?"
+
+User: "Love in the Time of Lattes"
+
+Syd: "Great. One-sentence logline?"
+[DIRECTIVE:title|title:Love in the Time of Lattes]
+
+User: "A workaholic lawyer must fake-date her annoying neighbor to win a bet, but falls for him instead."
+
+Syd: "Solid premise. Who are the main characters? Give me name and role."
+[DIRECTIVE:logline|logline:A workaholic lawyer must fake-date her annoying neighbor to win a bet, but falls for him instead.]
+
+[Continue efficiently through characters and scenes...]
+
+The goal in quick mode: SPEED and ACCURACY. Save the craft advice for users who want it.
 """
 
 
@@ -2270,7 +2323,7 @@ PLAYS (patterns, dynamics, archetypes):
         Returns:
             Project ID
         """
-        from lizzy.database import Database
+        from backend.database import Database
 
         db = Database(db_path)
         db.initialize_schema()
@@ -2618,5 +2671,199 @@ async def main():
         print()
 
 
+def quick_mode_cli():
+    """
+    Terminal-only quick project creation.
+    Replaces START module for CLI users who already have their story mapped out.
+
+    Usage: python -m backend.ideate --quick
+    """
+    from rich.console import Console
+    from rich.prompt import Prompt, Confirm
+    from rich.panel import Panel
+    from rich.table import Table
+    from pathlib import Path
+
+    from .project_creator import create_project_from_ideate, sanitize_name
+    from .database import Database
+    from .config import config
+
+    console = Console()
+
+    console.print(Panel.fit(
+        "[bold cyan]LIZZY Quick Project Setup[/bold cyan]\n\n"
+        "Fast-track project creation for writers who know their story.",
+        border_style="cyan"
+    ))
+
+    # 1. Title
+    title = Prompt.ask("\n[bold]Project title[/bold]")
+    if not title:
+        console.print("[red]Title is required.[/red]")
+        return
+
+    # Check if project already exists
+    safe_name = sanitize_name(title)
+    project_dir = config.projects_dir / safe_name
+    if project_dir.exists():
+        console.print(f"[red]Project '{title}' already exists at {project_dir}[/red]")
+        return
+
+    # 2. Logline
+    logline = Prompt.ask("[bold]One-sentence logline[/bold]")
+
+    # 3. Characters
+    console.print("\n[bold]Characters[/bold] [dim](enter blank name to finish)[/dim]")
+    characters = []
+    while True:
+        name = Prompt.ask("  Character name", default="")
+        if not name:
+            if len(characters) < 2:
+                console.print("[yellow]  At least 2 characters recommended. Add more?[/yellow]")
+                if not Confirm.ask("  Continue without more characters?", default=False):
+                    continue
+            break
+        role = Prompt.ask("  Role", choices=["protagonist", "love_interest", "supporting", "antagonist"], default="supporting")
+        desc = Prompt.ask("  One-line description", default="")
+        characters.append({
+            "name": name,
+            "role": role,
+            "description": desc,
+            "arc": "",
+            "flaw": "",
+            "personality": "",
+            "backstory": ""
+        })
+        console.print(f"  [green]Added: {name} ({role})[/green]")
+
+    # 4. Scenes
+    console.print("\n[bold]Scenes[/bold]")
+    console.print("[dim]Enter scene titles one at a time, or paste a numbered list.[/dim]")
+    console.print("[dim]Enter blank to finish. Aim for 30 scenes.[/dim]\n")
+
+    scenes = []
+    scene_num = 1
+
+    while scene_num <= 30:
+        prompt_text = f"  Scene {scene_num}"
+        scene_title = Prompt.ask(prompt_text, default="")
+
+        if not scene_title:
+            if len(scenes) < 10:
+                console.print("[yellow]  At least 10 scenes recommended.[/yellow]")
+                if not Confirm.ask("  Continue without more scenes?", default=False):
+                    continue
+            break
+
+        # Check if they pasted multiple lines (numbered list)
+        if "\n" in scene_title or (scene_title[0].isdigit() and "." in scene_title[:3]):
+            # Parse as numbered list
+            lines = scene_title.strip().split("\n")
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
+                # Remove numbering like "1." or "1)"
+                if line[0].isdigit():
+                    parts = line.split(".", 1) if "." in line[:3] else line.split(")", 1)
+                    if len(parts) > 1:
+                        line = parts[1].strip()
+                scenes.append({
+                    "number": len(scenes) + 1,
+                    "title": line,
+                    "description": "",
+                    "beats": [],
+                    "characters": "",
+                    "tone": ""
+                })
+            console.print(f"  [green]Parsed {len(lines)} scenes from list[/green]")
+            scene_num = len(scenes) + 1
+        else:
+            # Single scene
+            scenes.append({
+                "number": scene_num,
+                "title": scene_title,
+                "description": "",
+                "beats": [],
+                "characters": "",
+                "tone": ""
+            })
+            scene_num += 1
+
+    # 5. Summary and confirm
+    console.print("\n")
+    table = Table(title="Project Summary", show_header=False, border_style="cyan")
+    table.add_column("Field", style="bold")
+    table.add_column("Value")
+    table.add_row("Title", title)
+    table.add_row("Logline", logline[:60] + "..." if len(logline) > 60 else logline)
+    table.add_row("Characters", f"{len(characters)} defined")
+    table.add_row("Scenes", f"{len(scenes)} defined")
+    console.print(table)
+
+    if not Confirm.ask("\n[bold]Create project?[/bold]", default=True):
+        console.print("[yellow]Cancelled.[/yellow]")
+        return
+
+    # 6. Create the project
+    # First, save to ideate_sessions.db so we can use project_creator
+    ideate_db_path = Path(__file__).parent.parent / "ideate_sessions.db"
+    db = Database(ideate_db_path)
+    db.initialize_schema()
+
+    # Insert session
+    session_id = db.insert_ideate_session(
+        name=title,
+        stage="complete"
+    )
+
+    # Update with all the data
+    import json
+    db.update_ideate_session(
+        session_id,
+        stage="complete",
+        title=title,
+        logline=logline,
+        title_locked=True,
+        logline_locked=True,
+        characters=characters,
+        beats=scenes,  # scenes stored in beats column
+        notebook=[],
+        theme="",
+        tone="",
+        comps=""
+    )
+
+    # Now create the project
+    try:
+        project_db_path = create_project_from_ideate(
+            session_id=session_id,
+            ideate_db_path=ideate_db_path,
+            overwrite=False
+        )
+
+        # Mark as exported
+        db.update_ideate_session(session_id, stage="exported")
+
+        console.print(f"\n[bold green]Project created successfully![/bold green]")
+        console.print(f"  Location: {project_db_path.parent}")
+        console.print(f"  Database: {project_db_path.name}")
+        console.print(f"\n[cyan]Next steps:[/cyan]")
+        console.print(f"  python -m backend.automated_brainstorm")
+        console.print(f"  python -m backend.automated_write")
+
+    except Exception as e:
+        console.print(f"\n[red]Error creating project: {e}[/red]")
+        import traceback
+        traceback.print_exc()
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+
+    if "--quick" in sys.argv or "-q" in sys.argv:
+        # Quick mode - no async needed
+        quick_mode_cli()
+    else:
+        # Full conversational mode
+        asyncio.run(main())

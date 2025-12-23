@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from ..config import config
-from lizzy.database import Database
-from lizzy.start import StartModule
+from backend.database import Database
+from backend.project_creator import sanitize_name, list_projects as list_project_names, get_project_path
 
 
 class ProjectService:
@@ -64,7 +64,7 @@ class ProjectService:
     def get_project_status(self, project_name: str) -> Dict:
         """Get completion status for a project."""
         # Sanitize project name for filesystem lookup
-        sanitized_name = StartModule._sanitize_name(project_name)
+        sanitized_name = sanitize_name(project_name)
         db_path = self.projects_dir / sanitized_name / f"{sanitized_name}.db"
 
         if not db_path.exists():
@@ -117,7 +117,7 @@ class ProjectService:
     def get_project(self, project_name: str) -> Dict:
         """Get full project details including characters, scenes, notes."""
         # Sanitize project name for filesystem lookup
-        sanitized_name = StartModule._sanitize_name(project_name)
+        sanitized_name = sanitize_name(project_name)
         db_path = self.projects_dir / sanitized_name / f"{sanitized_name}.db"
 
         if not db_path.exists():
@@ -180,17 +180,25 @@ class ProjectService:
         scenes = project_data.get('scenes', [])
         notes = project_data.get('notes', {})
 
-        start = StartModule()
-
         if is_new:
-            # Create new project
+            # Create new project directory and database
+            safe_name = sanitize_name(name)
+            project_dir = self.projects_dir / safe_name
+            project_dir.mkdir(parents=True, exist_ok=True)
+            (project_dir / "exports").mkdir(exist_ok=True)
+
+            db_path = project_dir / f"{safe_name}.db"
+            db = Database(db_path)
+            db.initialize_schema()
+            db.insert_project(name=name, genre=genre, description=logline)
+
+            # Create 30 empty scenes if beatsheet template
             if template == 'beatsheet':
-                db_path = start.create_from_beat_sheet(name=name, genre=genre)
-            else:
-                db_path = start.create_project(name=name, genre=genre, description=logline)
+                for i in range(1, 31):
+                    db.insert_scene(scene_number=i, title=f"Scene {i}", description="", characters="", tone="")
         else:
             # Update existing project
-            db_path = start.get_project_path(name)
+            db_path = get_project_path(name)
             if not db_path:
                 raise ValueError(f"Project '{name}' not found")
 
@@ -270,18 +278,21 @@ class ProjectService:
 
     def delete_project(self, project_name: str) -> Dict:
         """Delete a project."""
-        start = StartModule()
-        start.delete_project(project_name)
+        import shutil
+        safe_name = sanitize_name(project_name)
+        project_dir = self.projects_dir / safe_name
+        if project_dir.exists():
+            shutil.rmtree(project_dir)
         return {"success": True}
 
     def get_launch_command(self, module: str, project_name: Optional[str] = None) -> Dict:
         """Get CLI command to launch a module."""
         commands = {
-            "start": "python3 -m lizzy.start",
-            "intake": "python3 -m lizzy.intake",
-            "brainstorm": "python3 -m lizzy.automated_brainstorm",
-            "write": "python3 -m lizzy.automated_write",
-            "export": "python3 -m lizzy.export",
+            "start": "python3 -m backend.start",
+            "intake": "python3 -m backend.intake",
+            "brainstorm": "python3 -m backend.automated_brainstorm",
+            "write": "python3 -m backend.automated_write",
+            "export": "python3 -m backend.export",
             "prompt_studio": "./scripts/start_prompt_studio.sh"
         }
 

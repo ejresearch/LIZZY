@@ -8,10 +8,10 @@ from typing import Dict, List, Optional
 
 from ..config import config
 from ..logging_config import get_logger
-from lizzy.database import Database
-from lizzy.write import WriteModule
-from lizzy.start import StartModule
-from lizzy.exceptions import (
+from backend.database import Database
+from backend.write import WriteModule
+from backend.project_creator import sanitize_name
+from backend.exceptions import (
     ProjectNotFoundError,
     SceneNotFoundError,
     DraftNotFoundError,
@@ -31,7 +31,7 @@ class WriteService:
     def _get_db_path(self, project_name: str) -> Path:
         """Get database path for a project."""
         # Sanitize project name for filesystem lookup
-        sanitized_name = StartModule._sanitize_name(project_name)
+        sanitized_name = sanitize_name(project_name)
         db_path = config.get_project_db_path(sanitized_name)
         if not db_path.exists():
             raise ProjectNotFoundError(project_name)

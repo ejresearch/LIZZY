@@ -150,7 +150,7 @@ class LizzyConfig:
 
 
 # Global config instance
-# Import this in other modules: from lizzy.config import config
+# Import this in other modules: from backend.config import config
 config = LizzyConfig()
 
 

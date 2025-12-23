@@ -1,1 +1,0 @@
-# Lizzy Demo Package

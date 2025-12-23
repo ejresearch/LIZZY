@@ -1,7 +1,7 @@
 """
 Web interface for IDEATE - Conversational Pre-Planning
 
-Run with: python -m lizzy.ideate_web
+Run with: python -m backend.ideate_web
 Then open: http://localhost:8888
 """
 
@@ -614,13 +614,17 @@ async def handoff_to_brainstorm(request: Request):
     """
     Hand off the ideation session to BRAINSTORM phase.
 
-    Validates the session is ready, then exports to the main Lizzy database
-    for use in BRAINSTORM/WRITE phases.
+    Creates a complete project from the IDEATE session:
+    1. Creates project directory (projects/{name}/)
+    2. Initializes project database ({name}.db)
+    3. Populates all tables from session data
+    4. Marks session as exported
     """
-    from pathlib import Path
-
     if not session:
         return {"error": "No active session"}
+
+    if not current_session_id:
+        return {"error": "No session ID - please save session first"}
 
     # Validate readiness
     state = session.get_state()
@@ -638,33 +642,47 @@ async def handoff_to_brainstorm(request: Request):
         }
 
     try:
-        # Export to main lizzy database
-        db_path = Path(__file__).parent.parent / "lizzy.db"
-        project_id = session.save_to_database(db_path)
+        # Save current session state to ideate_sessions.db first
+        save_session_state()
 
-        # Mark session as handed off in ideate database
-        if current_session_id:
-            db.update_ideate_session(
-                current_session_id,
-                stage="handed_off"
-            )
+        # Create project using unified project creator
+        from .project_creator import create_project_from_ideate
 
-        # Start interactive brainstorm in background
-        asyncio.create_task(run_brainstorm_interactive(db_path, project_id))
+        project_db_path = create_project_from_ideate(
+            session_id=current_session_id,
+            ideate_db_path=DB_PATH,
+            overwrite=False
+        )
+
+        # Mark session as exported in ideate database
+        db.update_ideate_session(
+            current_session_id,
+            stage="exported"
+        )
+
+        # Get project name for response
+        project_name = project_db_path.parent.name
 
         return {
             "success": True,
-            "project_id": project_id,
-            "message": "Handoff complete. Starting interactive brainstorm...",
-            "brainstorm_started": True,
-            "interactive": True
+            "project_name": project_name,
+            "project_path": str(project_db_path),
+            "message": f"Project '{project_name}' created successfully!",
+            "next_step": "brainstorm",
+            "next_command": f"python -m backend.automated_brainstorm"
+        }
+    except ValueError as e:
+        # Project already exists or other validation error
+        return {
+            "success": False,
+            "error": str(e)
         }
     except Exception as e:
         import traceback
         traceback.print_exc()
         return {
             "success": False,
-            "error": str(e)
+            "error": f"Failed to create project: {str(e)}"
         }
 
 

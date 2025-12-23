@@ -8,10 +8,10 @@ from typing import Dict, List, Optional
 
 from ..config import config
 from ..logging_config import get_logger
-from lizzy.database import Database
-from lizzy.interactive_brainstorm import InteractiveBrainstorm
-from lizzy.automated_brainstorm import AutomatedBrainstorm
-from lizzy.start import StartModule
+from backend.database import Database
+from backend.interactive_brainstorm import InteractiveBrainstorm
+from backend.automated_brainstorm import AutomatedBrainstorm
+from backend.project_creator import sanitize_name
 
 logger = get_logger(__name__)
 
@@ -25,7 +25,7 @@ class BrainstormService:
     def _get_db_path(self, project_name: str) -> Path:
         """Get database path for a project."""
         # Sanitize project name for filesystem lookup
-        sanitized_name = StartModule._sanitize_name(project_name)
+        sanitized_name = sanitize_name(project_name)
         db_path = self.projects_dir / sanitized_name / f"{sanitized_name}.db"
         if not db_path.exists():
             raise ValueError(f"Project '{project_name}' not found")

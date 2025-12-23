@@ -433,7 +433,7 @@ def main():
 
         elif choice == "5":
             try:
-                from lizzy.graph_visualizer import GraphVisualizer
+                from backend.graph_visualizer import GraphVisualizer
 
                 console.print("\n[cyan]Creating interactive visualization...[/cyan]")
 

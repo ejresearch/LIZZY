@@ -41,21 +41,14 @@ async function updateHeaderProjectName(projectName = null) {
                 // Fallback: convert underscores to spaces and title case
                 displayName = project.replace(/_/g, ' ');
             }
-            // Add active indicator with green dot
-            headerDisplay.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background: #48bb78; border-radius: 50%; margin-right: 8px; animation: pulse 2s ease-in-out infinite;"></span>${displayName}`;
-            headerDisplay.style.background = 'rgba(72, 187, 120, 0.2)';
-            headerDisplay.style.borderColor = 'rgba(72, 187, 120, 0.5)';
+            headerDisplay.textContent = displayName;
         } catch (error) {
             // Fallback on error
             const displayName = project.replace(/_/g, ' ');
-            headerDisplay.innerHTML = `<span style="display: inline-block; width: 8px; height: 8px; background: #48bb78; border-radius: 50%; margin-right: 8px; animation: pulse 2s ease-in-out infinite;"></span>${displayName}`;
-            headerDisplay.style.background = 'rgba(72, 187, 120, 0.2)';
-            headerDisplay.style.borderColor = 'rgba(72, 187, 120, 0.5)';
+            headerDisplay.textContent = displayName;
         }
     } else {
         headerDisplay.textContent = 'No project selected';
-        headerDisplay.style.background = 'rgba(255, 255, 255, 0.2)';
-        headerDisplay.style.borderColor = 'rgba(255, 255, 255, 0.3)';
     }
 }
 
