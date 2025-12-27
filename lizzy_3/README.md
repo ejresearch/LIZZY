@@ -176,6 +176,7 @@ Graph database integration for exploring entity relationships across knowledge b
 |----------|--------|-------------|
 | `/api/graph/sync` | POST | Sync all bucket graphs to Neo4j |
 | `/api/graph/sync/{bucket}` | POST | Sync single bucket |
+| `/api/graph/data/{bucket}` | GET | Get graph data for visualization |
 | `/api/graph/entity` | POST | Query entity + relationships |
 | `/api/graph/path` | POST | Find shortest path between entities |
 | `/api/graph/neighbors` | POST | Get 2-hop neighborhood |
@@ -209,6 +210,26 @@ async def chat(message: str):
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
 ```
+
+---
+
+## API Reference
+
+### Bucket Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/buckets` | GET | List all buckets |
+| `/api/buckets` | POST | Create new bucket |
+| `/api/buckets/{name}` | DELETE | Delete bucket |
+| `/api/buckets/{name}/documents` | GET | List documents in bucket |
+| `/api/buckets/{name}/documents` | POST | Upload document |
+| `/api/buckets/{name}/query` | POST | Query bucket (LightRAG) |
+| `/api/buckets/{name}/reset-stuck` | POST | Reset stuck processing docs |
+
+### Graph Endpoints
+
+See Neo4j section above for graph-related endpoints.
 
 ---
 

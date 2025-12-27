@@ -12,3 +12,6 @@ hindsight-all>=0.1.16
 # Graph database for entity exploration
 neo4j>=5.0.0
 networkx>=3.0
+
+# Environment loading
+python-dotenv>=1.0.0
