@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lizzy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --transition: 0.3s ease; }
+
+    [data-theme="light"] {
+      --bg-primary: #fff;
+      --bg-secondary: #fafafa;
+      --bg-tertiary: #f4f4f5;
+      --bg-inverse: #111;
+      --text-primary: #111;
+      --text-secondary: #52525b;
+      --text-muted: #71717a;
+      --text-inverse: #fff;
+      --border: #e4e4e7;
+      --border-light: #f4f4f5;
+      --shadow: rgba(0,0,0,0.08);
+      --nav-bg: rgba(255,255,255,0.9);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #111;
+      --bg-secondary: #18181b;
+      --bg-tertiary: #27272a;
+      --bg-inverse: #fafafa;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --text-inverse: #111;
+      --border: #27272a;
+      --border-light: #27272a;
+      --shadow: rgba(0,0,0,0.4);
+      --nav-bg: rgba(17,17,17,0.9);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    nav {
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--nav-bg);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      transition: background var(--transition);
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 3rem; }
+
+    .logo {
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s ease;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .theme-toggle { display: flex; align-items: center; gap: 0.5rem; }
+    .theme-toggle span { font-size: 0.75rem; color: var(--text-muted); }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: var(--bg-tertiary);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background var(--transition);
+      border: 1px solid var(--border);
+    }
+
+    .toggle-switch::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-primary);
+      border-radius: 50%;
+      transition: transform 0.25s ease, background var(--transition);
+    }
+
+    [data-theme="dark"] .toggle-switch::after { transform: translateX(20px); }
+
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 6rem 2rem 4rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.75rem, 7vw, 5rem);
+      font-weight: 600;
+      line-height: 1.08;
+      letter-spacing: -0.035em;
+      max-width: 800px;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero p {
+      font-size: 1.125rem;
+      max-width: 500px;
+      color: var(--text-secondary);
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+      transition: color var(--transition);
+    }
+
+    .btn-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-inverse);
+      color: var(--text-inverse);
+      padding: 0.875rem 1.75rem;
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 2rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-primary);
+      box-shadow: inset 0 0 0 1.5px var(--border);
+    }
+
+    .btn-outline:hover {
+      box-shadow: inset 0 0 0 1.5px var(--text-primary);
+      transform: translateY(-2px);
+    }
+
+    .features {
+      padding: 6rem 2rem;
+      background: var(--bg-secondary);
+      transition: background var(--transition);
+    }
+
+    .features-inner { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .features h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 3rem;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .feature-card {
+      background: var(--bg-primary);
+      padding: 2rem;
+      border-radius: 1rem;
+      transition: all 0.25s ease;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px var(--shadow);
+    }
+
+    .feature-number {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.625rem;
+    }
+
+    .feature-card p {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .experts {
+      padding: 6rem 2rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .experts h2 {
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .experts > p {
+      color: var(--text-secondary);
+      margin-bottom: 3rem;
+      max-width: 500px;
+    }
+
+    .experts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .expert-card {
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      transition: all 0.25s ease;
+    }
+
+    .expert-card:hover {
+      border-color: var(--text-primary);
+    }
+
+    .expert-card h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .expert-card p {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .cta {
+      background: var(--bg-inverse);
+      color: var(--text-inverse);
+      padding: 6rem 2rem;
+      text-align: center;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    .cta h2 {
+      font-size: 2.5rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+    }
+
+    .cta p {
+      font-size: 1rem;
+      opacity: 0.6;
+      margin-bottom: 2rem;
+    }
+
+    .cta .btn {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .cta .btn:hover { background: var(--bg-secondary); }
+
+    footer {
+      padding: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-light);
+      transition: border-color var(--transition);
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+
+    footer a:hover { color: var(--text-primary); }
+
+    .footer-links { display: flex; gap: 1.5rem; }
+
+    @media (max-width: 600px) {
+      .nav-links { display: none; }
+      .hero { padding-top: 5rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <div class="logo">lizzy</div>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#experts">Experts</a></li>
+        <li><a href="buckets.html">Buckets</a></li>
+        <li><a href="settings.html">Settings</a></li>
+      </ul>
+    </div>
+    <div class="theme-toggle">
+      <span>&#9788;</span>
+      <div class="toggle-switch" id="themeToggle"></div>
+      <span>&#9790;</span>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <h1>Your AI screenwriting room.</h1>
+    <p>One continuous conversation from idea to finished screenplay. Syd and the expert panel guide you through story, structure, and dialogue.</p>
+    <div class="btn-group">
+      <a href="chat.html" class="btn">Start Writing</a>
+      <a href="#features" class="btn btn-outline">Learn More</a>
+    </div>
+  </section>
+
+  <section class="features" id="features">
+    <div class="features-inner">
+      <div class="section-label">How it works</div>
+      <h2>One conversation, complete screenplay</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-number">01</div>
+          <h3>Ideate</h3>
+          <p>Start with a spark. Syd helps you develop your concept, characters, and 30-scene beat sheet through natural conversation.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-number">02</div>
+          <h3>Brainstorm</h3>
+          <p>The expert panel weighs in. Structure, dialogue, and visual storytelling insights drawn from craft knowledge.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-number">03</div>
+          <h3>Write</h3>
+          <p>Scene-by-scene prose generation with feed-forward continuity. 700-900 words per scene, golden-era romcom tone.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="experts" id="experts">
+    <h2>The expert panel</h2>
+    <p>Three knowledge domains inform every conversation. Real expertise, not just chat.</p>
+    <div class="experts-grid">
+      <div class="expert-card">
+        <h4>Syd</h4>
+        <p>Your creative partner. Facilitates the conversation, keeps things moving, always encouraging.</p>
+      </div>
+      <div class="expert-card">
+        <h4>Structure</h4>
+        <p>Story architecture from screenwriting craft. Beats, pacing, act breaks, turning points.</p>
+      </div>
+      <div class="expert-card">
+        <h4>Dialogue</h4>
+        <p>Voice and emotion from dramatic tradition. Subtext, rhythm, character voice, conflict.</p>
+      </div>
+      <div class="expert-card">
+        <h4>Visual</h4>
+        <p>Cinematic storytelling from romcom scripts. Scene-setting, action, visual comedy.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta">
+    <h2>Ready to write?</h2>
+    <p>From idea to screenplay in one conversation.</p>
+    <a href="chat.html" class="btn">Start Writing</a>
+  </section>
+
+  <footer>
+    <span>lizzy_3</span>
+    <div class="footer-links">
+      <a href="settings.html">Settings</a>
+      <a href="https://github.com" target="_blank">GitHub</a>
+    </div>
+  </footer>
+
+  <script>
+    const html = document.documentElement;
+    const themeToggle = document.getElementById('themeToggle');
+
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    html.setAttribute('data-theme', savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const current = html.getAttribute('data-theme');
+      const next = current === 'light' ? 'dark' : 'light';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+    });
+  </script>
+</body>
+</html>

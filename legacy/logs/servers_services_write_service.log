@@ -1,0 +1,122 @@
+2025-10-27 22:17:37 - servers.services.write_service - ERROR - get_all_drafts:94 - Error getting drafts: no such table: scene_drafts
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 55, in get_all_drafts
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        SELECT
+        ^^^^^^
+    ...<11 lines>...
+        ORDER BY s.scene_number, sd.version DESC
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+sqlite3.OperationalError: no such table: scene_drafts
+2025-10-28 11:50:11 - servers.services.write_service - ERROR - get_all_drafts:94 - Error getting drafts: no such table: scene_drafts
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 55, in get_all_drafts
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        SELECT
+        ^^^^^^
+    ...<11 lines>...
+        ORDER BY s.scene_number, sd.version DESC
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+sqlite3.OperationalError: no such table: scene_drafts
+2025-10-28 11:50:17 - servers.services.write_service - ERROR - get_all_drafts:94 - Error getting drafts: no such table: scene_drafts
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 55, in get_all_drafts
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        SELECT
+        ^^^^^^
+    ...<11 lines>...
+        ORDER BY s.scene_number, sd.version DESC
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+sqlite3.OperationalError: no such table: scene_drafts
+2025-10-28 11:53:16 - servers.services.write_service - ERROR - get_all_drafts:94 - Error getting drafts: no such table: scene_drafts
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 55, in get_all_drafts
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        SELECT
+        ^^^^^^
+    ...<11 lines>...
+        ORDER BY s.scene_number, sd.version DESC
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+sqlite3.OperationalError: no such table: scene_drafts
+2025-10-28 11:53:38 - servers.services.write_service - ERROR - get_all_drafts:94 - Error getting drafts: no such table: scene_drafts
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 55, in get_all_drafts
+    cursor.execute("""
+    ~~~~~~~~~~~~~~^^^^
+        SELECT
+        ^^^^^^
+    ...<11 lines>...
+        ORDER BY s.scene_number, sd.version DESC
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    """)
+    ^^^^
+sqlite3.OperationalError: no such table: scene_drafts
+2025-10-28 11:53:46 - servers.services.write_service - ERROR - generate_scene:156 - Error generating scene: No module named 'docx'
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 115, in generate_scene
+    writer = WriteModule(project_name)
+  File "/Users/elle_jansick/lizzy_demo/lizzy/write.py", line 92, in __init__
+    from .screenplay_writer import ScreenplayWriter
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_writer.py", line 10, in <module>
+    from .screenplay_formatter.parser import ScreenplayParser
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_formatter/__init__.py", line 6, in <module>
+    from .formatter import TextFormatter, DocxFormatter, PdfFormatter
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_formatter/formatter.py", line 8, in <module>
+    from docx import Document
+ModuleNotFoundError: No module named 'docx'
+2025-10-28 11:56:09 - servers.services.write_service - ERROR - generate_scene:156 - Error generating scene: No module named 'reportlab'
+Traceback (most recent call last):
+  File "/Users/elle_jansick/lizzy_demo/servers/services/write_service.py", line 115, in generate_scene
+    writer = WriteModule(project_name)
+  File "/Users/elle_jansick/lizzy_demo/lizzy/write.py", line 92, in __init__
+    from .screenplay_writer import ScreenplayWriter
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_writer.py", line 11, in <module>
+    from .screenplay_formatter.formatter import TextFormatter, DocxFormatter, PdfFormatter
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_formatter/__init__.py", line 6, in <module>
+    from .formatter import TextFormatter, DocxFormatter, PdfFormatter
+  File "/Users/elle_jansick/lizzy_demo/lizzy/screenplay_formatter/formatter.py", line 12, in <module>
+    from reportlab.pdfgen import canvas
+ModuleNotFoundError: No module named 'reportlab'
+2025-11-12 14:39:25 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love by the Numbers
+2025-11-12 14:40:39 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track
+2025-11-12 14:42:43 - servers.services.write_service - WARNING - get_all_drafts:91 - Project not found: Love on the Right Track
+2025-12-23 10:18:31 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:20:15 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:21:32 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 10:22:47 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 12:50:11 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:13 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:14 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:14 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined

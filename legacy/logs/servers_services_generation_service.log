@@ -1,0 +1,24 @@
+2025-12-23 12:48:53 - servers.services.generation_service - ERROR - generate_random_romcom:87 - Error generating random rom-com: Client.__init__() got an unexpected keyword argument 'proxies'
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/generation_service.py", line 69, in generate_random_romcom
+    response = self.client.chat.completions.create(
+               ^^^^^^^^^^^
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/generation_service.py", line 30, in client
+    self._client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+                   ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/elle_jansick/.venvs/global/lib/python3.13/site-packages/openai/_client.py", line 123, in __init__
+        # part of our public interface in the future.
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<8 lines>...
+        - `webhook_secret` from `OPENAI_WEBHOOK_SECRET`
+        ^
+  File "/Users/elle_jansick/.venvs/global/lib/python3.13/site-packages/openai/_base_client.py", line 857, in __init__
+        timeout=cast(Timeout, timeout),
+                                  ^^^^^
+    ...<7 lines>...
+        base_url=base_url,
+    
+  File "/Users/elle_jansick/.venvs/global/lib/python3.13/site-packages/openai/_base_client.py", line 755, in __init__
+    if should_retry_header == "true":
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Client.__init__() got an unexpected keyword argument 'proxies'

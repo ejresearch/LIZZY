@@ -1,0 +1,196 @@
+2025-10-27 22:05:11 - __main__ - INFO - <module>:54 - ==================================================
+2025-10-27 22:05:11 - __main__ - INFO - <module>:55 - Lizzy 2.0 Landing Page Server
+2025-10-27 22:05:11 - __main__ - INFO - <module>:56 - ==================================================
+2025-10-27 22:05:11 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8002
+2025-10-27 22:05:11 - __main__ - INFO - <module>:58 - API Documentation:
+2025-10-27 22:05:11 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8002/docs
+2025-10-27 22:05:11 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8002/redoc
+2025-10-27 22:05:11 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-10-27 22:05:11 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-10-27 22:05:11 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-10-27 22:05:11 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-10-27 22:05:11 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-10-27 22:05:11 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-10-27 22:05:11 - __main__ - INFO - <module>:67 - ==================================================
+2025-10-27 22:06:18 - __main__ - INFO - <module>:54 - ==================================================
+2025-10-27 22:06:18 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-10-27 22:06:18 - __main__ - INFO - <module>:56 - ==================================================
+2025-10-27 22:06:18 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-10-27 22:06:18 - __main__ - INFO - <module>:58 - API Documentation:
+2025-10-27 22:06:18 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-10-27 22:06:18 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-10-27 22:06:18 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-10-27 22:06:18 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-10-27 22:06:18 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-10-27 22:06:18 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-10-27 22:06:18 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-10-27 22:06:18 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-10-27 22:06:18 - __main__ - INFO - <module>:67 - ==================================================
+2025-10-27 22:17:30 - __main__ - INFO - <module>:54 - ==================================================
+2025-10-27 22:17:30 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-10-27 22:17:30 - __main__ - INFO - <module>:56 - ==================================================
+2025-10-27 22:17:30 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-10-27 22:17:30 - __main__ - INFO - <module>:58 - API Documentation:
+2025-10-27 22:17:30 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-10-27 22:17:30 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-10-27 22:17:30 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-10-27 22:17:30 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-10-27 22:17:30 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-10-27 22:17:30 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-10-27 22:17:30 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-10-27 22:17:30 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-10-27 22:17:30 - __main__ - INFO - <module>:67 - ==================================================
+2025-10-28 09:20:09 - __main__ - INFO - <module>:54 - ==================================================
+2025-10-28 09:20:09 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-10-28 09:20:09 - __main__ - INFO - <module>:56 - ==================================================
+2025-10-28 09:20:09 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-10-28 09:20:09 - __main__ - INFO - <module>:58 - API Documentation:
+2025-10-28 09:20:09 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-10-28 09:20:09 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-10-28 09:20:09 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-10-28 09:20:09 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-10-28 09:20:09 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-10-28 09:20:09 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-10-28 09:20:09 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-10-28 09:20:09 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-10-28 09:20:09 - __main__ - INFO - <module>:67 - ==================================================
+2025-10-29 13:12:33 - __main__ - INFO - <module>:54 - ==================================================
+2025-10-29 13:12:33 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-10-29 13:12:33 - __main__ - INFO - <module>:56 - ==================================================
+2025-10-29 13:12:33 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-10-29 13:12:33 - __main__ - INFO - <module>:58 - API Documentation:
+2025-10-29 13:12:33 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-10-29 13:12:33 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-10-29 13:12:33 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-10-29 13:12:33 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-10-29 13:12:33 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-10-29 13:12:33 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-10-29 13:12:33 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-10-29 13:12:33 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-10-29 13:12:33 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-12 13:57:45 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-12 13:57:45 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-12 13:57:45 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-12 13:57:45 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-12 13:57:45 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-12 13:57:45 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-12 13:57:45 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-12 13:57:45 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-12 13:57:45 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-12 13:57:45 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-12 13:57:45 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-12 13:57:45 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-12 13:57:45 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-12 13:57:45 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-12 14:09:37 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-12 14:09:37 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-12 14:09:37 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-12 14:09:37 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-12 14:09:37 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-12 14:09:37 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-12 14:09:37 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-12 14:09:37 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-12 14:09:37 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-12 14:09:37 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-12 14:09:37 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-12 14:09:37 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-12 14:09:37 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-12 14:09:37 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-12 14:11:23 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-12 14:11:23 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-12 14:11:23 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-12 14:11:23 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-12 14:11:23 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-12 14:11:23 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-12 14:11:23 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-12 14:11:23 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-12 14:11:23 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-12 14:11:23 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-12 14:11:23 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-12 14:11:23 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-12 14:11:23 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-12 14:11:23 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-12 14:15:12 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-12 14:15:12 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-12 14:15:12 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-12 14:15:12 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-12 14:15:12 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-12 14:15:12 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-12 14:15:12 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-12 14:15:12 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-12 14:15:12 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-12 14:15:12 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-12 14:15:12 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-12 14:15:12 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-12 14:15:12 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-12 14:15:12 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-12 14:27:34 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-12 14:27:34 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-12 14:27:34 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-12 14:27:34 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-12 14:27:34 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-12 14:27:34 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-12 14:27:34 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-12 14:27:34 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-12 14:27:34 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-12 14:27:34 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-12 14:27:34 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-12 14:27:34 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-12 14:27:34 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-12 14:27:34 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-13 12:34:40 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-13 12:34:40 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-13 12:34:40 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-13 12:34:40 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-13 12:34:40 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-13 12:34:40 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-13 12:34:40 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-13 12:34:40 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-13 12:34:40 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-13 12:34:40 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-13 12:34:40 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-13 12:34:40 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-13 12:34:40 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-13 12:34:40 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-14 15:48:37 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-14 15:48:37 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-14 15:48:37 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-14 15:48:37 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-14 15:48:37 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-14 15:48:37 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-14 15:48:37 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-14 15:48:37 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-14 15:48:37 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-14 15:48:37 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-14 15:48:37 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-14 15:48:37 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-14 15:48:37 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-14 15:48:37 - __main__ - INFO - <module>:67 - ==================================================
+2025-11-14 15:49:14 - __main__ - INFO - <module>:54 - ==================================================
+2025-11-14 15:49:14 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-11-14 15:49:14 - __main__ - INFO - <module>:56 - ==================================================
+2025-11-14 15:49:14 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-11-14 15:49:14 - __main__ - INFO - <module>:58 - API Documentation:
+2025-11-14 15:49:14 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-11-14 15:49:14 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-11-14 15:49:14 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-11-14 15:49:14 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-11-14 15:49:14 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-11-14 15:49:14 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-11-14 15:49:14 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-11-14 15:49:14 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-11-14 15:49:14 - __main__ - INFO - <module>:67 - ==================================================
+2025-12-22 12:47:58 - __main__ - INFO - <module>:54 - ==================================================
+2025-12-22 12:47:58 - __main__ - INFO - <module>:55 - Lizzy Demo - AI Screenplay Writing
+2025-12-22 12:47:58 - __main__ - INFO - <module>:56 - ==================================================
+2025-12-22 12:47:58 - __main__ - INFO - <module>:57 - Starting server at: http://localhost:8003
+2025-12-22 12:47:58 - __main__ - INFO - <module>:58 - API Documentation:
+2025-12-22 12:47:58 - __main__ - INFO - <module>:59 -   - Interactive API docs: http://localhost:8003/docs
+2025-12-22 12:47:58 - __main__ - INFO - <module>:60 -   - ReDoc documentation: http://localhost:8003/redoc
+2025-12-22 12:47:58 - __main__ - INFO - <module>:61 - Key Endpoints:
+2025-12-22 12:47:58 - __main__ - INFO - <module>:62 -   - GET  /                      Landing page
+2025-12-22 12:47:58 - __main__ - INFO - <module>:63 -   - GET  /api/projects          List projects
+2025-12-22 12:47:58 - __main__ - INFO - <module>:64 -   - GET  /api/status/{project}  Project status
+2025-12-22 12:47:58 - __main__ - INFO - <module>:65 -   - POST /api/launch            Launch module
+2025-12-22 12:47:58 - __main__ - INFO - <module>:66 -   - GET  /api/health            Health check
+2025-12-22 12:47:58 - __main__ - INFO - <module>:67 - ==================================================

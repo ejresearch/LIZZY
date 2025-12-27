@@ -1,0 +1,2300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager - Lizzy</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <style>
+        /* Header - clean design */
+        .header-bar {
+            background: var(--bg-primary);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+        }
+
+        .header-left h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .current-project-display {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            font-weight: 500;
+            white-space: nowrap;
+            min-width: 150px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .current-project-display::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--text-primary);
+            border-radius: 50%;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        /* Project List View */
+        .project-list {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .project-list h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .project-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+        }
+
+        .project-item:hover {
+            border-color: var(--text-muted);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .project-info h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .project-info p {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .project-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-danger {
+            border-color: var(--error);
+            color: var(--error);
+            background: transparent;
+        }
+
+        .btn-danger:hover {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-generate-inline {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-radius: 2rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-generate-inline:hover {
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border-color: var(--bg-inverse);
+        }
+
+        /* Export Buttons */
+        .btn-export {
+            padding: 10px 20px;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-export:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-export:active {
+            transform: scale(0.98);
+        }
+
+        .btn-export-txt {
+            background: var(--text-secondary);
+        }
+
+        .btn-export-txt:hover {
+            background: var(--text-muted);
+        }
+
+        .btn-export-docx {
+            background: var(--text-primary);
+        }
+
+        .btn-export-docx:hover {
+            background: var(--text-secondary);
+        }
+
+        .btn-export-pdf {
+            background: var(--text-primary);
+        }
+
+        .btn-export-pdf:hover {
+            background: var(--text-secondary);
+        }
+
+        /* Small export buttons for individual scenes */
+        .btn-export-sm {
+            padding: 6px 16px;
+            font-size: 14px;
+            border-radius: 4px;
+        }
+
+        /* Scene Selection Buttons */
+        .btn-scene-select {
+            padding: 8px 16px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-scene-select:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .btn-scene-select:active {
+            transform: scale(0.98);
+        }
+
+        .btn-select-all {
+            background: var(--text-primary);
+        }
+
+        .btn-select-all:hover {
+            background: var(--text-secondary);
+        }
+
+        .btn-deselect-all {
+            background: var(--text-secondary);
+        }
+
+        .btn-deselect-all:hover {
+            background: var(--text-muted);
+        }
+
+        .btn-select-act {
+            background: var(--text-primary);
+        }
+
+        .btn-select-act:hover {
+            background: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            font-size: 0.9375rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Project Editor */
+        .project-editor {
+            display: none;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .project-editor.active {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border);
+            gap: 0;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--text-primary);
+            border-bottom-color: var(--text-primary);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 2rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tab-content h3 {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--text-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tab-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-section-header h3 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        #scene-filter {
+            width: auto;
+            min-width: 150px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-group input:hover,
+        .form-group textarea:hover,
+        .form-group select:hover {
+            border-color: var(--text-muted);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 30px;
+            margin-top: 10px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .radio-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: normal;
+            color: var(--text-secondary);
+        }
+
+        /* Character/Scene Lists */
+        .item-list {
+            background: transparent;
+            border: none;
+            border-radius: 12px;
+            padding: 0;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        .item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+        }
+
+        /* Data Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .data-table th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 0.875rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .data-table td {
+            padding: 0.875rem 1rem;
+            border-bottom: 1px solid var(--border-light);
+            vertical-align: top;
+        }
+
+        .data-table tbody tr {
+            background: var(--bg-primary);
+        }
+
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--bg-secondary);
+        }
+
+        .data-table input[type="text"],
+        .data-table textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.875rem;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .data-table input:focus,
+        .data-table textarea:focus {
+            outline: none;
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .data-table textarea {
+            min-height: 70px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .data-table select {
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-family: inherit;
+            background: var(--bg-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .data-table select:focus {
+            outline: none;
+            border-color: var(--text-primary);
+            box-shadow: 0 0 0 3px rgba(184, 62, 62, 0.1);
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            border: 1px solid var(--border);
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            background: var(--text-primary);
+            color: white;
+            border-color: var(--text-primary);
+        }
+
+        .btn-icon.danger:hover {
+            background: #d32f2f;
+            border-color: #d32f2f;
+        }
+
+        .item-content h4 {
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .item-content p {
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 16px;
+            font-size: 0.85em;
+        }
+
+        .scene-number {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: var(--text-primary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        /* Footer Actions */
+        .editor-footer {
+            padding: 30px 40px;
+            background: var(--bg-secondary);
+            border-top: 2px solid var(--border);
+            display: flex;
+            justify-content: center;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .editor-footer .btn {
+            min-width: 200px;
+        }
+
+        /* Messages */
+        #message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            max-width: 500px;
+        }
+
+        .message {
+            padding: 20px 28px;
+            border-radius: 12px;
+            font-style: normal;
+            font-size: 1em;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .message.success {
+            background: #d4edda;
+            border: 3px solid #48bb78;
+            color: #155724;
+        }
+
+        .message.success::before {
+            content: '✓';
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #48bb78;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+            color: #721c24;
+        }
+
+        .message.error::before {
+            content: '✕';
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #dc3545;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .project-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .project-actions {
+                margin-top: 15px;
+            }
+
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+        }
+
+        /* Thinking dots animation */
+        .thinking-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--bg-inverse);
+            border-radius: 50%;
+            animation: thinking-bounce 1.4s infinite ease-in-out both;
+        }
+
+        @keyframes thinking-bounce {
+            0%, 80%, 100% {
+                transform: scale(0);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Active project indicator pulse animation */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+            }
+            50% {
+                opacity: 0.8;
+                box-shadow: 0 0 0 4px rgba(72, 187, 120, 0);
+            }
+        }
+
+        /* AI Control Button Styles */
+        #ai-cancel-btn:hover {
+            background: var(--text-secondary);
+        }
+
+        #ai-cancel-btn:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body>
+    <div class="header-bar">
+        <div class="header-left">
+            <h1>Setup</h1>
+        </div>
+        <div class="header-right">
+            <div class="current-project-display" id="header-project-name">No project selected</div>
+            <a href="/" class="btn-back">Home</a>
+            <div class="theme-toggle">
+                <div class="toggle-switch" id="themeToggle"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Message Container (outside tabs so always visible) -->
+    <div id="message-container"></div>
+
+    <!-- AI Generation Progress Modal -->
+    <div id="ai-progress-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+        <div style="background: var(--bg-primary); padding: 40px; border-radius: 12px; max-width: 500px; text-align: center; border: 1px solid var(--border);">
+            <div style="font-size: 2rem; margin-bottom: 20px;">🎬</div>
+            <h3 id="ai-progress-title" style="color: var(--text-primary); margin-bottom: 10px; font-size: 1.25rem;">AI is Thinking...</h3>
+            <p id="ai-progress-text" style="color: var(--text-secondary); margin-bottom: 30px; font-size: 0.875rem; font-style: italic;">Generating your romantic comedy</p>
+
+            <!-- Animated thinking dots -->
+            <div id="ai-thinking-dots" style="display: flex; justify-content: center; gap: 8px; margin-bottom: 20px;">
+                <div class="thinking-dot" style="animation-delay: 0s;"></div>
+                <div class="thinking-dot" style="animation-delay: 0.2s;"></div>
+                <div class="thinking-dot" style="animation-delay: 0.4s;"></div>
+            </div>
+
+            <!-- Progress bar -->
+            <div style="background: var(--bg-tertiary); height: 4px; border-radius: 2px; overflow: hidden; margin-top: 20px;">
+                <div id="ai-progress-bar" style="background: var(--text-primary); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+
+            <!-- Control buttons -->
+            <div id="ai-control-buttons" style="display: flex; gap: 12px; justify-content: center; margin-top: 30px;">
+                <button id="ai-cancel-btn" onclick="cancelGeneration()" style="padding: 10px 24px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer;">
+                    ⏹️ Stop
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Project Editor (always visible now) -->
+        <div id="project-editor" class="project-editor" style="display: block;">
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('settings')">Settings</button>
+                <button class="tab" onclick="switchTab('characters')">Characters</button>
+                <button class="tab" onclick="switchTab('scenes')">Scenes</button>
+                <button class="tab" onclick="switchTab('notes')">Notes</button>
+                <button class="tab" onclick="switchTab('brainstorm')">Brainstorm</button>
+                <button class="tab" onclick="switchTab('screenplay')">Screenplay</button>
+            </div>
+
+            <!-- Settings Tab -->
+            <div id="settings-tab" class="tab-content active">
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="project-name" placeholder="My Romantic Comedy">
+                </div>
+
+                <div class="form-group">
+                    <label>Logline</label>
+                    <textarea id="project-logline" placeholder="A one-sentence summary of your story..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Template</label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="template-blank" name="template" value="blank">
+                            <label for="template-blank">Blank Project</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="template-beatsheet" name="template" value="beatsheet" checked>
+                            <label for="template-beatsheet">30-Scene Beat Sheet</label>
+                        </div>
+                        <div class="radio-option" style="flex: 1; margin-left: auto;">
+                            <button class="btn-generate-inline" onclick="generateRandomProject()" title="Let AI create a complete romantic comedy concept for you">
+                                🎲 Generate Random
+                            </button>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-style: italic; font-size: 0.85em; margin-top: 8px;">
+                        Use the dice to let AI generate a complete rom-com with characters, scenes, and notes
+                    </p>
+                </div>
+
+                <!-- Project Actions -->
+                <div class="form-group" style="margin-top: 50px; padding-top: 30px; border-top: 1px solid var(--border);">
+                    <div style="display: flex; gap: 15px; align-items: center;">
+                        <button class="btn" id="export-backup-btn" onclick="exportProjectBackup()" style="background: var(--text-primary); color: var(--bg-primary); border: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            Export Backup
+                        </button>
+                        <button class="btn" id="delete-project-btn" onclick="deleteCurrentProject()" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 12px 24px; border-radius: 6px; font-weight: 500; cursor: pointer;">
+                            Delete
+                        </button>
+                        <span style="color: var(--text-muted); font-size: 0.875rem; font-style: italic;">Export a backup before deleting</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Characters Tab -->
+            <div id="characters-tab" class="tab-content">
+                <div class="tab-section-header">
+                    <h3>Characters</h3>
+                    <button class="btn" onclick="addCharacterRow()">+ Add Character</button>
+                </div>
+                <div class="item-list">
+                    <table class="data-table" id="characters-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 200px;">Name</th>
+                                <th style="width: 150px;">Role</th>
+                                <th>Description</th>
+                                <th style="width: 100px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="characters-tbody">
+                            <!-- Characters loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Scenes Tab -->
+            <div id="scenes-tab" class="tab-content">
+                <div class="tab-section-header">
+                    <h3>Scenes (<span id="scenes-count">30</span> total)</h3>
+                    <select id="scene-filter" class="form-select" onchange="filterScenes()">
+                        <option value="all">All Acts</option>
+                        <option value="1">Act 1</option>
+                        <option value="2">Act 2</option>
+                        <option value="3">Act 3</option>
+                    </select>
+                </div>
+                <div class="item-list">
+                    <table class="data-table" id="scenes-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">#</th>
+                                <th style="width: 250px;">Title</th>
+                                <th>Description</th>
+                                <th style="width: 200px;">Characters</th>
+                            </tr>
+                        </thead>
+                        <tbody id="scenes-tbody">
+                            <!-- Scenes loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notes Tab -->
+            <div id="notes-tab" class="tab-content">
+                <div class="form-group">
+                    <label>Theme</label>
+                    <textarea id="note-theme" placeholder="What is your story really about?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Tone</label>
+                    <textarea id="note-tone" placeholder="How should the screenplay feel?"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Comparable Films</label>
+                    <textarea id="note-comps" placeholder="Films with similar tone or story..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Inspiration / Additional Notes</label>
+                    <textarea id="note-inspiration" placeholder="Any other thoughts or ideas..."></textarea>
+                </div>
+            </div>
+
+            <!-- Brainstorm Tab -->
+            <div id="brainstorm-tab" class="tab-content">
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">Scene Brainstorms</h3>
+                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 24px;">
+                        View generated scene brainstorms from the 3 expert knowledge graphs
+                    </p>
+                </div>
+
+                <div id="brainstorms-list">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        Save project first to load brainstorms
+                    </div>
+                </div>
+            </div>
+
+            <!-- Screenplay Tab -->
+            <div id="screenplay-tab" class="tab-content">
+                <div style="margin-bottom: 30px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">Scene Drafts & Export</h3>
+                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 24px;">
+                        View and export scene drafts as professionally formatted screenplays
+                    </p>
+
+                    <!-- View Mode Toggle -->
+                    <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                        <button id="view-individual" onclick="switchScreenplayView('individual')" class="btn btn-primary">Individual Scenes</button>
+                        <button id="view-full" onclick="switchScreenplayView('full')" class="btn">Full Screenplay</button>
+                    </div>
+                </div>
+
+                <!-- Individual Scene Drafts View -->
+                <div id="drafts-list">
+                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        Save project first to load drafts
+                    </div>
+                </div>
+
+                <!-- Full Screenplay View -->
+                <div id="full-screenplay-view" style="display: none;">
+                    <!-- Scene Selection Panel -->
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                        <h4 style="color: var(--text-primary); margin-bottom: 16px;">Scene Selection</h4>
+                        <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                            <button onclick="selectAllScenes()" class="btn-scene-select btn-select-all">Select All</button>
+                            <button onclick="deselectAllScenes()" class="btn-scene-select btn-deselect-all">Deselect All</button>
+                            <button onclick="selectByAct(1)" class="btn-scene-select btn-select-act">Act 1</button>
+                            <button onclick="selectByAct(2)" class="btn-scene-select btn-select-act">Act 2</button>
+                            <button onclick="selectByAct(3)" class="btn-scene-select btn-select-act">Act 3</button>
+                        </div>
+                        <div id="scene-selection-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: var(--bg-secondary); border-radius: 6px;">
+                            <!-- Scene checkboxes will be populated here -->
+                        </div>
+                        <p id="selected-scene-count" style="margin-top: 12px; color: var(--text-secondary); font-size: 0.875rem; font-style: italic;">0 scenes selected</p>
+                    </div>
+
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 40px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                            <h3 style="color: var(--text-primary); margin: 0;">Full Screenplay Preview</h3>
+                            <div style="display: flex; gap: 12px;">
+                                <button onclick="exportFullScreenplay('txt')" class="btn-export btn-export-txt">Export TXT</button>
+                                <button onclick="exportFullScreenplay('docx')" class="btn-export btn-export-docx">Export DOCX</button>
+                                <button onclick="exportFullScreenplay('pdf')" class="btn-export btn-export-pdf">Export PDF</button>
+                            </div>
+                        </div>
+                        <pre id="full-screenplay-content" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6; color: var(--text-primary); padding: 24px; background: var(--bg-secondary); border-radius: 6px; max-height: 800px; overflow-y: auto; border: 1px solid var(--border);">Loading full screenplay...</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="editor-footer">
+                <button class="btn btn-primary" id="save-project-btn" onclick="saveProject()">Save Project</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/common.js"></script>
+    <script>
+        let currentProject = null;
+        let currentTab = 'settings';
+        let allBrainstorms = [];
+        let allDrafts = [];
+
+        // Load projects and auto-load saved project
+        async function loadProjects() {
+            const savedProject = localStorage.getItem('currentProject');
+            console.log('Loading projects, saved project:', savedProject);
+
+            // Auto-load saved project
+            if (savedProject) {
+                currentProject = savedProject;
+                updateHeaderProjectName();
+                await loadProjectData(savedProject);
+            } else {
+                console.log('No saved project, showing empty form');
+                createNewProject();
+            }
+        }
+
+        // Load project data from API
+        async function loadProjectData(projectName) {
+            console.log('Loading project data for:', projectName);
+            try {
+                const response = await fetch(`/api/project/${encodeURIComponent(projectName)}`);
+                const data = await response.json();
+                console.log('Project data loaded:', data);
+
+                // Populate form
+                document.getElementById('project-name').value = data.name || '';
+                document.getElementById('project-logline').value = data.logline || '';
+
+                // Load characters
+                loadCharacters(data.characters || []);
+
+                // Load scenes
+                loadScenes(data.scenes || []);
+
+                // Load notes
+                loadNotes(data.notes || {});
+
+                // Load brainstorms and drafts for current project
+                if (currentProject) {
+                    await loadBrainstorms();
+                    await loadDrafts();
+                }
+
+                console.log('Project loaded successfully');
+            } catch (error) {
+                console.error('Error loading project:', error);
+                showMessage('Error loading project: ' + error.message, 'error');
+                // If loading fails, show empty form
+                createNewProject();
+            }
+        }
+
+        function createNewProject() {
+            currentProject = null;
+            localStorage.removeItem('currentProject');
+            updateHeaderProjectName();
+
+            // Clear form
+            document.getElementById('project-name').value = '';
+            document.getElementById('project-logline').value = '';
+            document.getElementById('template-beatsheet').checked = true;
+
+            // Clear data
+            loadCharacters([]);
+            loadScenes([]);
+            loadNotes({});
+        }
+
+
+        function switchTab(tabName) {
+            currentTab = tabName;
+
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            // Load brainstorms when switching to brainstorm tab
+            if (tabName === 'brainstorm' && currentProject) {
+                loadBrainstorms();
+            }
+
+            // Load drafts when switching to screenplay tab
+            if (tabName === 'screenplay' && currentProject) {
+                loadDrafts();
+            }
+        }
+
+        async function loadBrainstorms() {
+            const container = document.getElementById('brainstorms-list');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading brainstorms...</div>';
+
+            try {
+                const response = await fetch(`/api/brainstorm/brainstorms/${currentProject}`);
+                const data = await response.json();
+
+                allBrainstorms = data.brainstorms;
+                renderBrainstorms();
+            } catch (error) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-primary);">Error loading brainstorms: ${error.message}</div>`;
+            }
+        }
+
+        function renderBrainstorms() {
+            const container = document.getElementById('brainstorms-list');
+
+            if (allBrainstorms.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No brainstorms generated yet.</div>';
+                return;
+            }
+
+            // Filter to only scenes with brainstorms
+            const completed = allBrainstorms.filter(bs => bs.brainstorm);
+            const pending = allBrainstorms.filter(bs => !bs.brainstorm);
+
+            let html = '';
+
+            if (completed.length > 0) {
+                html += `<div style="margin-bottom: 30px;"><h4 style="color: var(--text-primary); margin-bottom: 20px;">Completed (${completed.length})</h4>`;
+
+                completed.forEach(bs => {
+                    const versionCount = (bs.versions && bs.versions.length) || 0;
+                    const hasExpertConsults = bs.experts && bs.experts.length > 0;
+
+                    html += `
+                        <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 16px;" id="brainstorm-card-${bs.scene_number}">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                <div style="flex: 1;">
+                                    <h3 style="color: var(--text-primary); margin-bottom: 8px;">Scene ${bs.scene_number}: ${bs.title || 'Untitled'}</h3>
+                                    <p style="color: var(--text-secondary); font-style: italic; margin-bottom: 8px;">${bs.description || ''}</p>
+                                    <p style="color: var(--text-muted); font-size: 13px;">
+                                        ${versionCount > 0 ? `${versionCount} version${versionCount > 1 ? 's' : ''}` : 'Latest brainstorm'}
+                                        ${hasExpertConsults ? ` • ${bs.experts.length} expert consultation${bs.experts.length > 1 ? 's' : ''}` : ''}
+                                    </p>
+                                </div>
+                                ${versionCount > 1 ? `
+                                <button onclick="toggleBrainstormHistory(${bs.scene_number})" class="btn-scene-select btn-deselect-all" style="padding: 6px 12px; font-size: 14px;" title="View version history">📋 History</button>
+                                ` : ''}
+                            </div>
+
+                            <!-- Version History Panel -->
+                            ${versionCount > 1 ? `
+                            <div id="brainstorm-history-${bs.scene_number}" style="display: none; background: var(--bg-secondary); border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border);">
+                                <h4 style="color: var(--text-primary); margin-bottom: 12px; font-size: 14px;">Brainstorm Versions</h4>
+                                <div style="display: grid; gap: 8px;">
+                                    ${bs.versions.map((v, idx) => `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--bg-primary); border-radius: 4px; font-size: 13px;">
+                                            <div>
+                                                <strong style="color: var(--text-primary);">${idx === 0 ? 'Latest' : `Version ${versionCount - idx}`}</strong> •
+                                                ${v.created_at ? new Date(v.created_at).toLocaleString() : 'Unknown date'}
+                                                ${v.tone ? ` • Tone: ${v.tone}` : ''}
+                                            </div>
+                                            <button onclick="viewBrainstormVersion(${bs.scene_number}, ${idx})" style="padding: 4px 12px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            <!-- Expert Consultations Panel -->
+                            ${hasExpertConsults ? `
+                            <details style="margin-bottom: 16px;">
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600; font-size: 14px;">📚 Expert Consultations (${bs.experts.length})</summary>
+                                <div style="margin-top: 12px; display: grid; gap: 12px;">
+                                    ${bs.experts.map(expert => `
+                                        <div style="background: var(--bg-tertiary); padding: 12px; border-radius: 4px; border-left: 3px solid var(--text-primary);">
+                                            <strong style="color: var(--text-primary); text-transform: capitalize;">${expert.bucket}</strong>
+                                            <p style="color: var(--text-secondary); font-size: 13px; margin-top: 4px;">${expert.created_at ? new Date(expert.created_at).toLocaleString() : ''}</p>
+                                            <pre style="white-space: pre-wrap; font-family: inherit; line-height: 1.6; color: var(--text-primary); margin-top: 8px; font-size: 13px;">${expert.content}</pre>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </details>
+                            ` : ''}
+
+                            <details style="margin-top: 16px;" id="brainstorm-details-${bs.scene_number}">
+                                <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600;">View Brainstorm ${versionCount > 1 ? '(Latest)' : ''}</summary>
+                                <pre id="brainstorm-content-${bs.scene_number}" style="white-space: pre-wrap; font-family: inherit; line-height: 1.7; color: var(--text-primary); margin-top: 16px; padding: 16px; background: var(--bg-tertiary); border-radius: 4px;">${bs.brainstorm}</pre>
+                            </details>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+
+            if (pending.length > 0) {
+                html += `<p style="color: var(--text-muted); font-style: italic;">Pending: ${pending.length} scenes without brainstorms</p>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function toggleBrainstormHistory(sceneNumber) {
+            const historyPanel = document.getElementById(`brainstorm-history-${sceneNumber}`);
+            if (historyPanel) {
+                historyPanel.style.display = historyPanel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function viewBrainstormVersion(sceneNumber, versionIndex) {
+            // Find the brainstorm for this scene
+            const brainstorm = allBrainstorms.find(bs => bs.scene_number === sceneNumber);
+            if (!brainstorm || !brainstorm.versions || versionIndex >= brainstorm.versions.length) {
+                return;
+            }
+
+            const version = brainstorm.versions[versionIndex];
+
+            // Update the content display
+            const contentEl = document.getElementById(`brainstorm-content-${sceneNumber}`);
+            const summaryEl = document.querySelector(`#brainstorm-details-${sceneNumber} summary`);
+
+            if (contentEl && summaryEl) {
+                contentEl.textContent = version.content;
+                const label = versionIndex === 0 ? 'Latest' : `Version ${brainstorm.versions.length - versionIndex}`;
+                summaryEl.textContent = `View Brainstorm (${label})`;
+
+                // Open the details if closed
+                const details = document.getElementById(`brainstorm-details-${sceneNumber}`);
+                details.open = true;
+
+                // Scroll into view
+                details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        async function loadDrafts() {
+            const container = document.getElementById('drafts-list');
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">Loading drafts...</div>';
+
+            try {
+                const response = await fetch(`/api/write/drafts/${currentProject}`);
+                const data = await response.json();
+
+                allDrafts = data.drafts || [];
+                renderDrafts();
+            } catch (error) {
+                container.innerHTML = `<div style="text-align: center; padding: 40px; color: var(--text-primary);">Error loading drafts: ${error.message}</div>`;
+            }
+        }
+
+        function renderDrafts() {
+            const container = document.getElementById('drafts-list');
+
+            if (allDrafts.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--text-muted);">No scene drafts generated yet. Use WRITE module to create drafts.</div>';
+                return;
+            }
+
+            // Calculate aggregate stats
+            let totalTokens = 0;
+            let totalCost = 0;
+            let totalWords = 0;
+            const uniqueScenes = new Set();
+
+            allDrafts.forEach(draft => {
+                uniqueScenes.add(draft.scene_number);
+                if (draft.tokens_used) totalTokens += draft.tokens_used;
+                if (draft.cost_estimate) totalCost += draft.cost_estimate;
+                if (draft.word_count) totalWords += draft.word_count;
+            });
+
+            // Group drafts by scene number
+            const draftsByScene = {};
+            allDrafts.forEach(draft => {
+                if (!draftsByScene[draft.scene_number]) {
+                    draftsByScene[draft.scene_number] = [];
+                }
+                draftsByScene[draft.scene_number].push(draft);
+            });
+
+            let html = `
+                <!-- Aggregate Stats Panel -->
+                <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 16px; font-size: 1rem; font-weight: 600; color: var(--text-primary);">Project Statistics</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Drafts</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${allDrafts.length}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${uniqueScenes.size} scene${uniqueScenes.size !== 1 ? 's' : ''}</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Words</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--text-primary);">${totalWords.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">~${Math.round(totalWords / 250)} pages</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Tokens</div>
+                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text-primary);">${totalTokens.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">All versions</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+                            <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Total Cost</div>
+                            <div style="font-size: 24px; font-weight: 700; font-family: 'Courier New', monospace; color: var(--text-primary);">$${totalCost.toFixed(2)}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">All generations</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: grid; gap: 20px;">
+            `;
+
+            Object.keys(draftsByScene).sort((a, b) => parseInt(a) - parseInt(b)).forEach(sceneNum => {
+                const drafts = draftsByScene[sceneNum].sort((a, b) => b.version - a.version);
+                const latestDraft = drafts[0];
+
+                html += `
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 20px;" id="draft-card-${sceneNum}">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                            <div style="flex: 1;">
+                                <h3 style="color: var(--text-primary); margin-bottom: 8px;">Scene ${sceneNum}</h3>
+                                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 6px;" id="draft-info-${sceneNum}">
+                                    ${drafts.length} version${drafts.length > 1 ? 's' : ''} •
+                                    ${latestDraft.word_count} words •
+                                    Latest: v${latestDraft.version}
+                                </p>
+                                <p style="color: var(--text-muted); font-size: 12px; font-family: 'Courier New', monospace;" id="draft-meta-${sceneNum}">
+                                    ${latestDraft.tokens_used ? `🎯 ${latestDraft.tokens_used.toLocaleString()} tokens` : ''}
+                                    ${latestDraft.cost_estimate ? `• 💰 $${latestDraft.cost_estimate.toFixed(4)}` : ''}
+                                </p>
+                            </div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <select id="version-select-${sceneNum}" onchange="switchDraftVersion(${sceneNum})" style="padding: 6px 12px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-primary); color: var(--text-primary); font-size: 14px;">
+                                    ${drafts.map(d => `<option value="${d.version}" data-words="${d.word_count}" data-date="${d.created_at || ''}">v${d.version} (${d.word_count}w)</option>`).join('')}
+                                </select>
+                                ${drafts.length > 1 ? `<button onclick="toggleVersionHistory(${sceneNum})" class="btn-scene-select btn-deselect-all" style="padding: 6px 12px; font-size: 14px;" title="View version history">📋</button>` : ''}
+                                <button onclick="exportDraft(${sceneNum}, 'txt')" class="btn-export btn-export-sm btn-export-txt">TXT</button>
+                                <button onclick="exportDraft(${sceneNum}, 'docx')" class="btn-export btn-export-sm btn-export-docx">DOCX</button>
+                                <button onclick="exportDraft(${sceneNum}, 'pdf')" class="btn-export btn-export-sm btn-export-pdf">PDF</button>
+                            </div>
+                        </div>
+
+                        <!-- Version History Panel (hidden by default) -->
+                        ${drafts.length > 1 ? `
+                        <div id="version-history-${sceneNum}" style="display: none; background: var(--bg-secondary); border-radius: 6px; padding: 16px; margin-bottom: 16px; border: 1px solid var(--border);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 12px; font-size: 14px;">Version History</h4>
+                            <div style="display: grid; gap: 8px;">
+                                ${drafts.map(d => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-primary); border-radius: 4px; font-size: 13px;">
+                                        <div style="flex: 1;">
+                                            <div style="margin-bottom: 4px;">
+                                                <strong style="color: var(--text-primary);">v${d.version}</strong> •
+                                                ${d.word_count} words •
+                                                ${d.created_at ? new Date(d.created_at).toLocaleString() : 'Unknown date'}
+                                            </div>
+                                            <div style="color: var(--text-muted); font-size: 11px; font-family: 'Courier New', monospace;">
+                                                ${d.tokens_used ? `🎯 ${d.tokens_used.toLocaleString()} tokens` : 'No token data'}
+                                                ${d.cost_estimate ? ` • 💰 $${d.cost_estimate.toFixed(4)}` : ''}
+                                            </div>
+                                        </div>
+                                        <button onclick="viewDraftVersion(${sceneNum}, ${d.version})" style="padding: 4px 12px; background: var(--text-primary); color: var(--bg-primary); border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">View</button>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <details style="margin-top: 12px;" id="draft-details-${sceneNum}">
+                            <summary style="cursor: pointer; color: var(--text-primary); font-weight: 600;">View Full Draft (v${latestDraft.version})</summary>
+                            <pre id="draft-content-${sceneNum}" style="white-space: pre-wrap; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.4; color: var(--text-primary); margin-top: 16px; padding: 16px; background: var(--bg-secondary); border-radius: 4px; overflow-x: auto; max-height: 600px; overflow-y: auto;">${latestDraft.content}</pre>
+                        </details>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        function switchDraftVersion(sceneNumber) {
+            const versionSelect = document.getElementById(`version-select-${sceneNumber}`);
+            const selectedVersion = parseInt(versionSelect.value);
+
+            // Find the draft with this version
+            const sceneDrafts = allDrafts.filter(d => d.scene_number === sceneNumber);
+            const selectedDraft = sceneDrafts.find(d => d.version === selectedVersion);
+
+            if (selectedDraft) {
+                // Update the content preview
+                const contentEl = document.getElementById(`draft-content-${sceneNumber}`);
+                const summaryEl = document.querySelector(`#draft-details-${sceneNumber} summary`);
+
+                contentEl.textContent = selectedDraft.content;
+                summaryEl.textContent = `View Full Draft (v${selectedVersion})`;
+
+                // Update info text
+                const infoEl = document.getElementById(`draft-info-${sceneNumber}`);
+                infoEl.textContent = `${sceneDrafts.length} version${sceneDrafts.length > 1 ? 's' : ''} • ${selectedDraft.word_count} words • Viewing: v${selectedVersion}`;
+
+                // Update metadata display
+                const metaEl = document.getElementById(`draft-meta-${sceneNumber}`);
+                if (metaEl) {
+                    let metaHtml = '';
+                    if (selectedDraft.tokens_used) {
+                        metaHtml += `🎯 ${selectedDraft.tokens_used.toLocaleString()} tokens`;
+                    }
+                    if (selectedDraft.cost_estimate) {
+                        if (metaHtml) metaHtml += ' • ';
+                        metaHtml += `💰 $${selectedDraft.cost_estimate.toFixed(4)}`;
+                    }
+                    metaEl.innerHTML = metaHtml || 'No metadata available';
+                }
+            }
+        }
+
+        function toggleVersionHistory(sceneNumber) {
+            const historyPanel = document.getElementById(`version-history-${sceneNumber}`);
+            if (historyPanel) {
+                historyPanel.style.display = historyPanel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function viewDraftVersion(sceneNumber, version) {
+            // Set the dropdown to this version
+            const versionSelect = document.getElementById(`version-select-${sceneNumber}`);
+            versionSelect.value = version;
+
+            // Trigger the switch
+            switchDraftVersion(sceneNumber);
+
+            // Open the details if closed
+            const details = document.getElementById(`draft-details-${sceneNumber}`);
+            details.open = true;
+
+            // Scroll into view
+            details.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        async function exportDraft(sceneNumber, format) {
+            const versionSelect = document.getElementById(`version-select-${sceneNumber}`);
+            const version = parseInt(versionSelect.value);
+
+            const statusDiv = document.createElement('div');
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: var(--bg-primary); padding: 16px 24px; border-radius: 6px; box-shadow: 0 4px 12px var(--shadow); z-index: 10000;';
+            statusDiv.textContent = `Exporting Scene ${sceneNumber} v${version} as ${format.toUpperCase()}...`;
+            document.body.appendChild(statusDiv);
+
+            try {
+                const response = await fetch('/api/generate/export-scene', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        scene_number: sceneNumber,
+                        version: version,
+                        format: format
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.style.background = 'var(--success)';
+                    statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
+
+                    // Trigger download
+                    const downloadUrl = `/api/generate/download-screenplay/${currentProject}/${result.filename}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 3000);
+                } else {
+                    statusDiv.style.background = 'var(--text-primary)';
+                    statusDiv.textContent = `✗ Export failed: ${result.error}`;
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                }
+            } catch (error) {
+                statusDiv.style.background = 'var(--text-primary)';
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                setTimeout(() => {
+                    document.body.removeChild(statusDiv);
+                }, 5000);
+            }
+        }
+
+        function switchScreenplayView(view) {
+            const individualView = document.getElementById('drafts-list');
+            const fullView = document.getElementById('full-screenplay-view');
+            const btnIndividual = document.getElementById('view-individual');
+            const btnFull = document.getElementById('view-full');
+
+            if (view === 'individual') {
+                individualView.style.display = 'block';
+                fullView.style.display = 'none';
+                btnIndividual.classList.add('btn-primary');
+                btnIndividual.classList.remove('btn');
+                btnFull.classList.remove('btn-primary');
+                btnFull.classList.add('btn');
+            } else {
+                individualView.style.display = 'none';
+                fullView.style.display = 'block';
+                btnFull.classList.add('btn-primary');
+                btnFull.classList.remove('btn');
+                btnIndividual.classList.remove('btn-primary');
+                btnIndividual.classList.add('btn');
+                populateSceneSelection();
+                renderFullScreenplay();
+            }
+        }
+
+        function populateSceneSelection() {
+            const grid = document.getElementById('scene-selection-grid');
+
+            if (allDrafts.length === 0) {
+                grid.innerHTML = '<p style="color: var(--text-muted); font-style: italic;">No scenes available</p>';
+                return;
+            }
+
+            // Get unique scene numbers
+            const draftsByScene = {};
+            allDrafts.forEach(draft => {
+                if (!draftsByScene[draft.scene_number]) {
+                    draftsByScene[draft.scene_number] = draft;
+                }
+            });
+
+            const sceneNumbers = Object.keys(draftsByScene).sort((a, b) => parseInt(a) - parseInt(b));
+
+            let html = '';
+            sceneNumbers.forEach(sceneNum => {
+                html += `
+                    <label style="display: flex; align-items: center; gap: 6px; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s;">
+                        <input type="checkbox" class="scene-checkbox" value="${sceneNum}" checked onchange="updateSceneSelection()" style="cursor: pointer;">
+                        <span style="font-size: 0.9em; color: var(--text-primary);">Scene ${sceneNum}</span>
+                    </label>
+                `;
+            });
+
+            grid.innerHTML = html;
+            updateSceneSelection();
+        }
+
+        function selectAllScenes() {
+            document.querySelectorAll('.scene-checkbox').forEach(cb => cb.checked = true);
+            updateSceneSelection();
+        }
+
+        function deselectAllScenes() {
+            document.querySelectorAll('.scene-checkbox').forEach(cb => cb.checked = false);
+            updateSceneSelection();
+        }
+
+        function selectByAct(actNumber) {
+            // Act 1: Scenes 1-6, Act 2: Scenes 7-24, Act 3: Scenes 25-30
+            const actRanges = {
+                1: [1, 6],
+                2: [7, 24],
+                3: [25, 30]
+            };
+
+            const [start, end] = actRanges[actNumber];
+
+            document.querySelectorAll('.scene-checkbox').forEach(cb => {
+                const sceneNum = parseInt(cb.value);
+                cb.checked = (sceneNum >= start && sceneNum <= end);
+            });
+
+            updateSceneSelection();
+        }
+
+        function updateSceneSelection() {
+            const checkboxes = document.querySelectorAll('.scene-checkbox');
+            const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+
+            document.getElementById('selected-scene-count').textContent =
+                `${selectedCount} scene${selectedCount !== 1 ? 's' : ''} selected`;
+
+            renderFullScreenplay();
+        }
+
+        function renderFullScreenplay() {
+            const content = document.getElementById('full-screenplay-content');
+
+            if (allDrafts.length === 0) {
+                content.textContent = 'No scene drafts generated yet. Use WRITE module to create drafts.';
+                return;
+            }
+
+            // Get selected scene numbers
+            const selectedScenes = Array.from(document.querySelectorAll('.scene-checkbox:checked'))
+                .map(cb => parseInt(cb.value))
+                .sort((a, b) => a - b);
+
+            if (selectedScenes.length === 0) {
+                content.textContent = 'No scenes selected. Select at least one scene to preview.';
+                return;
+            }
+
+            // Group drafts by scene number and get latest version of each
+            const draftsByScene = {};
+            allDrafts.forEach(draft => {
+                if (!draftsByScene[draft.scene_number]) {
+                    draftsByScene[draft.scene_number] = draft;
+                } else if (draft.version > draftsByScene[draft.scene_number].version) {
+                    draftsByScene[draft.scene_number] = draft;
+                }
+            });
+
+            // Combine selected scenes in order
+            let fullScreenplay = '';
+            selectedScenes.forEach((sceneNum, index) => {
+                const draft = draftsByScene[sceneNum];
+                if (draft) {
+                    if (index > 0) {
+                        fullScreenplay += '\n\n\n';  // Scene separator
+                    }
+                    fullScreenplay += draft.content;
+                }
+            });
+
+            content.textContent = fullScreenplay || 'Selected scenes have no drafts yet.';
+        }
+
+        async function exportFullScreenplay(format) {
+            // Get selected scene numbers
+            const selectedScenes = Array.from(document.querySelectorAll('.scene-checkbox:checked'))
+                .map(cb => parseInt(cb.value))
+                .sort((a, b) => a - b);
+
+            if (selectedScenes.length === 0) {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10000;';
+                errorDiv.textContent = 'Please select at least one scene to export.';
+                document.body.appendChild(errorDiv);
+                setTimeout(() => {
+                    document.body.removeChild(errorDiv);
+                }, 3000);
+                return;
+            }
+
+            const statusDiv = document.createElement('div');
+            statusDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; background: var(--text-primary); color: var(--bg-primary); padding: 16px 24px; border-radius: 6px; box-shadow: 0 4px 12px var(--shadow); z-index: 10000;';
+            statusDiv.textContent = `Exporting ${selectedScenes.length} scene${selectedScenes.length > 1 ? 's' : ''} as ${format.toUpperCase()}...`;
+            document.body.appendChild(statusDiv);
+
+            try {
+                // Get all latest drafts by scene
+                const draftsByScene = {};
+                allDrafts.forEach(draft => {
+                    if (!draftsByScene[draft.scene_number]) {
+                        draftsByScene[draft.scene_number] = draft;
+                    } else if (draft.version > draftsByScene[draft.scene_number].version) {
+                        draftsByScene[draft.scene_number] = draft;
+                    }
+                });
+
+                // Get scene numbers and versions for selected scenes only
+                const scenes = selectedScenes
+                    .filter(sceneNum => draftsByScene[sceneNum]) // Only include scenes with drafts
+                    .map(sceneNum => ({
+                        scene_number: sceneNum,
+                        version: draftsByScene[sceneNum].version
+                    }));
+
+                if (scenes.length === 0) {
+                    statusDiv.style.background = 'var(--text-primary)';
+                    statusDiv.textContent = 'Selected scenes have no drafts. Generate drafts first.';
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                    return;
+                }
+
+                // Call backend to export full screenplay
+                const response = await fetch('/api/generate/export-full-screenplay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        project: currentProject,
+                        scenes: scenes,
+                        format: format
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.style.background = 'var(--success)';
+                    statusDiv.textContent = `✓ Exported! Downloading ${result.filename}...`;
+
+                    // Trigger download
+                    const downloadUrl = `/api/generate/download-screenplay/${currentProject}/${result.filename}`;
+                    const a = document.createElement('a');
+                    a.href = downloadUrl;
+                    a.download = result.filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 3000);
+                } else {
+                    statusDiv.style.background = 'var(--text-primary)';
+                    statusDiv.textContent = `✗ Export failed: ${result.error}`;
+                    setTimeout(() => {
+                        document.body.removeChild(statusDiv);
+                    }, 5000);
+                }
+
+            } catch (error) {
+                statusDiv.style.background = 'var(--text-primary)';
+                statusDiv.textContent = `✗ Error: ${error.message}`;
+                setTimeout(() => {
+                    document.body.removeChild(statusDiv);
+                }, 5000);
+            }
+        }
+
+        async function saveProject() {
+            console.log('Save button clicked');
+
+            const saveBtn = document.getElementById('save-project-btn');
+
+            try {
+                const nameEl = document.getElementById('project-name');
+                const loglineEl = document.getElementById('project-logline');
+                const templateEl = document.querySelector('input[name="template"]:checked');
+
+                if (!nameEl || !nameEl.value.trim()) {
+                    showMessage('Please enter a project name', 'error');
+                    return;
+                }
+
+                showLoading(saveBtn, 'Saving...');
+
+                const name = nameEl.value.trim();
+                const logline = loglineEl ? loglineEl.value.trim() : '';
+                const template = templateEl ? templateEl.value : 'beatsheet';
+
+                // Collect notes data
+                const notes = {
+                    theme: document.getElementById('note-theme')?.value.trim() || '',
+                    tone: document.getElementById('note-tone')?.value.trim() || '',
+                    comparable_films: document.getElementById('note-comps')?.value.trim() || '',
+                    inspiration: document.getElementById('note-inspiration')?.value.trim() || ''
+                };
+
+                const projectData = {
+                    name,
+                    logline,
+                    template,
+                    is_new: !currentProject,
+                    characters: charactersData,
+                    scenes: scenesData,
+                    notes
+                };
+
+                console.log('Saving project:', projectData);
+                console.log('Characters count:', charactersData.length);
+                console.log('Scenes count:', scenesData.length);
+
+                const response = await fetch('/api/project/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+
+                // Check if response is OK before parsing
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 100)}`);
+                }
+
+                const result = await response.json();
+                console.log('Save result:', result);
+
+                if (result.success) {
+                    showMessage('Project saved successfully! All changes persisted to database.', 'success');
+                    currentProject = name;  // Update current project name
+                    localStorage.setItem('currentProject', name);  // Save to localStorage
+                    updateHeaderProjectName();  // Update header display
+                } else {
+                    showMessage(result.error || 'Failed to save project', 'error');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                showMessage('Error saving project: ' + error.message, 'error');
+            } finally {
+                hideLoading(saveBtn);
+            }
+        }
+
+        async function deleteProject(projectName) {
+            if (!confirm(`Delete project "${projectName}"? This cannot be undone.`)) {
+                return;
+            }
+
+            const response = await fetch(`/api/projects/${encodeURIComponent(projectName)}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showMessage('Project deleted successfully', 'success');
+                // Clear current project if it was deleted
+                if (currentProject === projectName) {
+                    currentProject = null;
+                    localStorage.removeItem('currentProject');
+                    updateHeaderProjectName();
+                    createNewProject();
+                }
+            } else {
+                showMessage(result.error || 'Failed to delete project', 'error');
+            }
+        }
+
+        // Export project backup as JSON
+        async function exportProjectBackup() {
+            if (!currentProject) {
+                showMessage('⚠️ No project loaded to export', 'warning');
+                return;
+            }
+
+            const exportBtn = document.getElementById('export-backup-btn');
+
+            try {
+                showLoading(exportBtn, 'Exporting...');
+
+                // Fetch all project data
+                const response = await fetch(`/api/project/${encodeURIComponent(currentProject)}`);
+                const projectData = await response.json();
+
+                if (!projectData) {
+                    showMessage('✗ Failed to fetch project data', 'error');
+                    return;
+                }
+
+                // Fetch brainstorms
+                const brainstormsResponse = await fetch(`/api/brainstorm/brainstorms/${encodeURIComponent(currentProject)}`);
+                const brainstormsData = await brainstormsResponse.json();
+
+                // Fetch drafts
+                const draftsResponse = await fetch(`/api/write/drafts/${encodeURIComponent(currentProject)}`);
+                const draftsData = await draftsResponse.json();
+
+                // Create comprehensive backup
+                const backup = {
+                    export_date: new Date().toISOString(),
+                    export_version: "1.0",
+                    project: projectData,
+                    brainstorms: brainstormsData.brainstorms || [],
+                    drafts: draftsData.drafts || []
+                };
+
+                // Convert to JSON string with pretty formatting
+                const jsonString = JSON.stringify(backup, null, 2);
+
+                // Create blob and download
+                const blob = new Blob([jsonString], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentProject}_backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                showMessage(`✓ Project backup exported successfully`, 'success');
+            } catch (error) {
+                console.error('Error exporting backup:', error);
+                showMessage('✗ Failed to export backup', 'error');
+            } finally {
+                hideLoading(exportBtn);
+            }
+        }
+
+        // Delete the current project from the Danger Zone section
+        async function deleteCurrentProject() {
+            if (!currentProject) {
+                showMessage('⚠️ No project loaded to delete', 'warning');
+                return;
+            }
+
+            // Get project display name
+            const displayName = document.getElementById('project-name')?.value || currentProject;
+
+            // First confirmation with all details
+            const confirmed = confirm(
+                `⚠️ PERMANENTLY DELETE PROJECT?\n\n` +
+                `Project: ${displayName}\n` +
+                `Folder: ${currentProject}\n\n` +
+                `This will permanently delete:\n` +
+                `• All ${scenesData.length} scenes\n` +
+                `• All ${charactersData.length} characters\n` +
+                `• All brainstorms and drafts\n` +
+                `• All project settings and notes\n\n` +
+                `THIS ACTION CANNOT BE UNDONE!\n\n` +
+                `Click OK to confirm, or Cancel to abort.`
+            );
+
+            if (!confirmed) {
+                showMessage('❌ Deletion cancelled', 'info');
+                return;
+            }
+
+            // Second confirmation - require typing "DELETE" (case-insensitive)
+            const typedConfirmation = prompt(
+                `FINAL CONFIRMATION\n\n` +
+                `You are about to permanently delete: ${displayName}\n\n` +
+                `Type the word DELETE (in capital letters) to confirm:`
+            );
+
+            if (!typedConfirmation || typedConfirmation.trim() !== 'DELETE') {
+                showMessage('❌ Deletion cancelled - confirmation word did not match', 'warning');
+                return;
+            }
+
+            const deleteBtn = document.getElementById('delete-project-btn');
+
+            try {
+                showLoading(deleteBtn, 'Deleting...');
+
+                const response = await fetch(`/api/projects/${encodeURIComponent(currentProject)}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage(`✓ Project "${displayName}" permanently deleted`, 'success');
+
+                    // Clear all local data
+                    currentProject = null;
+                    localStorage.removeItem('currentProject');
+                    charactersData = [];
+                    scenesData = [];
+
+                    // Redirect to landing page after brief delay
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1500);
+                } else {
+                    showMessage(`✗ Error: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting project:', error);
+                showMessage('✗ Failed to delete project: ' + error.message, 'error');
+            } finally {
+                hideLoading(deleteBtn);
+            }
+        }
+
+        let charactersData = [];
+        let scenesData = [];
+
+        function loadCharacters(characters) {
+            charactersData = characters || [];
+            renderCharactersTable();
+        }
+
+        function renderCharactersTable() {
+            const tbody = document.getElementById('characters-tbody');
+
+            if (charactersData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">No characters yet. Click "+ Add Character" to get started.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = charactersData.map((char, index) => `
+                <tr>
+                    <td><input type="text" value="${char.name || ''}" onchange="updateCharacter(${index}, 'name', this.value)" /></td>
+                    <td>
+                        <select onchange="updateCharacter(${index}, 'role', this.value)">
+                            <option value="protagonist" ${char.role === 'protagonist' ? 'selected' : ''}>Protagonist</option>
+                            <option value="love interest" ${char.role === 'love interest' ? 'selected' : ''}>Love Interest</option>
+                            <option value="best friend" ${char.role === 'best friend' ? 'selected' : ''}>Best Friend</option>
+                            <option value="obstacle" ${char.role === 'obstacle' ? 'selected' : ''}>Obstacle</option>
+                            <option value="mentor" ${char.role === 'mentor' ? 'selected' : ''}>Mentor</option>
+                            <option value="supporting" ${char.role === 'supporting' ? 'selected' : ''}>Supporting</option>
+                        </select>
+                    </td>
+                    <td><textarea onchange="updateCharacter(${index}, 'description', this.value)">${char.description || ''}</textarea></td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="btn-icon danger" onclick="deleteCharacter(${index})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function addCharacterRow() {
+            charactersData.push({
+                name: '',
+                role: 'supporting',
+                description: ''
+            });
+            renderCharactersTable();
+        }
+
+        function updateCharacter(index, field, value) {
+            charactersData[index][field] = value;
+        }
+
+        function deleteCharacter(index) {
+            if (confirm('Delete this character?')) {
+                charactersData.splice(index, 1);
+                renderCharactersTable();
+            }
+        }
+
+        function loadScenes(scenes) {
+            scenesData = scenes || [];
+            document.getElementById('scenes-count').textContent = scenesData.length;
+            renderScenesTable();
+        }
+
+        function renderScenesTable() {
+            const tbody = document.getElementById('scenes-tbody');
+            const filter = document.getElementById('scene-filter').value;
+
+            let filteredScenes = scenesData;
+            if (filter !== 'all') {
+                filteredScenes = scenesData.filter(scene => scene.act == filter);
+            }
+
+            if (filteredScenes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 40px;">No scenes found.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredScenes.map((scene, index) => {
+                const actualIndex = scenesData.indexOf(scene);
+                // Display act based on scene number
+                let actBadge = '';
+                if (scene.scene_number <= 6) actBadge = 'Act 1';
+                else if (scene.scene_number <= 24) actBadge = 'Act 2';
+                else actBadge = 'Act 3';
+
+                return `
+                    <tr data-act="${scene.act || 1}">
+                        <td style="text-align: center;">
+                            <div style="font-weight: bold; color: var(--text-primary); font-size: 1.1em;">${scene.scene_number}</div>
+                            <div style="font-size: 0.75em; color: var(--text-muted);">${actBadge}</div>
+                        </td>
+                        <td><input type="text" value="${scene.title || ''}" onchange="updateScene(${actualIndex}, 'title', this.value)" /></td>
+                        <td><textarea onchange="updateScene(${actualIndex}, 'description', this.value)">${scene.description || ''}</textarea></td>
+                        <td><input type="text" value="${scene.characters || ''}" onchange="updateScene(${actualIndex}, 'characters', this.value)" placeholder="e.g. Emma, Alex" /></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateScene(index, field, value) {
+            scenesData[index][field] = value;
+        }
+
+        function filterScenes() {
+            renderScenesTable();
+        }
+
+        function loadNotes(notes) {
+            document.getElementById('note-theme').value = notes.theme || '';
+            document.getElementById('note-tone').value = notes.tone || '';
+            document.getElementById('note-comps').value = notes.comps || '';
+            document.getElementById('note-inspiration').value = notes.inspiration || '';
+        }
+
+        // Utility functions moved to common.js
+
+        function addCharacter() {
+            alert('Character editor coming soon!');
+        }
+
+        // Global variable to track generation abort controller
+        let generationAbortController = null;
+        let generationStageInterval = null;
+
+        // Cancel generation function
+        function cancelGeneration() {
+            if (generationAbortController) {
+                generationAbortController.abort();
+
+                // Update UI to show cancelled state
+                const progressTitle = document.getElementById('ai-progress-title');
+                const progressText = document.getElementById('ai-progress-text');
+                const thinkingDots = document.getElementById('ai-thinking-dots');
+                const progressBar = document.getElementById('ai-progress-bar');
+
+                progressTitle.textContent = 'Cancelled';
+                progressTitle.style.color = 'var(--error)';
+                progressText.textContent = 'Generation stopped';
+                thinkingDots.style.display = 'none';
+                progressBar.style.background = 'var(--error)';
+
+                // Clear stage interval
+                if (generationStageInterval) {
+                    clearInterval(generationStageInterval);
+                }
+
+                // Hide modal after brief delay
+                setTimeout(() => {
+                    document.getElementById('ai-progress-modal').style.display = 'none';
+
+                    // Reset UI elements
+                    progressTitle.textContent = 'AI is Thinking...';
+                    progressTitle.style.color = '';
+                    progressText.textContent = 'Generating your romantic comedy';
+                    thinkingDots.style.display = 'flex';
+                    progressBar.style.background = '';
+                    progressBar.style.width = '0%';
+
+                    // Re-enable generate button
+                    const button = document.querySelector('.btn-generate-inline');
+                    if (button) {
+                        button.disabled = false;
+                        button.textContent = '🎲 Generate Random';
+                    }
+                }, 400);
+
+                showMessage('Generation cancelled', 'error');
+            }
+        }
+
+        async function generateRandomProject() {
+            const button = event.target;
+            button.disabled = true;
+            button.textContent = '🎲 Generating...';
+
+            // Create new abort controller for this generation
+            generationAbortController = new AbortController();
+
+            // Show progress modal
+            const modal = document.getElementById('ai-progress-modal');
+            const progressText = document.getElementById('ai-progress-text');
+            const progressBar = document.getElementById('ai-progress-bar');
+            const progressTitle = document.getElementById('ai-progress-title');
+            const thinkingDots = document.getElementById('ai-thinking-dots');
+
+            // Reset UI state
+            progressTitle.textContent = 'AI is Thinking...';
+            progressTitle.style.color = '';
+            progressText.textContent = 'Generating your romantic comedy';
+            thinkingDots.style.display = 'flex';
+            progressBar.style.background = '';
+            modal.style.display = 'flex';
+
+            // Simulate thinking stages with progress updates
+            const stages = [
+                { text: 'Brainstorming concept...', progress: 15 },
+                { text: 'Creating characters...', progress: 35 },
+                { text: 'Structuring three acts...', progress: 55 },
+                { text: 'Designing scenes...', progress: 75 },
+                { text: 'Finalizing details...', progress: 90 }
+            ];
+
+            let currentStage = 0;
+            generationStageInterval = setInterval(() => {
+                if (currentStage < stages.length) {
+                    progressText.textContent = stages[currentStage].text;
+                    progressBar.style.width = stages[currentStage].progress + '%';
+                    currentStage++;
+                }
+            }, 800);
+
+            try {
+                const response = await fetch('/api/generate/random-romcom', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: generationAbortController.signal
+                });
+
+                // Check if response is OK before parsing
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server returned ${response.status}: ${errorText.substring(0, 200)}`);
+                }
+
+                const data = await response.json();
+
+                clearInterval(generationStageInterval);
+                progressBar.style.width = '100%';
+                progressText.textContent = 'Complete!';
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                if (data.success) {
+                    // Clear current project to treat this as new
+                    currentProject = null;
+                    localStorage.removeItem('currentProject');
+                    updateHeaderProjectName();
+
+                    // Fill in the form with generated data
+                    document.getElementById('project-name').value = data.project.name || '';
+                    document.getElementById('project-logline').value = data.project.logline || '';
+                    document.getElementById('template-beatsheet').checked = true;
+
+                    // Load characters
+                    loadCharacters(data.project.characters || []);
+
+                    // Load scenes
+                    loadScenes(data.project.scenes || []);
+
+                    // Load notes
+                    document.getElementById('note-theme').value = data.project.notes.theme || '';
+                    document.getElementById('note-tone').value = data.project.notes.tone || '';
+                    document.getElementById('note-comps').value = data.project.notes.comparable_films || '';
+                    document.getElementById('note-inspiration').value = data.project.notes.inspiration || '';
+
+                    showMessage(`"${data.project.name}" generated! Saving project...`, 'success');
+
+                    // Debug: Log the data being saved
+                    console.log('Generated project data:', data.project);
+                    console.log('Characters loaded:', charactersData);
+                    console.log('Scenes loaded:', scenesData);
+
+                    // Automatically save the generated project
+                    const saveResult = await saveProject();
+                    console.log('Save completed, currentProject is now:', currentProject);
+                } else {
+                    showMessage(data.error || 'Failed to generate project', 'error');
+                }
+            } catch (error) {
+                clearInterval(generationStageInterval);
+
+                // Check if error is due to abort
+                if (error.name === 'AbortError') {
+                    console.log('Generation cancelled by user');
+                    return; // Exit early, UI already updated by cancelGeneration()
+                }
+
+                console.error('Generation error:', error);
+                showMessage('Error generating project: ' + error.message, 'error');
+            } finally {
+                // Only clean up if not aborted (abort cleanup handled in cancelGeneration)
+                if (!generationAbortController.signal.aborted) {
+                    // Hide modal
+                    modal.style.display = 'none';
+                    progressBar.style.width = '0%';
+                    button.disabled = false;
+                    button.textContent = '🎲 Generate Random';
+                }
+
+                // Clear abort controller reference
+                generationAbortController = null;
+                generationStageInterval = null;
+            }
+        }
+
+        // Initialize page when DOM is ready
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Theme toggle
+            const html = document.documentElement;
+            const themeToggle = document.getElementById('themeToggle');
+            html.setAttribute('data-theme', localStorage.getItem('theme') || 'light');
+            themeToggle.addEventListener('click', () => {
+                const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                html.setAttribute('data-theme', next);
+                localStorage.setItem('theme', next);
+            });
+
+            // Load projects on page load
+            await loadProjects();
+
+            // Check for URL parameters (scene number to view)
+            const urlParams = new URLSearchParams(window.location.search);
+            const sceneParam = urlParams.get('scene');
+            const viewType = urlParams.get('view'); // 'brainstorm' or 'draft'
+
+            // Check if we should open a specific tab (from landing page navigation)
+            const defaultTab = localStorage.getItem('defaultTab');
+            if (defaultTab || viewType) {
+                const targetTab = viewType === 'brainstorm' ? 'brainstorm' : (viewType === 'draft' ? 'screenplay' : defaultTab);
+                // Wait a moment for page to fully load
+                setTimeout(() => {
+                    const tabButton = document.querySelector(`.tab[onclick*="${targetTab}"]`);
+                    if (tabButton) {
+                        tabButton.click();
+                    }
+                    // Clear the flag
+                    localStorage.removeItem('defaultTab');
+
+                    // If scene parameter exists, auto-open that scene's details
+                    if (sceneParam && viewType) {
+                        setTimeout(() => {
+                            const detailsId = viewType === 'brainstorm'
+                                ? `brainstorm-details-${sceneParam}`
+                                : `draft-details-${sceneParam}`;
+                            const details = document.getElementById(detailsId);
+                            if (details) {
+                                details.open = true;
+                                details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                        }, 800);
+                    }
+                }, 500);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lizzy - AI Screenplay Writing</title>
+    <link rel="stylesheet" href="styles/common.css">
+    <style>
+        body {
+            overflow: auto;
+        }
+
+        .container-wide {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header-bar {
+            padding: 1rem 2rem;
+        }
+
+        .header-left h1 {
+            font-size: 1.125rem;
+        }
+
+        #project-dropdown {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            min-width: 200px;
+            height: 40px;
+            border-radius: 2rem;
+        }
+
+        .btn-new-project {
+            min-width: 40px;
+            max-width: 40px;
+            min-height: 40px;
+            max-height: 40px;
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.25rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .btn-new-project:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        /* Main content */
+        .main-content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            padding: var(--spacing-xl) var(--spacing-md);
+        }
+
+        /* Pipeline */
+        .pipeline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Step cards - clean, minimal */
+        .step {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            display: grid;
+            grid-template-columns: 48px 1fr auto;
+            gap: var(--spacing-md);
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px var(--shadow);
+            border-color: var(--text-muted);
+        }
+
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .step-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .step-description {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+        }
+
+        .step-action {
+            padding: 0.5rem 1.25rem;
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border: none;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-radius: 2rem;
+        }
+
+        .step-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .step.completed .step-number {
+            background: var(--text-primary);
+            color: var(--bg-primary);
+        }
+
+        /* Help button */
+        .help-button {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            background: var(--bg-inverse);
+            color: var(--text-inverse);
+            border: none;
+            border-radius: 50%;
+            font-size: 1.125rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px var(--shadow);
+            transition: all 0.2s ease;
+            z-index: 100;
+        }
+
+        .help-button:hover {
+            transform: scale(1.05);
+        }
+
+        /* Help Modal */
+        .help-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-md);
+        }
+
+        .help-modal.active {
+            display: flex;
+        }
+
+        .help-modal-content {
+            background: var(--bg-primary);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            max-width: 560px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .help-modal-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .help-modal-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .help-modal-body {
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            line-height: 1.7;
+        }
+
+        .help-modal-body p {
+            margin-bottom: 1rem;
+        }
+
+        .help-modal-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .help-modal-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .help-modal-close:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Shake animation */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+            20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+
+        /* Responsive */
+        @media (max-width: 640px) {
+            .step {
+                grid-template-columns: 40px 1fr;
+                gap: var(--spacing-sm);
+                padding: 1rem;
+            }
+
+            .step-action {
+                grid-column: 2;
+                justify-self: start;
+                margin-top: var(--spacing-xs);
+            }
+
+            .step-number {
+                width: 36px;
+                height: 36px;
+                font-size: 0.875rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-wide">
+        <div class="header-bar">
+            <div class="header-left">
+                <h1>Lizzy</h1>
+                <span class="tagline">AI Screenplay Writing</span>
+            </div>
+            <div class="header-right">
+                <select id="project-dropdown" class="form-select" onchange="selectProject()">
+                    <option value="">Select a project...</option>
+                </select>
+                <button class="btn-new-project" onclick="createNewProject()" title="Create New Project">+</button>
+                <div class="theme-toggle">
+                    <div class="toggle-switch" id="themeToggle"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content-area">
+            <div class="pipeline">
+                <div class="step" id="step-1" onclick="navigateTo('manager');">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <div class="step-title">Setup</div>
+                        <div class="step-description">Configure project, characters, and scenes</div>
+                    </div>
+                    <button class="step-action" onclick="navigateTo('manager'); event.stopPropagation();">Go</button>
+                </div>
+
+                <div class="step" id="step-2" onclick="navigateTo('brainstorm');">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <div class="step-title">Brainstorm</div>
+                        <div class="step-description">Generate ideas with AI knowledge graphs</div>
+                    </div>
+                    <button class="step-action" onclick="navigateTo('brainstorm'); event.stopPropagation();">Go</button>
+                </div>
+
+                <div class="step" id="step-3" onclick="navigateTo('write');">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <div class="step-title">Write</div>
+                        <div class="step-description">Convert brainstorms to screenplay format</div>
+                    </div>
+                    <button class="step-action" onclick="navigateTo('write'); event.stopPropagation();">Go</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-container"></div>
+
+    <script src="js/common.js"></script>
+    <script>
+        // Theme toggle
+        const html = document.documentElement;
+        const themeToggle = document.getElementById('themeToggle');
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const current = html.getAttribute('data-theme');
+            const next = current === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('theme', next);
+        });
+
+        // Project status
+        let projectStatus = {
+            currentProject: null,
+            steps: { start: false, intake: false, brainstorm: false, write: false, export: false }
+        };
+
+        async function loadProjects() {
+            try {
+                const response = await fetch('/api/projects');
+                const data = await response.json();
+                const dropdown = document.getElementById('project-dropdown');
+                const currentProject = localStorage.getItem('currentProject');
+
+                dropdown.innerHTML = '<option value="">Select a project...</option>';
+
+                data.projects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.name;
+                    option.textContent = project.display_name || project.name;
+                    if (project.name === currentProject) option.selected = true;
+                    dropdown.appendChild(option);
+                });
+
+                if (currentProject && dropdown.value === currentProject) {
+                    projectStatus.currentProject = currentProject;
+                    enableStepCards();
+                }
+            } catch (error) {
+                console.error('Error loading projects:', error);
+            }
+        }
+
+        function enableStepCards() {
+            document.getElementById('step-2').style.opacity = '1';
+            document.getElementById('step-3').style.opacity = '1';
+            document.getElementById('step-2').style.pointerEvents = 'auto';
+            document.getElementById('step-3').style.pointerEvents = 'auto';
+        }
+
+        function disableStepCards() {
+            document.getElementById('step-2').style.opacity = '0.5';
+            document.getElementById('step-3').style.opacity = '0.5';
+            document.getElementById('step-2').style.pointerEvents = 'none';
+            document.getElementById('step-3').style.pointerEvents = 'none';
+        }
+
+        function selectProject() {
+            const dropdown = document.getElementById('project-dropdown');
+            const projectName = dropdown.value;
+
+            if (projectName) {
+                localStorage.setItem('currentProject', projectName);
+                projectStatus.currentProject = projectName;
+                enableStepCards();
+            } else {
+                localStorage.removeItem('currentProject');
+                projectStatus.currentProject = null;
+                disableStepCards();
+            }
+        }
+
+        function createNewProject() {
+            localStorage.removeItem('currentProject');
+            window.location.href = '/manager';
+        }
+
+        function navigateTo(module) {
+            if (module === 'manager') {
+                window.location.href = '/manager';
+            } else if (module === 'brainstorm' || module === 'write') {
+                const currentProject = localStorage.getItem('currentProject');
+                if (!currentProject) {
+                    const dropdown = document.getElementById('project-dropdown');
+                    dropdown.style.animation = 'shake 0.5s';
+                    dropdown.focus();
+                    setTimeout(() => dropdown.style.animation = '', 500);
+                    showMessage('Please select a project first', 'warning', 3000);
+                    return;
+                }
+                navigateWithProject('/' + module);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadProjects();
+            const currentProject = localStorage.getItem('currentProject');
+            if (!currentProject) disableStepCards();
+        });
+
+        function openHelpModal() {
+            document.getElementById('help-modal').classList.add('active');
+        }
+
+        function closeHelpModal() {
+            document.getElementById('help-modal').classList.remove('active');
+        }
+
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('help-modal');
+            if (event.target === modal) closeHelpModal();
+        });
+    </script>
+
+    <button class="help-button" onclick="openHelpModal()" title="Getting Started">?</button>
+
+    <div id="help-modal" class="help-modal">
+        <div class="help-modal-content">
+            <button class="help-modal-close" onclick="closeHelpModal()">x</button>
+            <div class="help-modal-header">
+                <h2>Getting Started</h2>
+            </div>
+            <div class="help-modal-body">
+                <p>Welcome to <strong>Lizzy</strong>: an AI-powered tool designed to help you bring your dream screenplay to life in three simple steps.</p>
+
+                <p>Start by clicking the <strong>"+"</strong> button to create your project, then head over to <strong>Setup</strong>. Here, you can enter details about your story: characters, scene outlines, and notes.</p>
+
+                <p>Once your story framework is ready, move to <strong>Brainstorm</strong>, where Lizzy's expert knowledge bases collaborate to develop your ideas.</p>
+
+                <p>After brainstorming, it's time to <strong>Write</strong>! Generate drafts for each scene and compile your screenplay.</p>
+            </div>
+            <div class="help-modal-footer">
+                <p>Questions? Reach out at <strong>ellejansickresearch@gmail.com</strong></p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

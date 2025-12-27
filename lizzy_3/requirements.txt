@@ -1,0 +1,14 @@
+# lizzy_3 dependencies
+
+# Core LLM
+openai>=2.14.0
+
+# Knowledge graph RAG (domain expertise)
+lightrag-hku>=1.4.9
+
+# Agent memory system (includes fastapi, uvicorn)
+hindsight-all>=0.1.16
+
+# Graph database for entity exploration
+neo4j>=5.0.0
+networkx>=3.0
