@@ -73,6 +73,14 @@ class CypherQueryRequest(BaseModel):
     params: Optional[dict] = None
 
 
+class ExpertChatRequest(BaseModel):
+    message: str
+    bucket: str
+    system_prompt: str
+    rag_mode: Optional[str] = "hybrid"
+    history: Optional[list] = []
+
+
 # --- Bucket Endpoints ---
 
 @app.get("/api/buckets")
@@ -219,6 +227,82 @@ async def health_check() -> dict:
         "buckets_dir": str(BUCKETS_DIR),
         "legacy_buckets_dir": str(LEGACY_BUCKETS_DIR)
     }
+
+
+# --- Expert Chat Endpoint ---
+
+@app.post("/api/expert/chat")
+async def expert_chat(request: ExpertChatRequest) -> dict:
+    """
+    Chat with an expert using the LLM + System Prompt + Bucket pattern.
+
+    1. Query the bucket for relevant context (RAG)
+    2. Build prompt with system prompt + context + conversation history
+    3. Call LLM and return response
+    """
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI()
+
+    # Step 1: Query bucket for relevant context
+    try:
+        context = await bucket_manager.query(
+            request.bucket,
+            request.message,
+            request.rag_mode
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        # If RAG fails, continue without context
+        context = ""
+
+    # Step 2: Build messages for LLM
+    messages = []
+
+    # System prompt with context injection
+    system_content = request.system_prompt
+    if context:
+        system_content += f"\n\n---\nRelevant knowledge from your expertise:\n{context[:3000]}"
+
+    messages.append({"role": "system", "content": system_content})
+
+    # Add conversation history
+    for msg in request.history[-10:]:  # Last 10 messages
+        if isinstance(msg, dict) and "role" in msg and "content" in msg:
+            messages.append({
+                "role": msg["role"],
+                "content": msg["content"]
+            })
+
+    # Add current user message
+    messages.append({"role": "user", "content": request.message})
+
+    # Step 3: Call LLM
+    try:
+        response = await client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1500
+        )
+
+        assistant_message = response.choices[0].message.content
+
+        # Summarize context used
+        context_summary = None
+        if context:
+            context_preview = context[:200].replace("\n", " ")
+            context_summary = f"{len(context)} chars retrieved"
+
+        return {
+            "response": assistant_message,
+            "context_used": context_summary,
+            "model": "gpt-4o"
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
 
 
 # --- Graph Endpoints (Neo4j) ---

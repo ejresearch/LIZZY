@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lizzy - Query</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #18181b;
+      --bg-secondary: #111;
+      --bg-tertiary: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border: #3f3f46;
+      --accent: #60a5fa;
+      --accent-bg: #1e3a5f;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Header */
+    .header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-primary);
+    }
+
+    .header h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .header a {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      text-decoration: none;
+    }
+
+    .header a:hover { color: var(--text-primary); }
+
+    /* Expert Tabs */
+    .expert-tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+      justify-content: center;
+    }
+
+    .expert-tab {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .expert-tab:hover {
+      border-color: var(--text-muted);
+      color: var(--text-primary);
+    }
+
+    .expert-tab.active {
+      background: var(--accent-bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .expert-tab.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .expert-tab .status {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-left: 0.5rem;
+    }
+
+    .expert-tab .status.ready { background: #22c55e; }
+    .expert-tab .status.empty { background: #71717a; }
+
+    /* Chat Container */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    /* Messages */
+    .messages {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 1rem 1.25rem;
+      border-radius: 1rem;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message.system {
+      align-self: center;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+    }
+
+    .message h2, .message h3 {
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+      color: var(--accent);
+    }
+
+    .message ul, .message ol {
+      margin-left: 1.25rem;
+      margin-top: 0.5rem;
+    }
+
+    .message li {
+      margin-bottom: 0.25rem;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .empty-state h2 {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      font-size: 0.875rem;
+      max-width: 400px;
+    }
+
+    /* Input Area */
+    .input-area {
+      padding: 1rem 1.5rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: var(--bg-primary);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9375rem;
+    }
+
+    .input-row input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .input-row input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .input-row button {
+      padding: 0.875rem 1.5rem;
+      border-radius: 0.75rem;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .input-row button:hover { opacity: 0.9; }
+    .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Loading */
+    .loading-dots {
+      display: inline-flex;
+      gap: 0.25rem;
+    }
+
+    .loading-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0); }
+      40% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Query</h1>
+    <div class="header-right">
+      <a href="buckets.html">Buckets</a>
+    </div>
+  </div>
+
+  <div class="expert-tabs">
+    <button class="expert-tab" data-expert="books" onclick="selectExpert('books')">
+      Books <span class="status empty"></span>
+    </button>
+    <button class="expert-tab active" data-expert="plays" onclick="selectExpert('plays')">
+      Plays <span class="status empty"></span>
+    </button>
+    <button class="expert-tab" data-expert="scripts" onclick="selectExpert('scripts')">
+      Scripts <span class="status empty"></span>
+    </button>
+  </div>
+
+  <div class="chat-container">
+    <div class="messages" id="messages">
+      <div class="empty-state" id="emptyState">
+        <h2 id="expertTitle">Story Patterns Expert</h2>
+        <p id="expertDesc">Drawing from Shakespeare and timeless dramatic works. Ask about archetypes, relationship dynamics, tropes, and thematic undercurrents.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" id="input" placeholder="Ask the expert..." autofocus>
+      <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000';
+    const RAG_MODE = 'hybrid';
+
+    // Expert configurations with pre-loaded prompts
+    const EXPERTS = {
+      books: {
+        bucket: 'books-final',
+        title: 'Structure & Craft Expert',
+        desc: 'Screenplay structure, beat positioning, act mechanics. Ask about plot pyramids, subplot integration, pacing, and relationships.',
+        placeholder: 'Ask the structure expert...',
+        prompt: `You are a SCREENPLAY STRUCTURE AND CRAFT EXPERT.
+
+ROMANTIC COMEDY FRAMEWORK:
+(Draw from these loosely as inspiration, not as rigid requirements)
+
+TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
+The audience thinks: "That could be me, if my life were a little more magical."
+
+STRUCTURE (common patterns):
+- Two protagonists with complementary flaws who resist connection
+- Central question: Will they end up together? (audience knows yes, tension is how)
+- Arc: Meet -> Resist -> Connect -> Crisis (all seems lost) -> Realization -> Union
+- The grand gesture or public declaration
+- Racing to catch them before it's too late
+
+As a structure expert, help writers architect their scenes.
+
+When answering, focus on:
+- PLOT PYRAMID: Position in three-act structure, what beat this represents, what must change
+- SUBPLOT INTEGRATION: How secondary storylines weave in, connections that pay off later
+- RELATIONSHIPS AND CHEMISTRY: What draws characters together or apart, how dynamics shift
+- PACING AND MOMENTUM: Fast/slow/building tempo, where to linger vs. move quickly
+
+Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+      },
+
+      plays: {
+        bucket: 'plays-final',
+        title: 'Story Patterns Expert',
+        desc: 'Drawing from Shakespeare and timeless dramatic works. Ask about archetypes, relationship dynamics, tropes, and thematic undercurrents.',
+        placeholder: 'Ask the plays expert...',
+        prompt: `You are a CLASSICAL STORY PATTERNS EXPERT drawing from Shakespeare and timeless dramatic works.
+
+ROMANTIC COMEDY FRAMEWORK:
+(Draw from these loosely as inspiration, not as rigid requirements)
+
+TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
+The audience thinks: "That could be me, if my life were a little more magical."
+
+STRUCTURE (common patterns):
+- Two protagonists with complementary flaws who resist connection
+- Central question: Will they end up together? (audience knows yes, tension is how)
+- Arc: Meet -> Resist -> Connect -> Crisis (all seems lost) -> Realization -> Union
+
+COMEDY SOURCES:
+- Situational irony and misunderstanding
+- Witty banter and verbal sparring
+- Relatable awkwardness and vulnerability
+- Fish-out-of-water moments
+
+ROMANCE SOURCES:
+- Vulnerability and emotional honesty
+- Small moments of recognition and care
+- The almost-kiss, the loaded glance, the thing left unsaid
+- Seeing each other clearly when no one else does
+
+As a story patterns expert, help writers connect their scenes to proven dramatic archetypes.
+
+When answering, focus on:
+- STORY ARCHETYPE: Which Shakespearean/classical framework applies, where to honor vs. subvert
+- RELATIONSHIP DYNAMICS: Power and vulnerability, what characters want (stated and unstated), push-pull tension
+- TIMELESS TROPES: Overheard conversations, interruptions, confessions, mistaken assumptions, dramatic irony
+- THEMATIC UNDERCURRENT: Deeper truth being explored, what audience should feel but characters won't say
+
+Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+      },
+
+      scripts: {
+        bucket: 'scripts-final',
+        title: 'Romcom Reference Expert',
+        desc: 'Deep knowledge of modern romantic comedy films. Ask about comparable scenes, execution inspiration, and what to learn or avoid.',
+        placeholder: 'Ask the scripts expert...',
+        prompt: `You are a ROMCOM REFERENCE EXPERT with deep knowledge of modern romantic comedy films.
+
+ROMANTIC COMEDY FRAMEWORK:
+(Draw from these loosely as inspiration, not as rigid requirements)
+
+TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
+The audience thinks: "That could be me, if my life were a little more magical."
+
+ROMANCE SOURCES (moments to build):
+- Vulnerability and emotional honesty
+- Small moments of recognition and care
+- Transformation through love (becoming who they're meant to be)
+- The almost-kiss, the loaded glance, the thing left unsaid
+- Rain, rooftops, string lights, golden hour
+
+COMEDY SOURCES (mix and match):
+- Situational irony and misunderstanding
+- Witty banter and verbal sparring
+- Relatable awkwardness and vulnerability
+- The well-meaning but chaotic best friend
+- Plans that go spectacularly wrong
+
+As a reference expert, draw from existing romcoms to inspire and inform scenes.
+
+When answering, focus on:
+- COMPARABLE SCENES: Specific scenes from films that tackle similar beats, what made them work
+- EXECUTION INSPIRATION: Dialogue style, visual approach, tone balance, pacing
+- WHAT TO LEARN: Techniques worth emulating, choices that elevated the scene
+- WHAT TO AVOID: Common pitfalls, what falls flat, cliches to sidestep or reinvent
+
+Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+      }
+    };
+
+    let currentExpert = 'plays';
+    let chatHistory = [];
+    let availableBuckets = {};
+
+    // Check which buckets are available
+    async function checkBuckets() {
+      try {
+        const res = await fetch(`${API_BASE}/api/buckets`);
+        if (res.ok) {
+          const buckets = await res.json();
+          buckets.forEach(b => {
+            if (b.nodes > 0) {
+              availableBuckets[b.name] = true;
+            }
+          });
+          updateTabStatus();
+        }
+      } catch (e) {
+        console.log('Could not check buckets');
+      }
+    }
+
+    function updateTabStatus() {
+      document.querySelectorAll('.expert-tab').forEach(tab => {
+        const expert = tab.dataset.expert;
+        const bucket = EXPERTS[expert].bucket;
+        const status = tab.querySelector('.status');
+
+        if (availableBuckets[bucket]) {
+          status.className = 'status ready';
+          tab.classList.remove('disabled');
+        } else {
+          status.className = 'status empty';
+        }
+      });
+    }
+
+    function selectExpert(expert) {
+      const bucket = EXPERTS[expert].bucket;
+
+      // Allow selection even if bucket not ready (will show error on send)
+      currentExpert = expert;
+      chatHistory = [];
+
+      // Update tabs
+      document.querySelectorAll('.expert-tab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.expert === expert);
+      });
+
+      // Update empty state
+      document.getElementById('expertTitle').textContent = EXPERTS[expert].title;
+      document.getElementById('expertDesc').textContent = EXPERTS[expert].desc;
+      document.getElementById('input').placeholder = EXPERTS[expert].placeholder;
+
+      // Clear messages
+      const messages = document.getElementById('messages');
+      messages.innerHTML = `
+        <div class="empty-state" id="emptyState">
+          <h2 id="expertTitle">${EXPERTS[expert].title}</h2>
+          <p id="expertDesc">${EXPERTS[expert].desc}</p>
+        </div>
+      `;
+    }
+
+    document.getElementById('input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('input');
+      const message = input.value.trim();
+      if (!message) return;
+
+      const expert = EXPERTS[currentExpert];
+
+      input.value = '';
+      input.disabled = true;
+      document.getElementById('sendBtn').disabled = true;
+
+      // Clear empty state
+      const emptyState = document.getElementById('emptyState');
+      if (emptyState) emptyState.remove();
+
+      // Add user message
+      addMessage('user', message);
+
+      // Add loading
+      const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>', true);
+
+      try {
+        const response = await fetch(`${API_BASE}/api/expert/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            bucket: expert.bucket,
+            system_prompt: expert.prompt,
+            rag_mode: RAG_MODE,
+            history: chatHistory.slice(-10)
+          })
+        });
+
+        removeMessage(loadingId);
+
+        if (response.ok) {
+          const data = await response.json();
+          addMessage('assistant', data.response);
+          chatHistory.push({ role: 'user', content: message });
+          chatHistory.push({ role: 'assistant', content: data.response });
+        } else {
+          const error = await response.json();
+          addMessage('system', 'Error: ' + (error.detail || 'Failed to get response'));
+        }
+      } catch (e) {
+        removeMessage(loadingId);
+        addMessage('system', 'Error: Could not connect to server');
+      }
+
+      input.disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      input.focus();
+    }
+
+    function addMessage(role, content, isHtml = false) {
+      const container = document.getElementById('messages');
+      const id = 'msg-' + Date.now();
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = `message ${role}`;
+
+      if (isHtml) {
+        div.innerHTML = content;
+      } else {
+        let html = escapeHtml(content);
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/\n/g, '<br>');
+        div.innerHTML = html;
+      }
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    function removeMessage(id) {
+      const msg = document.getElementById(id);
+      if (msg) msg.remove();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Init
+    checkBuckets();
+  </script>
+</body>
+</html>
