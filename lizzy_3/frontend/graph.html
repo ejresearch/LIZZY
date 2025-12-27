@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Graph Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.6/dist/vis-network.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #111;
+      color: #fafafa;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .header {
+      padding: 1rem 1.5rem;
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 {
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+    .header-meta {
+      font-size: 0.8125rem;
+      color: #71717a;
+    }
+    .controls {
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+    .controls input {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #3f3f46;
+      background: #27272a;
+      color: #fafafa;
+      font-size: 0.8125rem;
+      width: 200px;
+    }
+    .controls input:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+    .controls select {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #3f3f46;
+      background: #27272a;
+      color: #fafafa;
+      font-size: 0.8125rem;
+    }
+    .btn {
+      padding: 0.5rem 0.875rem;
+      border-radius: 0.375rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid #3f3f46;
+      background: #27272a;
+      color: #fafafa;
+      text-decoration: none;
+    }
+    .btn:hover { border-color: #fafafa; }
+    #graph {
+      flex: 1;
+      width: 100%;
+      height: calc(100vh - 80px);
+      background: #0a0a0a;
+    }
+    .info-panel {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      max-width: 320px;
+      font-size: 0.8125rem;
+      display: none;
+    }
+    .info-panel.active { display: block; }
+    .info-panel h3 {
+      font-size: 0.9375rem;
+      margin-bottom: 0.5rem;
+      color: #60a5fa;
+    }
+    .info-panel .type {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      color: #71717a;
+      margin-bottom: 0.5rem;
+    }
+    .info-panel .desc {
+      color: #a1a1aa;
+      line-height: 1.5;
+    }
+    .info-panel .connections {
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #3f3f46;
+      color: #71717a;
+    }
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #71717a;
+    }
+    .legend {
+      position: fixed;
+      bottom: 1rem;
+      left: 1rem;
+      background: #18181b;
+      border: 1px solid #3f3f46;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      font-size: 0.75rem;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .legend-item:last-child { margin-bottom: 0; }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1 id="title">Graph Viewer</h1>
+      <div class="header-meta" id="meta">Loading...</div>
+    </div>
+    <div class="controls">
+      <input type="text" id="search" placeholder="Search entities...">
+      <select id="typeFilter">
+        <option value="">All types</option>
+      </select>
+      <a href="/buckets.html" class="btn">Back</a>
+    </div>
+  </div>
+
+  <div id="graph"></div>
+  <div class="loading" id="loading">Loading graph...</div>
+
+  <div class="info-panel" id="infoPanel">
+    <h3 id="infoName"></h3>
+    <div class="type" id="infoType"></div>
+    <div class="desc" id="infoDesc"></div>
+    <div class="connections" id="infoConn"></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const bucket = params.get('bucket') || 'plays-final';
+    const API_BASE = '';
+
+    const TYPE_COLORS = {
+      'character': '#ef4444',
+      'person': '#ef4444',
+      'location': '#22c55e',
+      'place': '#22c55e',
+      'organization': '#3b82f6',
+      'event': '#eab308',
+      'theme': '#a855f7',
+      'concept': '#a855f7',
+      'object': '#f97316',
+      'unknown': '#71717a'
+    };
+
+    function getColor(type) {
+      const t = (type || '').toLowerCase();
+      for (const [key, color] of Object.entries(TYPE_COLORS)) {
+        if (t.includes(key)) return color;
+      }
+      return TYPE_COLORS.unknown;
+    }
+
+    let network = null;
+    let allNodes = [];
+    let allEdges = [];
+
+    async function loadGraph() {
+      try {
+        const res = await fetch(`${API_BASE}/api/graph/data/${bucket}?limit=150`);
+        if (!res.ok) throw new Error('Failed to load graph');
+        const data = await res.json();
+
+        document.getElementById('title').textContent = `Graph: ${bucket}`;
+        document.getElementById('meta').textContent = `${data.total_nodes} nodes, ${data.total_edges} edges (showing top ${data.nodes.length})`;
+        document.getElementById('loading').style.display = 'none';
+
+        // Build type filter
+        const types = [...new Set(data.nodes.map(n => n.type))].sort();
+        const typeSelect = document.getElementById('typeFilter');
+        types.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          typeSelect.appendChild(opt);
+        });
+
+        // Build legend
+        const legendTypes = types.slice(0, 6);
+        document.getElementById('legend').innerHTML = legendTypes.map(t => `
+          <div class="legend-item">
+            <div class="legend-dot" style="background: ${getColor(t)}"></div>
+            <span>${t}</span>
+          </div>
+        `).join('');
+
+        // Create vis.js data
+        allNodes = data.nodes.map((n, i) => ({
+          id: n.id,
+          label: n.label,
+          title: n.description || n.id,
+          color: {
+            background: getColor(n.type),
+            border: getColor(n.type),
+            highlight: { background: '#fff', border: getColor(n.type) }
+          },
+          type: n.type,
+          description: n.description,
+          connections: n.connections,
+          font: { color: '#fff', size: 11 },
+          size: Math.min(10 + n.connections * 2, 40),
+          x: Math.cos(i * 0.5) * (200 + Math.random() * 300),
+          y: Math.sin(i * 0.5) * (200 + Math.random() * 300)
+        }));
+
+        allEdges = data.edges.map((e, i) => ({
+          id: i,
+          from: e.from,
+          to: e.to,
+          color: { color: '#3f3f46', highlight: '#60a5fa' },
+          width: Math.min(1 + e.weight, 4)
+        }));
+
+        renderGraph(allNodes, allEdges);
+
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Error: ' + err.message;
+      }
+    }
+
+    function renderGraph(nodes, edges) {
+      const container = document.getElementById('graph');
+      const data = {
+        nodes: new vis.DataSet(nodes),
+        edges: new vis.DataSet(edges)
+      };
+
+      const options = {
+        nodes: {
+          shape: 'dot',
+          borderWidth: 2
+        },
+        edges: {
+          smooth: { type: 'continuous' }
+        },
+        physics: {
+          enabled: true,
+          stabilization: {
+            enabled: true,
+            iterations: 200,
+            fit: true
+          },
+          barnesHut: {
+            gravitationalConstant: -5000,
+            centralGravity: 0.5,
+            springLength: 120,
+            springConstant: 0.04
+          }
+        },
+        interaction: {
+          hover: true,
+          tooltipDelay: 200,
+          zoomView: true,
+          dragView: true
+        },
+        layout: {
+          randomSeed: 42,
+          improvedLayout: true
+        }
+      };
+
+      console.log('Creating network with', nodes.length, 'nodes and', edges.length, 'edges');
+      console.log('Container size:', container.offsetWidth, 'x', container.offsetHeight);
+
+      network = new vis.Network(container, data, options);
+
+      // Fit to view after stabilization
+      network.once('stabilizationIterationsDone', function() {
+        console.log('Stabilization done, fitting view');
+        network.fit({ animation: true });
+      });
+
+      // Also fit immediately after a short delay
+      setTimeout(() => {
+        console.log('Delayed fit');
+        network.fit();
+        network.redraw();
+      }, 500);
+
+      network.on('click', function(params) {
+        if (params.nodes.length > 0) {
+          const nodeId = params.nodes[0];
+          const node = allNodes.find(n => n.id === nodeId);
+          if (node) showInfo(node);
+        } else {
+          document.getElementById('infoPanel').classList.remove('active');
+        }
+      });
+    }
+
+    function showInfo(node) {
+      document.getElementById('infoName').textContent = node.id;
+      document.getElementById('infoType').textContent = node.type;
+      document.getElementById('infoDesc').textContent = node.description || 'No description';
+      document.getElementById('infoConn').textContent = `${node.connections} connections`;
+      document.getElementById('infoPanel').classList.add('active');
+    }
+
+    // Search
+    document.getElementById('search').addEventListener('input', (e) => {
+      const term = e.target.value.toLowerCase();
+      if (!term) {
+        renderGraph(allNodes, allEdges);
+        return;
+      }
+      const filtered = allNodes.filter(n =>
+        n.id.toLowerCase().includes(term) ||
+        (n.description && n.description.toLowerCase().includes(term))
+      );
+      const ids = new Set(filtered.map(n => n.id));
+      const filteredEdges = allEdges.filter(e => ids.has(e.from) && ids.has(e.to));
+      renderGraph(filtered, filteredEdges);
+    });
+
+    // Type filter
+    document.getElementById('typeFilter').addEventListener('change', (e) => {
+      const type = e.target.value;
+      if (!type) {
+        renderGraph(allNodes, allEdges);
+        return;
+      }
+      const filtered = allNodes.filter(n => n.type === type);
+      const ids = new Set(filtered.map(n => n.id));
+      const filteredEdges = allEdges.filter(e => ids.has(e.from) && ids.has(e.to));
+      renderGraph(filtered, filteredEdges);
+    });
+
+    loadGraph();
+  </script>
+</body>
+</html>

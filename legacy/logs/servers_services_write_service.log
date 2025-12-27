@@ -96,3 +96,27 @@ ModuleNotFoundError: No module named 'reportlab'
 2025-12-23 10:20:15 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
 2025-12-23 10:21:32 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
 2025-12-23 10:22:47 - servers.services.write_service - WARNING - get_all_drafts:94 - Project not found: love_on_the_right_track
+2025-12-23 12:50:11 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:13 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:14 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined
+2025-12-23 12:50:14 - servers.services.write_service - ERROR - export_full_screenplay:375 - Error exporting full screenplay: name 'StartModule' is not defined
+Traceback (most recent call last):
+  File "/Users/elle_jansick/LIZZY_ROMCOM/servers/services/write_service.py", line 298, in export_full_screenplay
+    sanitized_name = StartModule._sanitize_name(project_name)
+                     ^^^^^^^^^^^
+NameError: name 'StartModule' is not defined

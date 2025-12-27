@@ -26,6 +26,7 @@ wheels/
 # Project directories
 projects/
 rag_buckets/
+lizzy_3/buckets/
 
 # Generated visualizations
 *_graph.html
