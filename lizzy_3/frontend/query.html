@@ -66,64 +66,167 @@
     }
     .nav-link:hover { color: var(--text-primary); }
 
-    /* Expert Tabs */
-    .expert-tabs {
+    /* Main Layout */
+    .main-layout {
+      flex: 1;
       display: flex;
-      gap: 0.5rem;
-      padding: 1rem 1.5rem;
-      background: var(--bg-primary);
-      border-bottom: 1px solid var(--border);
-      justify-content: center;
+      overflow: hidden;
     }
 
-    .expert-tab {
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem;
-      border: 1px solid var(--border);
-      background: var(--bg-tertiary);
+    /* Coordination Panel */
+    .coord-panel {
+      width: 260px;
+      border-right: 1px solid var(--border);
+      background: var(--bg-secondary);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .coord-header {
+      padding: 1.25rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .coord-header h2 {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
       color: var(--text-muted);
-      font-size: 0.8125rem;
-      font-weight: 500;
+    }
+
+    .coord-section {
+      padding: 1rem;
+    }
+
+    .coord-section-title {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Bucket Toggle */
+    .bucket-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
-    .expert-tab:hover {
+    .bucket-toggle:hover {
       border-color: var(--text-muted);
-      color: var(--text-primary);
     }
 
-    .expert-tab.active {
-      background: var(--accent-bg);
+    .bucket-toggle.active {
       border-color: var(--accent);
-      color: var(--accent);
+      background: var(--accent-bg);
     }
 
-    .expert-tab.disabled {
-      opacity: 0.4;
+    .bucket-toggle.disabled {
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
-    .expert-tab .status {
-      display: inline-block;
+    .bucket-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .bucket-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .bucket-switch .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border);
+      transition: 0.2s;
+      border-radius: 20px;
+    }
+
+    .bucket-switch .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.2s;
+      border-radius: 50%;
+    }
+
+    .bucket-switch input:checked + .slider {
+      background-color: var(--accent);
+    }
+
+    .bucket-switch input:checked + .slider:before {
+      transform: translateX(16px);
+    }
+
+    .bucket-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .bucket-name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .bucket-status {
       width: 6px;
       height: 6px;
       border-radius: 50%;
-      margin-left: 0.5rem;
+      background: var(--text-muted);
     }
 
-    .expert-tab .status.ready { background: #22c55e; }
-    .expert-tab .status.empty { background: #71717a; }
+    .bucket-status.ready { background: #22c55e; }
+    .bucket-status.empty { background: #71717a; }
+
+    .bucket-desc {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .bucket-use {
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      margin-top: 0.375rem;
+      font-style: italic;
+    }
 
     /* Chat Container */
     .chat-container {
       flex: 1;
       display: flex;
       flex-direction: column;
-      max-width: 900px;
-      width: 100%;
-      margin: 0 auto;
-      padding: 0;
+      min-width: 0;
     }
 
     /* Messages */
@@ -289,31 +392,88 @@
     </div>
   </nav>
 
-  <div class="expert-tabs">
-    <button class="expert-tab" data-expert="books" onclick="selectExpert('books')">
-      Books <span class="status empty"></span>
-    </button>
-    <button class="expert-tab active" data-expert="plays" onclick="selectExpert('plays')">
-      Plays <span class="status empty"></span>
-    </button>
-    <button class="expert-tab" data-expert="scripts" onclick="selectExpert('scripts')">
-      Scripts <span class="status empty"></span>
-    </button>
-  </div>
-
-  <div class="chat-container">
-    <div class="messages" id="messages">
-      <div class="empty-state" id="emptyState">
-        <h2 id="expertTitle">Story Patterns Expert</h2>
-        <p id="expertDesc">Drawing from Shakespeare and timeless dramatic works. Ask about archetypes, relationship dynamics, tropes, and thematic undercurrents.</p>
+  <div class="main-layout">
+    <!-- Coordination Panel -->
+    <aside class="coord-panel">
+      <div class="coord-header">
+        <h2>Knowledge Sources</h2>
       </div>
-    </div>
-  </div>
 
-  <div class="input-area">
-    <div class="input-row">
-      <input type="text" id="input" placeholder="Ask the expert..." autofocus>
-      <button id="sendBtn" onclick="sendMessage()">Send</button>
+      <div class="coord-section">
+        <div class="coord-section-title">Expert Buckets</div>
+
+        <!-- Books -->
+        <div class="bucket-toggle" data-bucket="books-final" onclick="toggleBucket('books-final')">
+          <label class="bucket-switch">
+            <input type="checkbox" id="toggle-books">
+            <span class="slider"></span>
+          </label>
+          <div class="bucket-info">
+            <div class="bucket-name">
+              Structure
+              <span class="bucket-status empty" id="status-books"></span>
+            </div>
+            <div class="bucket-desc">Craft, beats, arcs, pacing</div>
+            <div class="bucket-use">Use for: act breaks, midpoints, sagging middle</div>
+          </div>
+        </div>
+
+        <!-- Plays -->
+        <div class="bucket-toggle" data-bucket="plays-final" onclick="toggleBucket('plays-final')">
+          <label class="bucket-switch">
+            <input type="checkbox" id="toggle-plays">
+            <span class="slider"></span>
+          </label>
+          <div class="bucket-info">
+            <div class="bucket-name">
+              Dialogue
+              <span class="bucket-status empty" id="status-plays"></span>
+            </div>
+            <div class="bucket-desc">Shakespeare, subtext, conflict</div>
+            <div class="bucket-use">Use for: flat dialogue, banter, confrontations</div>
+          </div>
+        </div>
+
+        <!-- Scripts -->
+        <div class="bucket-toggle" data-bucket="scripts-final" onclick="toggleBucket('scripts-final')">
+          <label class="bucket-switch">
+            <input type="checkbox" id="toggle-scripts">
+            <span class="slider"></span>
+          </label>
+          <div class="bucket-info">
+            <div class="bucket-name">
+              Execution
+              <span class="bucket-status empty" id="status-scripts"></span>
+            </div>
+            <div class="bucket-desc">Romcom screenplays, visual comedy</div>
+            <div class="bucket-use">Use for: writing scenes, meet-cutes, tone</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="coord-section" style="margin-top: auto; border-top: 1px solid var(--border);">
+        <div class="coord-section-title">Active Sources</div>
+        <div id="activeSummary" style="font-size: 0.75rem; color: var(--text-muted);">
+          No buckets active. Syd will ask before querying.
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat Area -->
+    <div class="chat-container">
+      <div class="messages" id="messages">
+        <div class="empty-state" id="emptyState">
+          <h2>Chat with Syd</h2>
+          <p>Toggle knowledge sources on the left. Syd will suggest buckets when helpful, or you can activate them manually.</p>
+        </div>
+      </div>
+
+      <div class="input-area">
+        <div class="input-row">
+          <input type="text" id="input" placeholder="Ask Syd..." autofocus>
+          <button id="sendBtn" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -325,124 +485,34 @@
     const API_BASE = 'http://localhost:8000';
     const RAG_MODE = 'hybrid';
 
-    // Expert configurations with pre-loaded prompts
-    const EXPERTS = {
-      books: {
-        bucket: 'books-final',
-        title: 'Structure & Craft Expert',
-        desc: 'Screenplay structure, beat positioning, act mechanics. Ask about plot pyramids, subplot integration, pacing, and relationships.',
-        placeholder: 'Ask the structure expert...',
-        prompt: `You are a SCREENPLAY STRUCTURE AND CRAFT EXPERT.
-
-ROMANTIC COMEDY FRAMEWORK:
-(Draw from these loosely as inspiration, not as rigid requirements)
-
-TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
-The audience thinks: "That could be me, if my life were a little more magical."
-
-STRUCTURE (common patterns):
-- Two protagonists with complementary flaws who resist connection
-- Central question: Will they end up together? (audience knows yes, tension is how)
-- Arc: Meet -> Resist -> Connect -> Crisis (all seems lost) -> Realization -> Union
-- The grand gesture or public declaration
-- Racing to catch them before it's too late
-
-As a structure expert, help writers architect their scenes.
-
-When answering, focus on:
-- PLOT PYRAMID: Position in three-act structure, what beat this represents, what must change
-- SUBPLOT INTEGRATION: How secondary storylines weave in, connections that pay off later
-- RELATIONSHIPS AND CHEMISTRY: What draws characters together or apart, how dynamics shift
-- PACING AND MOMENTUM: Fast/slow/building tempo, where to linger vs. move quickly
-
-Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+    // Bucket configurations
+    const BUCKETS = {
+      'books-final': {
+        key: 'books',
+        name: 'Structure',
+        description: 'Screenwriting craft, structure, beats, character arcs, pacing',
+        useWhen: 'Planning beats, pacing an act, fixing a sagging middle, designing character arcs'
       },
-
-      plays: {
-        bucket: 'plays-final',
-        title: 'Story Patterns Expert',
-        desc: 'Drawing from Shakespeare and timeless dramatic works. Ask about archetypes, relationship dynamics, tropes, and thematic undercurrents.',
-        placeholder: 'Ask the plays expert...',
-        prompt: `You are a CLASSICAL STORY PATTERNS EXPERT drawing from Shakespeare and timeless dramatic works.
-
-ROMANTIC COMEDY FRAMEWORK:
-(Draw from these loosely as inspiration, not as rigid requirements)
-
-TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
-The audience thinks: "That could be me, if my life were a little more magical."
-
-STRUCTURE (common patterns):
-- Two protagonists with complementary flaws who resist connection
-- Central question: Will they end up together? (audience knows yes, tension is how)
-- Arc: Meet -> Resist -> Connect -> Crisis (all seems lost) -> Realization -> Union
-
-COMEDY SOURCES:
-- Situational irony and misunderstanding
-- Witty banter and verbal sparring
-- Relatable awkwardness and vulnerability
-- Fish-out-of-water moments
-
-ROMANCE SOURCES:
-- Vulnerability and emotional honesty
-- Small moments of recognition and care
-- The almost-kiss, the loaded glance, the thing left unsaid
-- Seeing each other clearly when no one else does
-
-As a story patterns expert, help writers connect their scenes to proven dramatic archetypes.
-
-When answering, focus on:
-- STORY ARCHETYPE: Which Shakespearean/classical framework applies, where to honor vs. subvert
-- RELATIONSHIP DYNAMICS: Power and vulnerability, what characters want (stated and unstated), push-pull tension
-- TIMELESS TROPES: Overheard conversations, interruptions, confessions, mistaken assumptions, dramatic irony
-- THEMATIC UNDERCURRENT: Deeper truth being explored, what audience should feel but characters won't say
-
-Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+      'plays-final': {
+        key: 'plays',
+        name: 'Dialogue',
+        description: 'Shakespeare, dramatic patterns, subtext, conflict dynamics',
+        useWhen: 'Dialogue feels flat, need subtext, want banter that crackles, confrontations'
       },
-
-      scripts: {
-        bucket: 'scripts-final',
-        title: 'Romcom Reference Expert',
-        desc: 'Deep knowledge of modern romantic comedy films. Ask about comparable scenes, execution inspiration, and what to learn or avoid.',
-        placeholder: 'Ask the scripts expert...',
-        prompt: `You are a ROMCOM REFERENCE EXPERT with deep knowledge of modern romantic comedy films.
-
-ROMANTIC COMEDY FRAMEWORK:
-(Draw from these loosely as inspiration, not as rigid requirements)
-
-TONE: Warm, lighthearted, grounded but aspirational. Real emotions in slightly heightened worlds.
-The audience thinks: "That could be me, if my life were a little more magical."
-
-ROMANCE SOURCES (moments to build):
-- Vulnerability and emotional honesty
-- Small moments of recognition and care
-- Transformation through love (becoming who they're meant to be)
-- The almost-kiss, the loaded glance, the thing left unsaid
-- Rain, rooftops, string lights, golden hour
-
-COMEDY SOURCES (mix and match):
-- Situational irony and misunderstanding
-- Witty banter and verbal sparring
-- Relatable awkwardness and vulnerability
-- The well-meaning but chaotic best friend
-- Plans that go spectacularly wrong
-
-As a reference expert, draw from existing romcoms to inspire and inform scenes.
-
-When answering, focus on:
-- COMPARABLE SCENES: Specific scenes from films that tackle similar beats, what made them work
-- EXECUTION INSPIRATION: Dialogue style, visual approach, tone balance, pacing
-- WHAT TO LEARN: Techniques worth emulating, choices that elevated the scene
-- WHAT TO AVOID: Common pitfalls, what falls flat, cliches to sidestep or reinvent
-
-Use bullet points for clarity. Give active, specific guidance (not theoretical analysis).`
+      'scripts-final': {
+        key: 'scripts',
+        name: 'Execution',
+        description: 'Romcom screenplays, visual storytelling, scene-setting',
+        useWhen: 'Writing the actual scene, meet-cutes, landing romantic moments, tone check'
       }
     };
 
-    let currentExpert = 'plays';
-    let chatHistory = [];
+    // State
+    let activeBuckets = [];
     let availableBuckets = {};
+    let chatHistory = [];
 
-    // Check which buckets are available
+    // Check which buckets have data
     async function checkBuckets() {
       try {
         const res = await fetch(`${API_BASE}/api/buckets`);
@@ -453,54 +523,71 @@ Use bullet points for clarity. Give active, specific guidance (not theoretical a
               availableBuckets[b.name] = true;
             }
           });
-          updateTabStatus();
+          updateBucketStatus();
         }
       } catch (e) {
         console.log('Could not check buckets');
       }
     }
 
-    function updateTabStatus() {
-      document.querySelectorAll('.expert-tab').forEach(tab => {
-        const expert = tab.dataset.expert;
-        const bucket = EXPERTS[expert].bucket;
-        const status = tab.querySelector('.status');
+    function updateBucketStatus() {
+      Object.entries(BUCKETS).forEach(([bucketId, info]) => {
+        const statusEl = document.getElementById(`status-${info.key}`);
+        const toggleEl = document.querySelector(`[data-bucket="${bucketId}"]`);
 
-        if (availableBuckets[bucket]) {
-          status.className = 'status ready';
-          tab.classList.remove('disabled');
+        if (availableBuckets[bucketId]) {
+          statusEl.className = 'bucket-status ready';
+          toggleEl.classList.remove('disabled');
         } else {
-          status.className = 'status empty';
+          statusEl.className = 'bucket-status empty';
+          toggleEl.classList.add('disabled');
         }
       });
     }
 
-    function selectExpert(expert) {
-      const bucket = EXPERTS[expert].bucket;
+    function toggleBucket(bucketId) {
+      // Don't toggle if bucket has no data
+      if (!availableBuckets[bucketId]) return;
 
-      // Allow selection even if bucket not ready (will show error on send)
-      currentExpert = expert;
-      chatHistory = [];
+      const checkbox = document.getElementById(`toggle-${BUCKETS[bucketId].key}`);
+      const toggleEl = document.querySelector(`[data-bucket="${bucketId}"]`);
 
-      // Update tabs
-      document.querySelectorAll('.expert-tab').forEach(tab => {
-        tab.classList.toggle('active', tab.dataset.expert === expert);
-      });
+      // Toggle state
+      const isActive = activeBuckets.includes(bucketId);
+      if (isActive) {
+        activeBuckets = activeBuckets.filter(b => b !== bucketId);
+        checkbox.checked = false;
+        toggleEl.classList.remove('active');
+        addMessage('system', `${BUCKETS[bucketId].name} deactivated`);
+      } else {
+        activeBuckets.push(bucketId);
+        checkbox.checked = true;
+        toggleEl.classList.add('active');
+        addMessage('system', `${BUCKETS[bucketId].name} activated - Syd can now query for ${BUCKETS[bucketId].useWhen.toLowerCase()}`);
+      }
 
-      // Update empty state
-      document.getElementById('expertTitle').textContent = EXPERTS[expert].title;
-      document.getElementById('expertDesc').textContent = EXPERTS[expert].desc;
-      document.getElementById('input').placeholder = EXPERTS[expert].placeholder;
-
-      // Clear messages
-      const messages = document.getElementById('messages');
-      messages.innerHTML = `
-        <div class="empty-state" id="emptyState">
-          <h2 id="expertTitle">${EXPERTS[expert].title}</h2>
-          <p id="expertDesc">${EXPERTS[expert].desc}</p>
-        </div>
-      `;
+      updateActiveSummary();
     }
+
+    function updateActiveSummary() {
+      const summary = document.getElementById('activeSummary');
+      if (activeBuckets.length === 0) {
+        summary.textContent = 'No buckets active. Syd will ask before querying.';
+      } else {
+        const names = activeBuckets.map(b => BUCKETS[b].name).join(', ');
+        summary.textContent = `Active: ${names}. Syd can query freely.`;
+      }
+    }
+
+    // Prevent checkbox from double-toggling
+    document.querySelectorAll('.bucket-switch input').forEach(cb => {
+      cb.addEventListener('click', (e) => e.stopPropagation());
+      cb.addEventListener('change', (e) => {
+        const bucketId = e.target.closest('.bucket-toggle').dataset.bucket;
+        // Re-sync checkbox state with actual toggle
+        e.target.checked = activeBuckets.includes(bucketId);
+      });
+    });
 
     document.getElementById('input').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') sendMessage();
@@ -510,8 +597,6 @@ Use bullet points for clarity. Give active, specific guidance (not theoretical a
       const input = document.getElementById('input');
       const message = input.value.trim();
       if (!message) return;
-
-      const expert = EXPERTS[currentExpert];
 
       input.value = '';
       input.disabled = true;
@@ -528,15 +613,19 @@ Use bullet points for clarity. Give active, specific guidance (not theoretical a
       const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>', true);
 
       try {
+        // Build system prompt with active bucket awareness
+        const systemPrompt = buildSystemPrompt();
+
         const response = await fetch(`${API_BASE}/api/expert/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            bucket: expert.bucket,
-            system_prompt: expert.prompt,
+            bucket: activeBuckets[0] || 'books-final', // Default for now
+            system_prompt: systemPrompt,
             rag_mode: RAG_MODE,
-            history: chatHistory.slice(-10)
+            history: chatHistory.slice(-10),
+            active_buckets: activeBuckets
           })
         });
 
@@ -559,6 +648,41 @@ Use bullet points for clarity. Give active, specific guidance (not theoretical a
       input.disabled = false;
       document.getElementById('sendBtn').disabled = false;
       input.focus();
+    }
+
+    function buildSystemPrompt() {
+      let prompt = `You are Syd, a creative screenwriting partner specializing in romantic comedies.
+
+You have access to three expert knowledge buckets:
+
+📚 books-final (Structure)
+   USE WHEN: ${BUCKETS['books-final'].useWhen}
+
+🎭 plays-final (Dialogue)
+   USE WHEN: ${BUCKETS['plays-final'].useWhen}
+
+🎬 scripts-final (Execution)
+   USE WHEN: ${BUCKETS['scripts-final'].useWhen}
+
+`;
+
+      if (activeBuckets.length > 0) {
+        const names = activeBuckets.map(b => BUCKETS[b].name).join(', ');
+        prompt += `ACTIVE BUCKETS: ${names}
+You can query these buckets freely to enhance your responses.
+
+`;
+      } else {
+        prompt += `NO BUCKETS ACTIVE.
+If you think a bucket would help, suggest it to the user:
+"I think [bucket] could help with [reason]. Want me to pull that in?"
+
+`;
+      }
+
+      prompt += `Be warm, encouraging, and specific. Help writers develop their romantic comedies with craft and heart.`;
+
+      return prompt;
     }
 
     function addMessage(role, content, isHtml = false) {

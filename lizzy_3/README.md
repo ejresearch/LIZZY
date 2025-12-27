@@ -202,6 +202,99 @@ Hindsight contains both the structured data (from SQLite) and conversation conte
 
 **The loop:** Syd reads from Hindsight → responds → tool calls update SQLite → syncs to Hindsight
 
+### Conversation Assembly
+
+How a message to Syd gets assembled:
+
+```
+1. USER OPENS CHAT
+──────────────────
+   Load project_id → set bank_id for Hindsight
+   Check active_buckets from UI
+   Recall project context from Hindsight
+
+2. BUILD SYSTEM PROMPT
+──────────────────────
+   ┌─────────────────────────────────────────────────┐
+   │ PART 1: Syd's identity                          │
+   │ "You are Syd, a creative screenwriting          │
+   │  partner specializing in romantic comedies..."  │
+   │                                                 │
+   │ PART 2: Bucket awareness                        │
+   │ "You have access to three expert buckets:       │
+   │  📚 books-final - USE WHEN: act breaks...       │
+   │  🎭 plays-final - USE WHEN: flat dialogue...    │
+   │  🎬 scripts-final - USE WHEN: writing scenes..."│
+   │                                                 │
+   │ PART 3: Active bucket state                     │
+   │ "ACTIVE: Structure, Dialogue" or               │
+   │ "NO BUCKETS ACTIVE. Ask before querying."       │
+   │                                                 │
+   │ PART 4: Project context (from Hindsight)        │
+   │ "Emma: 34, family lawyer, protagonist           │
+   │  Ben: wedding planner, love interest            │
+   │  User prefers banter over slapstick"            │
+   └─────────────────────────────────────────────────┘
+
+3. ASSEMBLE API REQUEST
+───────────────────────
+   messages = [
+     { role: "system", content: <assembled prompt> },
+     ...chat_history,
+     { role: "user", content: "current message" }
+   ]
+   tools = SYD_TOOLS (query_bucket, update_character, etc.)
+
+4. SYD RESPONDS
+───────────────
+   Option A: Simple response → display to user
+
+   Option B: Suggests bucket → "Want me to pull in scripts-final?"
+             User confirms → Syd calls query_bucket tool
+             Tool executor queries LightRAG → returns result
+             Syd synthesizes response with domain knowledge
+
+   Option C: Updates outline → Syd calls update_character tool
+             Tool executor updates SQLite + syncs to Hindsight
+             UI updates in real-time
+```
+
+**Message flow:**
+```
+User message
+     │
+     ▼
+┌─────────┐   ┌─────────┐   ┌─────────┐
+│Hindsight│──▶│ System  │◀──│ Bucket  │
+│(recall) │   │ Prompt  │   │ State   │
+└─────────┘   └────┬────┘   └─────────┘
+                   │
+     ┌─────────────┼─────────────┐
+     ▼             ▼             ▼
+  Tools       History       Message
+     │             │             │
+     └─────────────┼─────────────┘
+                   ▼
+              OpenAI API
+                   │
+     ┌─────────────┼─────────────┐
+     ▼             ▼             ▼
+ [tool call]  [response]   [tool call]
+     │                          │
+     ▼                          ▼
+ LightRAG                   SQLite
+  query                     update
+     │                          │
+     └──────────┬───────────────┘
+                ▼
+           Hindsight
+            retain
+                │
+                ▼
+          User sees
+          Syd response
+```
+
 ## Dependencies
 
 | Package | Purpose | Status |

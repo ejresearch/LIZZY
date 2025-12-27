@@ -1,5 +1,5 @@
 """
-Executes Syd's tool calls against SQLite.
+Executes Syd's tool calls against SQLite and LightRAG.
 When a tool is executed, it also syncs to Hindsight.
 """
 
@@ -11,14 +11,16 @@ from api.database import db
 class SydToolExecutor:
     """Executes tool calls from Syd and syncs to Hindsight."""
 
-    def __init__(self, hindsight_client=None, bank_id: str = None):
+    def __init__(self, hindsight_client=None, bank_id: str = None, bucket_manager=None):
         """
         Args:
             hindsight_client: Optional Hindsight client for memory sync
             bank_id: The Hindsight bank ID for this project
+            bucket_manager: Optional BucketManager for LightRAG queries
         """
         self.hindsight = hindsight_client
         self.bank_id = bank_id
+        self.bucket_manager = bucket_manager
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict:
         """
@@ -26,6 +28,9 @@ class SydToolExecutor:
         Also syncs changes to Hindsight if configured.
         """
         handlers = {
+            # Bucket tools
+            "query_bucket": self._query_bucket,
+            # Outline tools
             "update_project": self._update_project,
             "update_notes": self._update_notes,
             "create_character": self._create_character,
@@ -45,6 +50,40 @@ class SydToolExecutor:
             return result
         except Exception as e:
             return {"success": False, "error": str(e)}
+
+    # =========================================================================
+    # BUCKET QUERIES
+    # =========================================================================
+
+    async def _query_bucket(self, args: dict) -> dict:
+        """Query a LightRAG bucket for domain expertise."""
+        bucket = args.get("bucket")
+        query = args.get("query")
+
+        if not self.bucket_manager:
+            return {"success": False, "error": "Bucket manager not configured"}
+
+        try:
+            # Query the bucket using LightRAG
+            result = await self.bucket_manager.query_bucket(
+                bucket_name=bucket,
+                query=query,
+                mode="hybrid"
+            )
+
+            # Optionally retain the query to Hindsight for context
+            await self._sync_to_hindsight(
+                f"Queried {bucket} for: {query}"
+            )
+
+            return {
+                "success": True,
+                "bucket": bucket,
+                "query": query,
+                "result": result
+            }
+        except Exception as e:
+            return {"success": False, "error": f"Bucket query failed: {str(e)}"}
 
     async def _sync_to_hindsight(self, content: str):
         """Sync a piece of information to Hindsight memory."""

@@ -1,7 +1,78 @@
 """
-Syd's tools for editing the outline (SQLite) during conversation.
+Syd's tools for editing the outline (SQLite) and querying knowledge buckets.
 These get passed to the LLM for function calling.
 """
+
+# =============================================================================
+# BUCKET DEFINITIONS (for system prompt awareness)
+# =============================================================================
+
+AVAILABLE_BUCKETS = {
+    "books-final": {
+        "name": "Structure Expert",
+        "description": "Screenwriting craft, structure, beats, character arcs, pacing, act breaks",
+        "use_when": "Planning beats, pacing an act, fixing a sagging middle, designing character arcs, figuring out where the midpoint should hit",
+        "asset": "Craft principles, structural frameworks"
+    },
+    "plays-final": {
+        "name": "Dialogue Expert",
+        "description": "Shakespeare's complete works - dialogue, dramatic patterns, subtext, conflict",
+        "use_when": "Dialogue feels flat, need subtext, want banter that crackles, building emotional confrontation, character voice feels same-y",
+        "asset": "Dramatic patterns, rhythm, conflict dynamics"
+    },
+    "scripts-final": {
+        "name": "Execution Expert",
+        "description": "Romcom screenplays - execution, visual storytelling, scene-setting, romantic comedy tone",
+        "use_when": "Writing the actual scene, need visual comedy beats, setting up a meet-cute, landing a romantic moment, genre-specific tone check",
+        "asset": "How romcoms actually do it on the page"
+    }
+}
+
+
+def get_bucket_awareness_prompt() -> str:
+    """Generate system prompt section for bucket awareness."""
+    lines = ["You have access to three expert knowledge buckets. Know when to suggest them:\n"]
+
+    for bucket_id, info in AVAILABLE_BUCKETS.items():
+        lines.append(f"📚 {bucket_id} ({info['name']})")
+        lines.append(f"   USE WHEN: {info['use_when']}")
+        lines.append(f"   ASSET: {info['asset']}")
+        lines.append("")
+
+    lines.append("IMPORTANT: Before querying a bucket, ask the user first:")
+    lines.append("  'I think [bucket] could help with [reason]. Want me to pull that in?'")
+    lines.append("Only query after user confirms, OR if they manually activated it.")
+    lines.append("When user activates a bucket, acknowledge it naturally.")
+
+    return "\n".join(lines)
+
+
+# =============================================================================
+# BUCKET TOOLS
+# =============================================================================
+
+QUERY_BUCKET = {
+    "type": "function",
+    "function": {
+        "name": "query_bucket",
+        "description": "Query a knowledge bucket for domain expertise. Only use after user approves or manually activates the bucket.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "bucket": {
+                    "type": "string",
+                    "enum": ["books-final", "plays-final", "scripts-final"],
+                    "description": "Which bucket to query"
+                },
+                "query": {
+                    "type": "string",
+                    "description": "What to search for - be specific about the craft question"
+                }
+            },
+            "required": ["bucket", "query"]
+        }
+    }
+}
 
 # =============================================================================
 # PROJECT TOOLS
@@ -306,6 +377,9 @@ DELETE_SCENE = {
 # =============================================================================
 
 SYD_TOOLS = [
+    # Bucket tools
+    QUERY_BUCKET,
+    # Outline tools
     UPDATE_PROJECT,
     UPDATE_NOTES,
     CREATE_CHARACTER,
