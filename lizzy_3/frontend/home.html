@@ -345,23 +345,15 @@
       <div class="logo">lizzy</div>
       <ul class="nav-links">
         <li><a href="#features">Features</a></li>
-        <li><a href="#experts">Experts</a></li>
-        <li><a href="buckets.html">Buckets</a></li>
-        <li><a href="settings.html">Settings</a></li>
       </ul>
-    </div>
-    <div class="theme-toggle">
-      <span>&#9788;</span>
-      <div class="toggle-switch" id="themeToggle"></div>
-      <span>&#9790;</span>
     </div>
   </nav>
 
   <section class="hero">
-    <h1>Your AI screenwriting room.</h1>
-    <p>One continuous conversation from idea to finished screenplay. Syd and the expert panel guide you through story, structure, and dialogue.</p>
+    <h1>A writer's room<br>in your pocket.</h1>
+    <p>AI agents designed for writers by writers.</p>
     <div class="btn-group">
-      <a href="chat.html" class="btn">Start Writing</a>
+      <a href="projects.html" class="btn">Projects</a>
       <a href="#features" class="btn btn-outline">Learn More</a>
     </div>
   </section>
@@ -416,7 +408,7 @@
   <section class="cta">
     <h2>Ready to write?</h2>
     <p>From idea to screenplay in one conversation.</p>
-    <a href="chat.html" class="btn">Start Writing</a>
+    <a href="projects.html" class="btn">Projects</a>
   </section>
 
   <footer>
@@ -428,18 +420,9 @@
   </footer>
 
   <script>
-    const html = document.documentElement;
-    const themeToggle = document.getElementById('themeToggle');
-
+    // Theme (system-wide, controlled in Settings)
     const savedTheme = localStorage.getItem('theme') || 'light';
-    html.setAttribute('data-theme', savedTheme);
-
-    themeToggle.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    });
+    document.documentElement.setAttribute('data-theme', savedTheme);
   </script>
 </body>
 </html>

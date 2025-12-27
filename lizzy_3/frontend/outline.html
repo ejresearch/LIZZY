@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lizzy - Outline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --transition: 0.25s ease; }
+
+    [data-theme="light"] {
+      --bg-primary: #fff;
+      --bg-secondary: #fafafa;
+      --bg-tertiary: #f4f4f5;
+      --text-primary: #111;
+      --text-secondary: #52525b;
+      --text-muted: #a1a1aa;
+      --border: #e4e4e7;
+      --shadow: rgba(0,0,0,0.08);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #111;
+      --bg-secondary: #18181b;
+      --bg-tertiary: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border: #27272a;
+      --shadow: rgba(0,0,0,0.4);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    nav {
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 2rem; }
+    .logo { font-size: 1.125rem; font-weight: 600; text-decoration: none; color: var(--text-primary); }
+
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover { color: var(--text-primary); }
+
+    .save-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0.75rem;
+      background: var(--bg-tertiary);
+      border-radius: 1rem;
+    }
+
+    .save-status.saving { color: var(--text-secondary); }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-primary);
+    }
+
+    .tab {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+    }
+
+    .tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+
+    .tab.active {
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+    }
+
+    /* Container */
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Section */
+    .section {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+
+    .section-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-header h3 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .section-body { padding: 1.5rem; }
+
+    /* Form */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .form-row:last-child { margin-bottom: 0; }
+    .form-row.full { grid-template-columns: 1fr; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9375rem;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--text-muted);
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+      line-height: 1.5;
+    }
+
+    .form-group textarea.large { min-height: 180px; }
+
+    /* Buttons */
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn:hover { border-color: var(--text-muted); }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      border-color: var(--text-primary);
+    }
+
+    .btn-primary:hover { opacity: 0.9; }
+
+    .btn-danger { color: #dc2626; }
+    .btn-danger:hover { border-color: #dc2626; }
+
+    /* List items */
+    .list-item {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: var(--bg-tertiary); }
+
+    .list-item-info { flex: 1; }
+
+    .list-item-title {
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+
+    .list-item-meta {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    .list-item-arrow {
+      color: var(--text-muted);
+      font-size: 1.25rem;
+    }
+
+    /* Empty */
+    .empty {
+      text-align: center;
+      padding: 3rem;
+      color: var(--text-muted);
+    }
+
+    .empty p { margin-bottom: 1rem; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--bg-primary);
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h3 { font-size: 1.125rem; font-weight: 600; }
+
+    .modal-body { padding: 1.5rem; }
+
+    .modal-footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .modal-footer-right { display: flex; gap: 0.5rem; }
+
+    @media (max-width: 600px) {
+      .form-row { grid-template-columns: 1fr; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="home.html" class="logo">lizzy</a>
+    </div>
+    <div class="nav-right">
+      <span class="save-status" id="saveStatus">Saved</span>
+      <a href="projects.html" class="nav-link">Projects</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+    </div>
+  </nav>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="project">Project</div>
+    <div class="tab" data-tab="notes">Notes</div>
+    <div class="tab" data-tab="characters">Characters</div>
+    <div class="tab" data-tab="scenes">Scenes</div>
+  </div>
+
+  <div class="container">
+    <!-- Project Tab -->
+    <div class="tab-content active" id="tab-project">
+      <div class="section">
+        <div class="section-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="title" placeholder="Your screenplay title">
+            </div>
+            <div class="form-group">
+              <label>Genre</label>
+              <select id="genre">
+                <option value="Romantic Comedy">Romantic Comedy</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Drama">Drama</option>
+                <option value="Dramedy">Dramedy</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label>Logline</label>
+              <textarea id="logline" placeholder="A one-sentence summary of your story..."></textarea>
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="description" class="large" placeholder="A longer description or synopsis..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes Tab -->
+    <div class="tab-content" id="tab-notes">
+      <div class="section">
+        <div class="section-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Theme</label>
+              <input type="text" id="theme" placeholder="The central theme or message">
+            </div>
+            <div class="form-group">
+              <label>Tone</label>
+              <input type="text" id="tone" placeholder="e.g., Witty, heartfelt, quirky">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label>Comps</label>
+              <input type="text" id="comps" placeholder="e.g., When Harry Met Sally, Notting Hill">
+            </div>
+          </div>
+          <div class="form-row full">
+            <div class="form-group">
+              <label>Braindump</label>
+              <textarea id="braindump" class="large" placeholder="Random ideas, notes, inspirations..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Characters Tab -->
+    <div class="tab-content" id="tab-characters">
+      <div class="section">
+        <div class="section-header">
+          <h3 id="charCount">0 characters</h3>
+          <button class="btn btn-primary" onclick="openCharacterModal()">+ Add</button>
+        </div>
+        <div id="charactersList"></div>
+      </div>
+    </div>
+
+    <!-- Scenes Tab -->
+    <div class="tab-content" id="tab-scenes">
+      <div class="section">
+        <div class="section-header">
+          <h3 id="sceneCount">0 scenes</h3>
+          <button class="btn btn-primary" onclick="openSceneModal()">+ Add</button>
+        </div>
+        <div id="scenesList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Character Modal -->
+  <div class="modal-overlay" id="characterModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="characterModalTitle">Add Character</h3>
+        <button class="btn" onclick="closeCharacterModal()">Close</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="charId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="charName">
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="charRole">
+              <option value="">Select...</option>
+              <option value="protagonist">Protagonist</option>
+              <option value="love_interest">Love Interest</option>
+              <option value="antagonist">Antagonist</option>
+              <option value="supporting">Supporting</option>
+              <option value="mentor">Mentor</option>
+              <option value="comic_relief">Comic Relief</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Age</label>
+            <input type="text" id="charAge" placeholder="e.g., Late 20s">
+          </div>
+          <div class="form-group">
+            <label>Flaw</label>
+            <input type="text" id="charFlaw">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="charDescription"></textarea>
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Arc</label>
+            <textarea id="charArc" placeholder="How does this character change?"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="deleteCharBtn" onclick="deleteCharacter()" style="display:none;">Delete</button>
+        <div class="modal-footer-right">
+          <button class="btn" onclick="closeCharacterModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveCharacter()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scene Modal -->
+  <div class="modal-overlay" id="sceneModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="sceneModalTitle">Add Scene</h3>
+        <button class="btn" onclick="closeSceneModal()">Close</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="sceneId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Scene #</label>
+            <input type="number" id="sceneNumber" min="1" max="100">
+          </div>
+          <div class="form-group">
+            <label>Tone</label>
+            <input type="text" id="sceneTone">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="sceneTitle">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Characters</label>
+            <input type="text" id="sceneCharacters" placeholder="Comma-separated">
+          </div>
+        </div>
+        <div class="form-row full">
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="sceneDescription" class="large"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="deleteSceneBtn" onclick="deleteScene()" style="display:none;">Delete</button>
+        <div class="modal-footer-right">
+          <button class="btn" onclick="closeSceneModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveScene()">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API = 'http://localhost:8000/api';
+    let saveTimeout = null;
+    let characters = [];
+    let scenes = [];
+
+    // Theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Load
+    async function loadOutline() {
+      try {
+        const res = await fetch(`${API}/outline`);
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('title').value = data.project?.title || '';
+          document.getElementById('logline').value = data.project?.logline || '';
+          document.getElementById('genre').value = data.project?.genre || 'Romantic Comedy';
+          document.getElementById('description').value = data.project?.description || '';
+          document.getElementById('theme').value = data.notes?.theme || '';
+          document.getElementById('tone').value = data.notes?.tone || '';
+          document.getElementById('comps').value = data.notes?.comps || '';
+          document.getElementById('braindump').value = data.notes?.braindump || '';
+          characters = data.characters || [];
+          scenes = data.scenes || [];
+          renderCharacters();
+          renderScenes();
+        }
+      } catch (e) { console.error('Load error:', e); }
+    }
+
+    // Auto-save
+    function showSaving() {
+      document.getElementById('saveStatus').textContent = 'Saving...';
+      document.getElementById('saveStatus').classList.add('saving');
+    }
+
+    function showSaved() {
+      document.getElementById('saveStatus').textContent = 'Saved';
+      document.getElementById('saveStatus').classList.remove('saving');
+    }
+
+    function debounce(fn, delay = 800) {
+      return function(...args) {
+        showSaving();
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => fn.apply(this, args), delay);
+      };
+    }
+
+    const saveProject = debounce(async () => {
+      await fetch(`${API}/outline/project`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: document.getElementById('title').value,
+          logline: document.getElementById('logline').value,
+          genre: document.getElementById('genre').value,
+          description: document.getElementById('description').value
+        })
+      });
+      showSaved();
+    });
+
+    const saveNotes = debounce(async () => {
+      await fetch(`${API}/outline/notes`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          theme: document.getElementById('theme').value,
+          tone: document.getElementById('tone').value,
+          comps: document.getElementById('comps').value,
+          braindump: document.getElementById('braindump').value
+        })
+      });
+      showSaved();
+    });
+
+    ['title', 'logline', 'genre', 'description'].forEach(id => {
+      document.getElementById(id).addEventListener('input', saveProject);
+      document.getElementById(id).addEventListener('change', saveProject);
+    });
+
+    ['theme', 'tone', 'comps', 'braindump'].forEach(id => {
+      document.getElementById(id).addEventListener('input', saveNotes);
+    });
+
+    // Characters
+    function renderCharacters() {
+      const container = document.getElementById('charactersList');
+      document.getElementById('charCount').textContent = `${characters.length} character${characters.length !== 1 ? 's' : ''}`;
+
+      if (characters.length === 0) {
+        container.innerHTML = '<div class="empty"><p>No characters yet</p><button class="btn btn-primary" onclick="openCharacterModal()">Add your first character</button></div>';
+        return;
+      }
+
+      container.innerHTML = characters.map(c => `
+        <div class="list-item" onclick="editCharacter(${c.id})">
+          <div class="list-item-info">
+            <div class="list-item-title">${c.name || 'Unnamed'}</div>
+            <div class="list-item-meta">${c.role ? c.role.replace('_', ' ') : 'No role'}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </div>
+      `).join('');
+    }
+
+    function openCharacterModal(id = null) {
+      document.getElementById('characterModalTitle').textContent = id ? 'Edit Character' : 'Add Character';
+      document.getElementById('deleteCharBtn').style.display = id ? 'block' : 'none';
+
+      if (id) {
+        const c = characters.find(x => x.id === id);
+        document.getElementById('charId').value = id;
+        document.getElementById('charName').value = c.name || '';
+        document.getElementById('charRole').value = c.role || '';
+        document.getElementById('charAge').value = c.age || '';
+        document.getElementById('charFlaw').value = c.flaw || '';
+        document.getElementById('charDescription').value = c.description || '';
+        document.getElementById('charArc').value = c.arc || '';
+      } else {
+        document.getElementById('charId').value = '';
+        ['charName', 'charRole', 'charAge', 'charFlaw', 'charDescription', 'charArc'].forEach(x => document.getElementById(x).value = '');
+      }
+      document.getElementById('characterModal').classList.add('active');
+    }
+
+    function closeCharacterModal() { document.getElementById('characterModal').classList.remove('active'); }
+    function editCharacter(id) { openCharacterModal(id); }
+
+    async function saveCharacter() {
+      const id = document.getElementById('charId').value;
+      const data = {
+        name: document.getElementById('charName').value,
+        role: document.getElementById('charRole').value,
+        age: document.getElementById('charAge').value,
+        flaw: document.getElementById('charFlaw').value,
+        description: document.getElementById('charDescription').value,
+        arc: document.getElementById('charArc').value
+      };
+
+      await fetch(`${API}/outline/characters${id ? '/' + id : ''}`, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeCharacterModal();
+      await loadOutline();
+    }
+
+    async function deleteCharacter() {
+      const id = document.getElementById('charId').value;
+      if (id && confirm('Delete this character?')) {
+        await fetch(`${API}/outline/characters/${id}`, { method: 'DELETE' });
+        closeCharacterModal();
+        await loadOutline();
+      }
+    }
+
+    // Scenes
+    function renderScenes() {
+      const container = document.getElementById('scenesList');
+      document.getElementById('sceneCount').textContent = `${scenes.length} scene${scenes.length !== 1 ? 's' : ''}`;
+
+      if (scenes.length === 0) {
+        container.innerHTML = '<div class="empty"><p>No scenes yet</p><button class="btn btn-primary" onclick="openSceneModal()">Add your first scene</button></div>';
+        return;
+      }
+
+      container.innerHTML = scenes.map(s => `
+        <div class="list-item" onclick="editScene(${s.id})">
+          <div class="list-item-info">
+            <div class="list-item-title">${s.scene_number}. ${s.title || 'Untitled'}</div>
+            <div class="list-item-meta">${s.description ? s.description.substring(0, 60) + '...' : 'No description'}</div>
+          </div>
+          <div class="list-item-arrow">&rarr;</div>
+        </div>
+      `).join('');
+    }
+
+    function openSceneModal(id = null) {
+      document.getElementById('sceneModalTitle').textContent = id ? 'Edit Scene' : 'Add Scene';
+      document.getElementById('deleteSceneBtn').style.display = id ? 'block' : 'none';
+
+      if (id) {
+        const s = scenes.find(x => x.id === id);
+        document.getElementById('sceneId').value = id;
+        document.getElementById('sceneNumber').value = s.scene_number || '';
+        document.getElementById('sceneTitle').value = s.title || '';
+        document.getElementById('sceneTone').value = s.tone || '';
+        document.getElementById('sceneCharacters').value = s.characters || '';
+        document.getElementById('sceneDescription').value = s.description || '';
+      } else {
+        document.getElementById('sceneId').value = '';
+        document.getElementById('sceneNumber').value = scenes.length + 1;
+        ['sceneTitle', 'sceneTone', 'sceneCharacters', 'sceneDescription'].forEach(x => document.getElementById(x).value = '');
+      }
+      document.getElementById('sceneModal').classList.add('active');
+    }
+
+    function closeSceneModal() { document.getElementById('sceneModal').classList.remove('active'); }
+    function editScene(id) { openSceneModal(id); }
+
+    async function saveScene() {
+      const id = document.getElementById('sceneId').value;
+      const data = {
+        scene_number: parseInt(document.getElementById('sceneNumber').value) || 1,
+        title: document.getElementById('sceneTitle').value,
+        tone: document.getElementById('sceneTone').value,
+        characters: document.getElementById('sceneCharacters').value,
+        description: document.getElementById('sceneDescription').value
+      };
+
+      await fetch(`${API}/outline/scenes${id ? '/' + id : ''}`, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      closeSceneModal();
+      await loadOutline();
+    }
+
+    async function deleteScene() {
+      const id = document.getElementById('sceneId').value;
+      if (id && confirm('Delete this scene?')) {
+        await fetch(`${API}/outline/scenes/${id}`, { method: 'DELETE' });
+        closeSceneModal();
+        await loadOutline();
+      }
+    }
+
+    loadOutline();
+  </script>
+</body>
+</html>

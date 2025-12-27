@@ -12,11 +12,9 @@
       --bg-primary: #fff;
       --bg-secondary: #fafafa;
       --bg-tertiary: #f4f4f5;
-      --bg-inverse: #111;
       --text-primary: #111;
       --text-secondary: #52525b;
       --text-muted: #71717a;
-      --text-inverse: #fff;
       --border: #e4e4e7;
       --border-light: #f4f4f5;
       --shadow: rgba(0,0,0,0.08);
@@ -29,11 +27,9 @@
       --bg-primary: #18181b;
       --bg-secondary: #111;
       --bg-tertiary: #27272a;
-      --bg-inverse: #fafafa;
       --text-primary: #fafafa;
       --text-secondary: #a1a1aa;
       --text-muted: #71717a;
-      --text-inverse: #111;
       --border: #3f3f46;
       --border-light: #27272a;
       --shadow: rgba(0,0,0,0.4);
@@ -70,47 +66,14 @@
       letter-spacing: -0.02em;
     }
 
-    .header-links {
-      display: flex;
-      gap: 1rem;
-    }
-
-    .header-links a {
+    .back-link {
       font-size: 0.875rem;
       color: var(--text-muted);
       text-decoration: none;
       transition: color 0.2s ease;
     }
 
-    .header-links a:hover { color: var(--text-primary); }
-
-    .theme-toggle { display: flex; align-items: center; gap: 0.5rem; }
-    .theme-toggle span { font-size: 0.75rem; color: var(--text-muted); }
-
-    .toggle-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: var(--bg-tertiary);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background var(--transition);
-      border: 1px solid var(--border);
-    }
-
-    .toggle-switch::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--text-primary);
-      border-radius: 50%;
-      transition: transform 0.25s ease, background var(--transition);
-    }
-
-    [data-theme="dark"] .toggle-switch::after { transform: translateX(20px); }
+    .back-link:hover { color: var(--text-primary); }
 
     .settings-section {
       background: var(--bg-primary);
@@ -145,7 +108,6 @@
     }
 
     .settings-item:last-child { border-bottom: none; }
-    .settings-item:hover { background: var(--bg-secondary); }
 
     .item-info { flex: 1; min-width: 0; }
 
@@ -162,57 +124,6 @@
     }
 
     .item-control { margin-left: 1rem; flex-shrink: 0; }
-
-    .toggle {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: var(--bg-tertiary);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-      border: 1px solid var(--border);
-    }
-
-    .toggle::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--text-muted);
-      border-radius: 50%;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-
-    .toggle.active { background: var(--bg-inverse); border-color: var(--bg-inverse); }
-    .toggle.active::after { transform: translateX(20px); background: var(--text-inverse); }
-
-    .input-field {
-      width: 240px;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 0.5rem;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      font-family: inherit;
-      font-size: 0.875rem;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-
-    .input-field:focus {
-      border-color: var(--text-primary);
-      box-shadow: 0 0 0 3px var(--bg-tertiary);
-    }
-
-    .input-field::placeholder { color: var(--text-muted); }
-
-    .input-field.api-key {
-      font-family: "SF Mono", Monaco, "Courier New", monospace;
-      font-size: 0.8125rem;
-    }
 
     .select-field {
       padding: 0.5rem 2rem 0.5rem 0.75rem;
@@ -233,7 +144,6 @@
 
     .select-field:focus {
       border-color: var(--text-primary);
-      box-shadow: 0 0 0 3px var(--bg-tertiary);
     }
 
     .btn {
@@ -253,8 +163,7 @@
     }
 
     .btn-secondary:hover {
-      background: var(--bg-secondary);
-      border-color: var(--text-primary);
+      border-color: var(--text-muted);
     }
 
     .btn-danger {
@@ -268,35 +177,9 @@
       color: var(--bg-primary);
     }
 
-    .btn-primary {
-      background: var(--bg-inverse);
-      color: var(--text-inverse);
-      border: none;
-    }
-
-    .btn-primary:hover { opacity: 0.9; }
-
-    .status-badge {
-      font-size: 0.75rem;
-      padding: 0.25rem 0.625rem;
-      border-radius: 1rem;
-      font-weight: 500;
-    }
-
-    .status-badge.success {
-      background: rgba(34, 197, 94, 0.1);
-      color: var(--success);
-    }
-
-    .status-badge.error {
-      background: var(--danger-bg);
-      color: var(--danger);
-    }
-
     .settings-footer {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
+      justify-content: center;
       padding-top: 1rem;
     }
 
@@ -311,9 +194,7 @@
         align-items: flex-start;
         gap: 0.75rem;
       }
-
       .item-control { margin-left: 0; }
-      .input-field { width: 100%; }
     }
   </style>
 </head>
@@ -321,146 +202,29 @@
   <div class="settings-container">
     <div class="settings-header">
       <h1>Settings</h1>
-      <div class="header-links">
-        <a href="home.html">Home</a>
-        <a href="chat.html">Chat</a>
-        <a href="buckets.html">Buckets</a>
-        <div class="theme-toggle">
-          <span>&#9788;</span>
-          <div class="toggle-switch" id="themeToggle"></div>
-          <span>&#9790;</span>
-        </div>
-      </div>
+      <a href="projects.html" class="back-link">&larr; Back</a>
     </div>
 
-    <!-- API Configuration -->
+    <!-- Appearance -->
     <div class="settings-section">
       <div class="section-header">
-        <h2>API Configuration</h2>
+        <h2>Appearance</h2>
       </div>
       <div class="settings-item">
         <div class="item-info">
-          <h3>OpenAI API Key</h3>
-          <p>Required for LLM and embeddings</p>
+          <h3>Theme</h3>
+          <p>Choose light or dark mode</p>
         </div>
         <div class="item-control">
-          <input type="password" class="input-field api-key" id="openaiKey" placeholder="sk-...">
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>API Status</h3>
-          <p>Test your API connection</p>
-        </div>
-        <div class="item-control">
-          <span class="status-badge" id="apiStatus">Not tested</span>
-          <button class="btn btn-secondary" id="testApiBtn" style="margin-left: 0.5rem;">Test</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Model Settings -->
-    <div class="settings-section">
-      <div class="section-header">
-        <h2>Model Settings</h2>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Chat Model</h3>
-          <p>For Syd and expert conversations</p>
-        </div>
-        <div class="item-control">
-          <select class="select-field" id="chatModel">
-            <option value="gpt-4o">GPT-4o</option>
-            <option value="gpt-4o-mini" selected>GPT-4o-mini</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Writing Model</h3>
-          <p>For scene prose generation</p>
-        </div>
-        <div class="item-control">
-          <select class="select-field" id="writeModel">
-            <option value="gpt-4o" selected>GPT-4o</option>
-            <option value="gpt-4o-mini">GPT-4o-mini</option>
-            <option value="gpt-4-turbo">GPT-4 Turbo</option>
+          <select class="select-field" id="themeSelect">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
           </select>
         </div>
       </div>
     </div>
 
-    <!-- RAG Settings -->
-    <div class="settings-section">
-      <div class="section-header">
-        <h2>Knowledge Buckets</h2>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Structure Expert</h3>
-          <p>Screenwriting craft, beats, pacing</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="bucket-books"></div>
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Dialogue Expert</h3>
-          <p>Shakespeare, dramatic tradition</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="bucket-plays"></div>
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Visual Expert</h3>
-          <p>Romcom scripts, cinematic craft</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="bucket-scripts"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Behavior -->
-    <div class="settings-section">
-      <div class="section-header">
-        <h2>Behavior</h2>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Auto-save</h3>
-          <p>Save project state automatically</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="autosave"></div>
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Stream responses</h3>
-          <p>Show text as it's generated</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="streaming"></div>
-        </div>
-      </div>
-      <div class="settings-item">
-        <div class="item-info">
-          <h3>Expert panel</h3>
-          <p>Show Structure/Dialogue/Visual experts</p>
-        </div>
-        <div class="item-control">
-          <div class="toggle active" data-setting="experts"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Danger Zone -->
+    <!-- Data -->
     <div class="settings-section">
       <div class="section-header">
         <h2>Data</h2>
@@ -476,132 +240,87 @@
       </div>
       <div class="settings-item">
         <div class="item-info">
-          <h3>Clear All Data</h3>
-          <p>Delete all local data and memories</p>
+          <h3>Clear Project</h3>
+          <p>Delete all project data</p>
         </div>
         <div class="item-control">
-          <button class="btn btn-danger" id="clearBtn">Clear Data</button>
+          <button class="btn btn-danger" id="clearBtn">Clear</button>
         </div>
       </div>
     </div>
 
     <div class="settings-footer">
-      <span class="version">lizzy_3 v0.1.0</span>
-      <button class="btn btn-primary" id="saveBtn">Save Settings</button>
+      <span class="version">lizzy_3</span>
     </div>
   </div>
 
   <script>
-    const html = document.documentElement;
-    const themeToggle = document.getElementById('themeToggle');
+    const API = 'http://localhost:8000/api';
+    const themeSelect = document.getElementById('themeSelect');
 
-    // Theme handling
+    // Theme (system-wide)
     const savedTheme = localStorage.getItem('theme') || 'light';
-    html.setAttribute('data-theme', savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeSelect.value = savedTheme;
 
-    themeToggle.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
+    themeSelect.addEventListener('change', () => {
+      const theme = themeSelect.value;
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
     });
 
-    // Toggle switches
-    document.querySelectorAll('.toggle').forEach(toggle => {
-      toggle.addEventListener('click', () => {
-        toggle.classList.toggle('active');
-      });
-    });
+    // Export project
+    document.getElementById('exportBtn').onclick = async () => {
+      try {
+        const res = await fetch(`${API}/outline`);
+        const data = await res.json();
 
-    // Load saved settings
-    const openaiKeyInput = document.getElementById('openaiKey');
-    const chatModelSelect = document.getElementById('chatModel');
-    const writeModelSelect = document.getElementById('writeModel');
-    const apiStatus = document.getElementById('apiStatus');
+        const exportData = {
+          ...data,
+          exported_at: new Date().toISOString()
+        };
 
-    openaiKeyInput.value = localStorage.getItem('openai_api_key') || '';
-    chatModelSelect.value = localStorage.getItem('chat_model') || 'gpt-4o-mini';
-    writeModelSelect.value = localStorage.getItem('write_model') || 'gpt-4o';
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lizzy_project_${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Export failed:', err);
+        alert('Failed to export project');
+      }
+    };
 
-    // Test API
-    document.getElementById('testApiBtn').onclick = async () => {
-      const key = openaiKeyInput.value;
-      if (!key) {
-        apiStatus.textContent = 'No key';
-        apiStatus.className = 'status-badge error';
+    // Clear project data
+    document.getElementById('clearBtn').onclick = async () => {
+      if (!confirm('This will delete all project data (characters, scenes, notes). Are you sure?')) {
         return;
       }
 
-      apiStatus.textContent = 'Testing...';
-      apiStatus.className = 'status-badge';
-
       try {
-        const response = await fetch('https://api.openai.com/v1/models', {
-          headers: { 'Authorization': `Bearer ${key}` }
+        // Clear project
+        await fetch(`${API}/outline/project`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: '', logline: '', genre: 'Romantic Comedy', description: '' })
         });
 
-        if (response.ok) {
-          apiStatus.textContent = 'Connected';
-          apiStatus.className = 'status-badge success';
-        } else {
-          apiStatus.textContent = 'Invalid key';
-          apiStatus.className = 'status-badge error';
-        }
-      } catch (e) {
-        apiStatus.textContent = 'Error';
-        apiStatus.className = 'status-badge error';
+        // Clear notes
+        await fetch(`${API}/outline/notes`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ theme: '', tone: '', comps: '', braindump: '' })
+        });
+
+        alert('Project data cleared');
+        window.location.href = 'projects.html';
+      } catch (err) {
+        console.error('Clear failed:', err);
+        alert('Failed to clear project data');
       }
     };
-
-    // Save settings
-    document.getElementById('saveBtn').onclick = () => {
-      localStorage.setItem('openai_api_key', openaiKeyInput.value);
-      localStorage.setItem('chat_model', chatModelSelect.value);
-      localStorage.setItem('write_model', writeModelSelect.value);
-
-      // Save toggle states
-      document.querySelectorAll('.toggle').forEach(toggle => {
-        const setting = toggle.dataset.setting;
-        localStorage.setItem(setting, toggle.classList.contains('active'));
-      });
-
-      alert('Settings saved!');
-    };
-
-    // Clear data
-    document.getElementById('clearBtn').onclick = () => {
-      if (confirm('This will delete all local data. Are you sure?')) {
-        localStorage.clear();
-        location.reload();
-      }
-    };
-
-    // Export
-    document.getElementById('exportBtn').onclick = () => {
-      const data = {
-        settings: {
-          chat_model: chatModelSelect.value,
-          write_model: writeModelSelect.value
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'lizzy_export.json';
-      a.click();
-    };
-
-    // Load toggle states
-    document.querySelectorAll('.toggle').forEach(toggle => {
-      const setting = toggle.dataset.setting;
-      const saved = localStorage.getItem(setting);
-      if (saved === 'false') {
-        toggle.classList.remove('active');
-      }
-    });
   </script>
 </body>
 </html>

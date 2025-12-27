@@ -23,18 +23,42 @@ One continuous conversation that guides writers from initial idea through finish
 
 ## Architecture
 
+Three-layer data architecture:
+
 ```
-User ◄──► Syd + Experts (group chat)
-              │
-              ├── Hindsight (conversational memory)
-              │   "What does this user want for this project?"
-              │
-              ├── LightRAG (domain expertise)
-              │   "How do romcoms work?"
-              │
-              └── Neo4j (graph exploration)
-                  "How is Romeo connected to Juliet?"
+┌─────────────────────────────────────────────────────────────┐
+│                         User Interface                       │
+│  home │ projects │ outline │ query │ buckets │ settings     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      FastAPI Server                          │
+│                      api/server.py                           │
+└─────────────────────────────────────────────────────────────┘
+                              │
+        ┌─────────────────────┼─────────────────────┐
+        ▼                     ▼                     ▼
+┌───────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│    SQLite     │   │    LightRAG     │   │    Hindsight    │
+│  (Structured) │   │  (Domain RAG)   │   │    (Memory)     │
+├───────────────┤   ├─────────────────┤   ├─────────────────┤
+│ Project data  │   │ books-final     │   │ World network   │
+│ Characters    │   │ plays-final     │   │ Experience      │
+│ Scenes        │   │ scripts-final   │   │ Opinions        │
+│ Writer notes  │   │                 │   │ Observations    │
+└───────────────┘   └─────────────────┘   └─────────────────┘
+        │                     │                     │
+        │                     ▼                     │
+        │           ┌─────────────────┐             │
+        │           │      Neo4j      │             │
+        │           │ (Graph Explore) │             │
+        │           └─────────────────┘             │
+        │                                           │
+        └───────────────────────────────────────────┘
 ```
+
+**Expert Pattern:** `LLM + System Prompt + RAG Bucket = Expert`
 
 ## Dependencies
 
@@ -47,6 +71,7 @@ User ◄──► Syd + Experts (group chat)
 | `uvicorn` | ASGI server (via hindsight) | v0.40.0 |
 | `neo4j` | Graph database driver for entity exploration | v5.0+ |
 | `networkx` | GraphML parsing for Neo4j import | v3.0+ |
+| `sqlite3` | Structured data storage (built-in) | Python stdlib |
 
 ---
 
@@ -131,7 +156,7 @@ Agent memory system that enables learning across conversations. Uses biomimetic 
 - **Recall** — Retrieve relevant memories (semantic + keyword + graph + temporal)
 - **Reflect** — Analyze memories to form new connections and opinions
 
-**How we'll use it:**
+**How we use it:**
 - Remember user preferences across sessions ("prefers witty banter")
 - Track project state and decisions ("Emma is the protagonist")
 - Learn what works ("user liked the breakfast scene idea")
@@ -190,25 +215,43 @@ Graph database integration for exploring entity relationships across knowledge b
 
 Web framework and ASGI server. Came as dependencies of hindsight-all.
 
-**How we'll use it:**
-- Single web endpoint for the unified chat interface
-- WebSocket or SSE for streaming responses
-- Serve the frontend (HTML/JS)
+**How we use it:**
+- REST API for all data operations
+- Static file serving for the frontend (HTML/JS)
+- CORS middleware for local development
+
+```bash
+# Start server
+cd lizzy_3
+python -m api.server
+# Server runs on http://localhost:8000
+```
+
+---
+
+### sqlite3 (Python stdlib)
+
+Local SQLite database for structured project data. Single-user, file-based storage perfect for screenwriting projects.
+
+**Schema** (`api/database.py`):
+- `project` — Title, logline, genre, description
+- `writer_notes` — Theme, tone, comps, braindump, outline
+- `characters` — Name, role, description, arc, age, personality, flaw, backstory, relationships
+- `scenes` — Scene number, title, description, characters, tone, beats
+
+**Database location:** `data/lizzy.db`
 
 ```python
-from fastapi import FastAPI
-from fastapi.responses import StreamingResponse
-import uvicorn
+from api.database import db
 
-app = FastAPI()
+# Get project
+project = db.get_project()
 
-@app.post("/chat")
-async def chat(message: str):
-    # Stream response from Syd + experts
-    return StreamingResponse(generate_response(message))
+# Update character
+db.update_character(1, name="Emma", arc="learns to trust")
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# Upsert scene
+db.upsert_scene(1, title="Meet Cute", description="They collide at a coffee shop")
 ```
 
 ---
@@ -227,9 +270,62 @@ if __name__ == "__main__":
 | `/api/buckets/{name}/query` | POST | Query bucket (LightRAG) |
 | `/api/buckets/{name}/reset-stuck` | POST | Reset stuck processing docs |
 
+### Outline Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/outline` | GET | Get full outline (project, notes, characters, scenes) |
+| `/api/outline/project` | GET | Get project metadata |
+| `/api/outline/project` | PUT | Update project metadata |
+| `/api/outline/notes` | GET | Get writer notes |
+| `/api/outline/notes` | PUT | Update writer notes |
+| `/api/outline/characters` | GET | List all characters |
+| `/api/outline/characters` | POST | Create character |
+| `/api/outline/characters/{id}` | GET | Get character by ID |
+| `/api/outline/characters/{id}` | PUT | Update character |
+| `/api/outline/characters/{id}` | DELETE | Delete character |
+| `/api/outline/scenes` | GET | List all scenes |
+| `/api/outline/scenes` | POST | Create scene |
+| `/api/outline/scenes/{id}` | GET | Get scene by ID |
+| `/api/outline/scenes/{id}` | PUT | Update scene |
+| `/api/outline/scenes/{id}` | DELETE | Delete scene |
+
+### Expert Chat Endpoint
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/expert/chat` | POST | Chat with domain expert (bucket + system prompt) |
+
+**Request body:**
+```json
+{
+  "bucket": "plays-final",
+  "system_prompt": "You are a story patterns expert...",
+  "message": "What makes a great romantic comedy opening?",
+  "history": [],
+  "rag_mode": "hybrid"
+}
+```
+
 ### Graph Endpoints
 
 See Neo4j section above for graph-related endpoints.
+
+---
+
+## Frontend Pages
+
+| Page | URL | Description |
+|------|-----|-------------|
+| Home | `/home.html` | Landing page |
+| Projects | `/projects.html` | Project list and creation |
+| Outline | `/outline.html` | Project editor (tabbed: Project, Notes, Characters, Scenes) |
+| Query | `/query.html` | Expert chat interface (Books, Plays, Scripts experts) |
+| Buckets | `/buckets.html` | Manage LightRAG knowledge buckets |
+| Graph | `/graph.html` | Explore Neo4j entity relationships |
+| Settings | `/settings.html` | Theme, export, clear data |
+
+**User flow:** Home → Projects → Outline → (Query for expert help)
 
 ---
 

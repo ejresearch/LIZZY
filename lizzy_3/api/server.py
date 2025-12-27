@@ -81,6 +81,45 @@ class ExpertChatRequest(BaseModel):
     history: Optional[list] = []
 
 
+class ProjectUpdateRequest(BaseModel):
+    title: Optional[str] = None
+    title_locked: Optional[bool] = None
+    logline: Optional[str] = None
+    logline_locked: Optional[bool] = None
+    genre: Optional[str] = None
+    description: Optional[str] = None
+
+
+class WriterNotesUpdateRequest(BaseModel):
+    theme: Optional[str] = None
+    tone: Optional[str] = None
+    comps: Optional[str] = None
+    braindump: Optional[str] = None
+    outline: Optional[list] = None
+
+
+class CharacterRequest(BaseModel):
+    name: Optional[str] = None
+    role: Optional[str] = None
+    description: Optional[str] = None
+    arc: Optional[str] = None
+    age: Optional[str] = None
+    personality: Optional[str] = None
+    flaw: Optional[str] = None
+    backstory: Optional[str] = None
+    relationships: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
+class SceneRequest(BaseModel):
+    scene_number: Optional[int] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    characters: Optional[str] = None
+    tone: Optional[str] = None
+    beats: Optional[list] = None
+
+
 # --- Bucket Endpoints ---
 
 @app.get("/api/buckets")
@@ -303,6 +342,124 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
+
+
+# --- Outline Endpoints (SQLite) ---
+
+from .database import db as outline_db
+
+
+@app.get("/api/outline/project")
+async def get_project() -> dict:
+    """Get project metadata."""
+    return outline_db.get_project()
+
+
+@app.put("/api/outline/project")
+async def update_project(request: ProjectUpdateRequest) -> dict:
+    """Update project metadata."""
+    return outline_db.update_project(**request.model_dump(exclude_none=True))
+
+
+@app.get("/api/outline/notes")
+async def get_writer_notes() -> dict:
+    """Get writer notes."""
+    return outline_db.get_writer_notes()
+
+
+@app.put("/api/outline/notes")
+async def update_writer_notes(request: WriterNotesUpdateRequest) -> dict:
+    """Update writer notes."""
+    return outline_db.update_writer_notes(**request.model_dump(exclude_none=True))
+
+
+@app.get("/api/outline/characters")
+async def get_characters() -> list:
+    """Get all characters."""
+    return outline_db.get_characters()
+
+
+@app.post("/api/outline/characters")
+async def create_character(request: CharacterRequest) -> dict:
+    """Create a new character."""
+    return outline_db.create_character(**request.model_dump(exclude_none=True))
+
+
+@app.get("/api/outline/characters/{character_id}")
+async def get_character(character_id: int) -> dict:
+    """Get a single character."""
+    char = outline_db.get_character(character_id)
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found")
+    return char
+
+
+@app.put("/api/outline/characters/{character_id}")
+async def update_character(character_id: int, request: CharacterRequest) -> dict:
+    """Update a character."""
+    char = outline_db.update_character(character_id, **request.model_dump(exclude_none=True))
+    if not char:
+        raise HTTPException(status_code=404, detail="Character not found")
+    return char
+
+
+@app.delete("/api/outline/characters/{character_id}")
+async def delete_character(character_id: int) -> dict:
+    """Delete a character."""
+    if outline_db.delete_character(character_id):
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Character not found")
+
+
+@app.get("/api/outline/scenes")
+async def get_scenes() -> list:
+    """Get all scenes."""
+    return outline_db.get_scenes()
+
+
+@app.post("/api/outline/scenes")
+async def create_scene(request: SceneRequest) -> dict:
+    """Create a new scene."""
+    if request.scene_number is None:
+        raise HTTPException(status_code=400, detail="scene_number is required")
+    return outline_db.create_scene(request.scene_number, **request.model_dump(exclude={'scene_number'}, exclude_none=True))
+
+
+@app.get("/api/outline/scenes/{scene_id}")
+async def get_scene(scene_id: int) -> dict:
+    """Get a single scene."""
+    scene = outline_db.get_scene(scene_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    return scene
+
+
+@app.put("/api/outline/scenes/{scene_id}")
+async def update_scene(scene_id: int, request: SceneRequest) -> dict:
+    """Update a scene."""
+    scene = outline_db.update_scene(scene_id, **request.model_dump(exclude_none=True))
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    return scene
+
+
+@app.delete("/api/outline/scenes/{scene_id}")
+async def delete_scene(scene_id: int) -> dict:
+    """Delete a scene."""
+    if outline_db.delete_scene(scene_id):
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Scene not found")
+
+
+@app.get("/api/outline")
+async def get_full_outline() -> dict:
+    """Get the complete outline (project + notes + characters + scenes)."""
+    return {
+        "project": outline_db.get_project(),
+        "notes": outline_db.get_writer_notes(),
+        "characters": outline_db.get_characters(),
+        "scenes": outline_db.get_scenes()
+    }
 
 
 # --- Graph Endpoints (Neo4j) ---
