@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>lizzy - Workspace</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --transition: 0.25s ease; }
+
+    [data-theme="light"] {
+      --bg-primary: #fff;
+      --bg-secondary: #fafafa;
+      --bg-tertiary: #f4f4f5;
+      --text-primary: #111;
+      --text-secondary: #52525b;
+      --text-muted: #71717a;
+      --border: #e4e4e7;
+      --accent: #3b82f6;
+      --accent-bg: #eff6ff;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #18181b;
+      --bg-secondary: #111;
+      --bg-tertiary: #27272a;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border: #3f3f46;
+      --accent: #60a5fa;
+      --accent-bg: #1e3a5f;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      flex-direction: column;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* Nav */
+    nav {
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 1.5rem; }
+    .logo { font-size: 1rem; font-weight: 600; text-decoration: none; color: var(--text-primary); }
+    .project-name { font-size: 0.875rem; color: var(--text-muted); }
+
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+    .save-status { font-size: 0.6875rem; color: var(--text-muted); padding: 0.25rem 0.5rem; background: var(--bg-tertiary); border-radius: 0.25rem; }
+    .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 0.8125rem; font-weight: 500; }
+    .nav-link:hover { color: var(--text-primary); }
+
+    /* Main workspace */
+    .workspace {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* Left Panel - Outline */
+    .panel-left {
+      width: 50%;
+      min-width: 300px;
+      max-width: 70%;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+    }
+
+    /* Resizer */
+    .resizer {
+      width: 6px;
+      background: var(--border);
+      cursor: col-resize;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+
+    .resizer:hover, .resizer.dragging {
+      background: var(--accent);
+    }
+
+    /* Right Panel - Chat */
+    .panel-right {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Outline Panel Styles */
+    .outline-tabs {
+      display: flex;
+      gap: 0.25rem;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      flex-shrink: 0;
+    }
+
+    .outline-tab {
+      padding: 0.375rem 0.75rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+    }
+
+    .outline-tab:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+    .outline-tab.active { color: var(--text-primary); background: var(--bg-tertiary); }
+
+    .outline-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* Form styles */
+    .form-group { margin-bottom: 1rem; }
+    .form-group:last-child { margin-bottom: 0; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.375rem;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.8125rem;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    /* List items */
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .list-header h3 {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.6875rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .btn-sm:hover { border-color: var(--text-muted); }
+
+    .list-item {
+      padding: 0.625rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      margin-bottom: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .list-item:hover { border-color: var(--text-muted); }
+
+    .list-item-name { font-size: 0.8125rem; font-weight: 500; }
+    .list-item-meta { font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem; }
+
+    .empty-list {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    /* Chat Panel Styles */
+    .chat-header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .chat-header h3 {
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .bucket-toggles {
+      display: flex;
+      gap: 0.375rem;
+    }
+
+    .bucket-chip {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.625rem;
+      font-weight: 500;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .bucket-chip:hover { border-color: var(--text-muted); }
+    .bucket-chip.active { border-color: var(--accent); background: var(--accent-bg); color: var(--accent); }
+    .bucket-chip.disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .message {
+      max-width: 85%;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: var(--accent);
+      color: white;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+      background: var(--bg-tertiary);
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message.system {
+      align-self: center;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      font-size: 0.6875rem;
+      padding: 0.375rem 0.75rem;
+    }
+
+    .chat-empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .chat-empty h3 { font-size: 0.9375rem; margin-bottom: 0.5rem; color: var(--text-secondary); }
+    .chat-empty p { font-size: 0.75rem; max-width: 280px; }
+
+    .chat-input {
+      padding: 0.75rem 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 0.625rem 0.875rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+    }
+
+    .chat-input input:focus { outline: none; border-color: var(--accent); }
+
+    .chat-input button {
+      padding: 0.625rem 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: var(--accent);
+      color: white;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .chat-input button:hover { opacity: 0.9; }
+    .chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Loading dots */
+    .loading-dots { display: inline-flex; gap: 0.2rem; }
+    .loading-dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); animation: bounce 1.4s infinite ease-in-out both; }
+    .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+    .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+
+    /* Canvas Styles */
+    .canvas-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .canvas-nav-btn {
+      padding: 0.375rem 0.625rem;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .canvas-nav-btn:hover:not(:disabled) { border-color: var(--text-muted); }
+    .canvas-nav-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #sceneSelector {
+      flex: 1;
+      padding: 0.375rem 0.5rem;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+    }
+
+    .screenplay-canvas {
+      flex: 1;
+      overflow-y: auto;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      min-height: 400px;
+    }
+
+    .canvas-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 300px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .canvas-empty p { margin: 0.25rem 0; }
+    .canvas-hint { font-size: 0.75rem; }
+
+    .screenplay-content {
+      padding: 1.5rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* Scene Heading */
+    .scene-heading {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+    }
+
+    .screenplay-select {
+      padding: 0.25rem 0.375rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      font-weight: bold;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+      cursor: pointer;
+    }
+
+    .screenplay-select:hover { border-color: var(--border); }
+    .screenplay-select:focus { outline: none; border-color: var(--accent); }
+
+    .screenplay-input-location {
+      flex: 1;
+      padding: 0.25rem 0.375rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .screenplay-input-location:hover { border-color: var(--border); }
+    .screenplay-input-location:focus { outline: none; border-color: var(--accent); }
+    .screenplay-input-location::placeholder { color: var(--text-muted); }
+
+    .screenplay-dash { color: var(--text-muted); }
+
+    /* Screenplay Body */
+    .screenplay-body {
+      min-height: 200px;
+    }
+
+    .screenplay-element {
+      margin-bottom: 0.75rem;
+      position: relative;
+    }
+
+    .screenplay-element:hover .element-delete {
+      opacity: 1;
+    }
+
+    .element-delete {
+      position: absolute;
+      right: -24px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      border: none;
+      background: var(--bg-tertiary);
+      color: var(--text-muted);
+      border-radius: 50%;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .element-delete:hover { background: #ef4444; color: white; }
+
+    /* Action */
+    .element-action textarea {
+      width: 100%;
+      padding: 0.375rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+      resize: vertical;
+      min-height: 40px;
+    }
+
+    .element-action textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-primary);
+    }
+
+    /* Character Name */
+    .element-character input {
+      display: block;
+      margin: 0 auto;
+      width: 50%;
+      text-align: center;
+      text-transform: uppercase;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      font-weight: bold;
+      padding: 0.25rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .element-character input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-primary);
+    }
+
+    /* Dialogue */
+    .element-dialogue textarea {
+      display: block;
+      margin: 0 auto;
+      width: 60%;
+      padding: 0.375rem;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+      resize: vertical;
+      min-height: 40px;
+    }
+
+    .element-dialogue textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-primary);
+    }
+
+    /* Parenthetical */
+    .element-parenthetical input {
+      display: block;
+      margin: 0 auto;
+      width: 40%;
+      text-align: center;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      font-style: italic;
+      padding: 0.25rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .element-parenthetical input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-primary);
+    }
+
+    /* Transition */
+    .element-transition input {
+      display: block;
+      margin-left: auto;
+      width: 30%;
+      text-align: right;
+      text-transform: uppercase;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 12px;
+      padding: 0.25rem;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+    }
+
+    .element-transition input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--bg-primary);
+    }
+
+    /* Add Element Bar */
+    .add-element-bar {
+      display: flex;
+      gap: 0.375rem;
+      margin-top: 1rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--border);
+    }
+
+    .add-element-btn {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.625rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-primary);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .add-element-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Canvas Footer */
+    .canvas-footer {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .canvas-status {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-left">
+      <a href="home.html" class="logo">lizzy</a>
+      <span class="project-name" id="projectName">Loading...</span>
+    </div>
+    <div class="nav-right">
+      <span class="save-status" id="saveStatus">Saved</span>
+      <a href="projects.html" class="nav-link">Projects</a>
+      <a href="buckets.html" class="nav-link">Buckets</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+    </div>
+  </nav>
+
+  <div class="workspace">
+    <!-- Left Panel: Outline -->
+    <div class="panel-left" id="panelLeft">
+      <div class="outline-tabs">
+        <div class="outline-tab active" data-tab="project">Project</div>
+        <div class="outline-tab" data-tab="notes">Notes</div>
+        <div class="outline-tab" data-tab="characters">Characters</div>
+        <div class="outline-tab" data-tab="scenes">Scenes</div>
+        <div class="outline-tab" data-tab="canvas">Canvas</div>
+      </div>
+
+      <div class="outline-content">
+        <!-- Project Tab -->
+        <div class="tab-panel active" id="panel-project">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="title" placeholder="Your screenplay title">
+            </div>
+            <div class="form-group">
+              <label>Genre</label>
+              <select id="genre">
+                <option value="Romantic Comedy">Romantic Comedy</option>
+                <option value="Comedy">Comedy</option>
+                <option value="Drama">Drama</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Logline</label>
+            <textarea id="logline" placeholder="A one-sentence summary..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea id="description" placeholder="Longer synopsis..."></textarea>
+          </div>
+        </div>
+
+        <!-- Notes Tab -->
+        <div class="tab-panel" id="panel-notes">
+          <div class="form-group">
+            <label>Theme</label>
+            <textarea id="theme" placeholder="What is this story really about?"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Tone</label>
+            <input type="text" id="tone" placeholder="e.g., witty, grounded, warm">
+          </div>
+          <div class="form-group">
+            <label>Comps</label>
+            <input type="text" id="comps" placeholder="e.g., When Harry Met Sally meets The Proposal">
+          </div>
+          <div class="form-group">
+            <label>Braindump</label>
+            <textarea id="braindump" placeholder="Random ideas, fragments, notes..."></textarea>
+          </div>
+        </div>
+
+        <!-- Characters Tab -->
+        <div class="tab-panel" id="panel-characters">
+          <div class="list-header">
+            <h3>Characters</h3>
+            <button class="btn-sm" onclick="addCharacter()">+ Add</button>
+          </div>
+          <div id="charactersList"></div>
+        </div>
+
+        <!-- Scenes Tab -->
+        <div class="tab-panel" id="panel-scenes">
+          <div class="list-header">
+            <h3>Scenes</h3>
+            <button class="btn-sm" onclick="addScene()">+ Add</button>
+          </div>
+          <div id="scenesList"></div>
+        </div>
+
+        <!-- Canvas Tab -->
+        <div class="tab-panel" id="panel-canvas">
+          <div class="canvas-nav">
+            <button class="canvas-nav-btn" onclick="prevScene()" id="prevSceneBtn" disabled>&larr; Prev</button>
+            <select id="sceneSelector" onchange="loadSceneToCanvas()">
+              <option value="">Select a scene...</option>
+            </select>
+            <button class="canvas-nav-btn" onclick="nextScene()" id="nextSceneBtn">&rarr; Next</button>
+          </div>
+
+          <div class="screenplay-canvas" id="screenplayCanvas">
+            <div class="canvas-empty" id="canvasEmpty">
+              <p>Select a scene to start writing</p>
+              <p class="canvas-hint">Create scenes in the Scenes tab first, then write them here.</p>
+            </div>
+
+            <div class="screenplay-content" id="screenplayContent" style="display: none;">
+              <!-- Scene Heading -->
+              <div class="screenplay-element scene-heading">
+                <select id="sceneIntExt" class="screenplay-select">
+                  <option value="INT.">INT.</option>
+                  <option value="EXT.">EXT.</option>
+                  <option value="INT./EXT.">INT./EXT.</option>
+                </select>
+                <input type="text" id="sceneLocation" class="screenplay-input-location" placeholder="LOCATION">
+                <span class="screenplay-dash">-</span>
+                <select id="sceneTime" class="screenplay-select">
+                  <option value="DAY">DAY</option>
+                  <option value="NIGHT">NIGHT</option>
+                  <option value="MORNING">MORNING</option>
+                  <option value="EVENING">EVENING</option>
+                  <option value="LATER">LATER</option>
+                  <option value="CONTINUOUS">CONTINUOUS</option>
+                </select>
+              </div>
+
+              <!-- Screenplay Body -->
+              <div class="screenplay-body" id="screenplayBody">
+                <!-- Elements are added dynamically -->
+              </div>
+
+              <!-- Add Element Buttons -->
+              <div class="add-element-bar">
+                <button class="add-element-btn" onclick="addElement('action')">+ Action</button>
+                <button class="add-element-btn" onclick="addElement('character')">+ Character</button>
+                <button class="add-element-btn" onclick="addElement('dialogue')">+ Dialogue</button>
+                <button class="add-element-btn" onclick="addElement('parenthetical')">+ Parenthetical</button>
+                <button class="add-element-btn" onclick="addElement('transition')">+ Transition</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="canvas-footer">
+            <button class="btn-sm" onclick="saveCanvas()" id="saveCanvasBtn">Save Scene</button>
+            <span class="canvas-status" id="canvasStatus"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resizer -->
+    <div class="resizer" id="resizer"></div>
+
+    <!-- Right Panel: Chat -->
+    <div class="panel-right">
+      <div class="chat-header">
+        <h3>Chat with Syd</h3>
+        <div class="bucket-toggles">
+          <span class="bucket-chip" data-bucket="books-final" onclick="toggleBucket('books-final')">Structure</span>
+          <span class="bucket-chip" data-bucket="plays-final" onclick="toggleBucket('plays-final')">Dialogue</span>
+          <span class="bucket-chip" data-bucket="scripts-final" onclick="toggleBucket('scripts-final')">Execution</span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="messages">
+        <div class="chat-empty" id="chatEmpty">
+          <h3>Ask Syd anything</h3>
+          <p>Get help with your screenplay. Toggle knowledge sources above for domain expertise.</p>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="Ask Syd..." autofocus>
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Theme
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    const API_BASE = 'http://localhost:8000';
+
+    // State
+    let activeBuckets = [];
+    let availableBuckets = {};
+    let chatHistory = [];
+    let saveTimeout = null;
+
+    // ===================
+    // RESIZER
+    // ===================
+    const resizer = document.getElementById('resizer');
+    const panelLeft = document.getElementById('panelLeft');
+    let isResizing = false;
+
+    resizer.addEventListener('mousedown', (e) => {
+      isResizing = true;
+      resizer.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isResizing) return;
+      const containerWidth = document.querySelector('.workspace').offsetWidth;
+      const newWidth = (e.clientX / containerWidth) * 100;
+      if (newWidth >= 20 && newWidth <= 70) {
+        panelLeft.style.width = newWidth + '%';
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isResizing = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+
+    // ===================
+    // OUTLINE TABS
+    // ===================
+    document.querySelectorAll('.outline-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.outline-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    // ===================
+    // DATA LOADING
+    // ===================
+    async function loadOutline() {
+      try {
+        const res = await fetch(`${API_BASE}/api/outline`);
+        if (!res.ok) throw new Error('Failed to load');
+        const data = await res.json();
+
+        // Project
+        if (data.project) {
+          document.getElementById('title').value = data.project.title || '';
+          document.getElementById('genre').value = data.project.genre || 'Romantic Comedy';
+          document.getElementById('logline').value = data.project.logline || '';
+          document.getElementById('description').value = data.project.description || '';
+          document.getElementById('projectName').textContent = data.project.title || 'Untitled';
+        }
+
+        // Notes
+        if (data.notes) {
+          document.getElementById('theme').value = data.notes.theme || '';
+          document.getElementById('tone').value = data.notes.tone || '';
+          document.getElementById('comps').value = data.notes.comps || '';
+          document.getElementById('braindump').value = data.notes.braindump || '';
+        }
+
+        // Characters
+        renderCharacters(data.characters || []);
+
+        // Scenes
+        renderScenes(data.scenes || []);
+
+      } catch (e) {
+        console.error('Load error:', e);
+      }
+    }
+
+    function renderCharacters(characters) {
+      const container = document.getElementById('charactersList');
+      if (characters.length === 0) {
+        container.innerHTML = '<div class="empty-list">No characters yet</div>';
+        return;
+      }
+      container.innerHTML = characters.map(c => `
+        <div class="list-item" onclick="editCharacter(${c.id})">
+          <div class="list-item-name">${c.name || 'Unnamed'}</div>
+          <div class="list-item-meta">${c.role || 'No role'}</div>
+        </div>
+      `).join('');
+    }
+
+    function renderScenes(scenes) {
+      const container = document.getElementById('scenesList');
+      if (scenes.length === 0) {
+        container.innerHTML = '<div class="empty-list">No scenes yet</div>';
+        populateSceneSelector([]);
+        return;
+      }
+      container.innerHTML = scenes.map(s => `
+        <div class="list-item" onclick="openSceneInCanvas(${s.id})">
+          <div class="list-item-name">${s.scene_number}. ${s.title || 'Untitled'}</div>
+          <div class="list-item-meta">${s.description ? s.description.substring(0, 50) + '...' : 'No description'}</div>
+        </div>
+      `).join('');
+
+      // Also populate the canvas scene selector
+      populateSceneSelector(scenes);
+    }
+
+    function openSceneInCanvas(sceneId) {
+      // Switch to canvas tab
+      document.querySelectorAll('.outline-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelector('[data-tab="canvas"]').classList.add('active');
+      document.getElementById('panel-canvas').classList.add('active');
+
+      // Select and load the scene
+      document.getElementById('sceneSelector').value = sceneId;
+      loadSceneToCanvas();
+    }
+
+    // ===================
+    // AUTO-SAVE
+    // ===================
+    function setupAutoSave() {
+      const fields = ['title', 'genre', 'logline', 'description', 'theme', 'tone', 'comps', 'braindump'];
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', () => {
+            document.getElementById('saveStatus').textContent = 'Saving...';
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(saveOutline, 1000);
+          });
+        }
+      });
+    }
+
+    async function saveOutline() {
+      try {
+        // Save project
+        await fetch(`${API_BASE}/api/outline/project`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: document.getElementById('title').value,
+            genre: document.getElementById('genre').value,
+            logline: document.getElementById('logline').value,
+            description: document.getElementById('description').value
+          })
+        });
+
+        // Save notes
+        await fetch(`${API_BASE}/api/outline/notes`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            theme: document.getElementById('theme').value,
+            tone: document.getElementById('tone').value,
+            comps: document.getElementById('comps').value,
+            braindump: document.getElementById('braindump').value
+          })
+        });
+
+        document.getElementById('saveStatus').textContent = 'Saved';
+        document.getElementById('projectName').textContent = document.getElementById('title').value || 'Untitled';
+      } catch (e) {
+        document.getElementById('saveStatus').textContent = 'Error';
+      }
+    }
+
+    // Placeholder functions for character/scene editing (TODO: implement modals)
+    function addCharacter() { alert('Character modal - TODO'); }
+    function editCharacter(id) { alert('Edit character ' + id + ' - TODO'); }
+
+    async function addScene() {
+      // Quick add: find next available scene number
+      const nextNum = allScenes.length > 0 ? Math.max(...allScenes.map(s => s.scene_number)) + 1 : 1;
+      try {
+        await fetch(`${API_BASE}/api/outline/scenes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene_number: nextNum, title: `Scene ${nextNum}` })
+        });
+        await loadOutline();
+        // Open the new scene in canvas
+        setTimeout(() => {
+          const newScene = allScenes.find(s => s.scene_number === nextNum);
+          if (newScene) openSceneInCanvas(newScene.id);
+        }, 100);
+      } catch (e) {
+        alert('Failed to create scene');
+      }
+    }
+
+    // ===================
+    // CHAT / BUCKETS
+    // ===================
+    async function checkBuckets() {
+      try {
+        const res = await fetch(`${API_BASE}/api/buckets`);
+        if (res.ok) {
+          const buckets = await res.json();
+          buckets.forEach(b => {
+            if (b.nodes > 0) availableBuckets[b.name] = true;
+          });
+          updateBucketChips();
+        }
+      } catch (e) {}
+    }
+
+    function updateBucketChips() {
+      document.querySelectorAll('.bucket-chip').forEach(chip => {
+        const bucket = chip.dataset.bucket;
+        if (!availableBuckets[bucket]) {
+          chip.classList.add('disabled');
+        }
+      });
+    }
+
+    function toggleBucket(bucket) {
+      if (!availableBuckets[bucket]) return;
+
+      const chip = document.querySelector(`[data-bucket="${bucket}"]`);
+      const isActive = activeBuckets.includes(bucket);
+
+      if (isActive) {
+        activeBuckets = activeBuckets.filter(b => b !== bucket);
+        chip.classList.remove('active');
+        addSystemMessage(`${getBucketName(bucket)} deactivated`);
+      } else {
+        activeBuckets.push(bucket);
+        chip.classList.add('active');
+        addSystemMessage(`${getBucketName(bucket)} activated`);
+      }
+    }
+
+    function getBucketName(bucket) {
+      return { 'books-final': 'Structure', 'plays-final': 'Dialogue', 'scripts-final': 'Execution' }[bucket] || bucket;
+    }
+
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      if (!message) return;
+
+      input.value = '';
+      input.disabled = true;
+      document.getElementById('sendBtn').disabled = true;
+
+      // Clear empty state
+      const empty = document.getElementById('chatEmpty');
+      if (empty) empty.remove();
+
+      addMessage('user', message);
+      const loadingId = addMessage('assistant', '<div class="loading-dots"><span></span><span></span><span></span></div>', true);
+
+      try {
+        const systemPrompt = buildSystemPrompt();
+        const response = await fetch(`${API_BASE}/api/expert/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            bucket: activeBuckets[0] || 'scripts-final',
+            system_prompt: systemPrompt,
+            rag_mode: 'hybrid',
+            history: chatHistory.slice(-10)
+          })
+        });
+
+        removeMessage(loadingId);
+        // Clean up any stray loading messages
+        document.querySelectorAll('.loading-message').forEach(el => el.remove());
+
+        if (response.ok) {
+          const data = await response.json();
+          addMessage('assistant', data.response);
+          chatHistory.push({ role: 'user', content: message });
+          chatHistory.push({ role: 'assistant', content: data.response });
+        } else {
+          addMessage('system', 'Error getting response');
+        }
+      } catch (e) {
+        removeMessage(loadingId);
+        document.querySelectorAll('.loading-message').forEach(el => el.remove());
+        addMessage('system', 'Connection error');
+      }
+
+      input.disabled = false;
+      document.getElementById('sendBtn').disabled = false;
+      input.focus();
+    }
+
+    function buildSystemPrompt() {
+      // Get project context
+      const title = document.getElementById('title').value;
+      const logline = document.getElementById('logline').value;
+
+      let prompt = `You are Syd, a creative screenwriting partner for romantic comedies.
+
+PROJECT: ${title || 'Untitled'}
+${logline ? 'LOGLINE: ' + logline : ''}
+
+You have access to expert knowledge buckets:
+- books-final (Structure): act breaks, midpoints, pacing
+- plays-final (Dialogue): subtext, banter, confrontations
+- scripts-final (Execution): writing scenes, meet-cutes, tone
+
+`;
+      if (activeBuckets.length > 0) {
+        prompt += `ACTIVE: ${activeBuckets.map(getBucketName).join(', ')}. Query freely.\n\n`;
+      } else {
+        prompt += `NO BUCKETS ACTIVE. Suggest one if helpful: "I think [bucket] could help with [reason]. Want me to pull that in?"\n\n`;
+      }
+
+      prompt += `Be warm, encouraging, specific. Help develop this screenplay.`;
+      return prompt;
+    }
+
+    function addMessage(role, content, isHtml = false) {
+      const container = document.getElementById('messages');
+      const id = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = `message ${role}`;
+      if (isHtml && content.includes('loading-dots')) {
+        div.classList.add('loading-message');
+      }
+
+      if (isHtml) {
+        div.innerHTML = content;
+      } else {
+        let html = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\n/g, '<br>');
+        div.innerHTML = html;
+      }
+
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+      return id;
+    }
+
+    function addSystemMessage(text) {
+      const empty = document.getElementById('chatEmpty');
+      if (empty) empty.remove();
+      addMessage('system', text);
+    }
+
+    function removeMessage(id) {
+      const msg = document.getElementById(id);
+      if (msg) msg.remove();
+    }
+
+    // ===================
+    // CANVAS
+    // ===================
+    let allScenes = [];
+    let currentSceneId = null;
+    let canvasElements = [];
+
+    function populateSceneSelector(scenes) {
+      allScenes = scenes;
+      const selector = document.getElementById('sceneSelector');
+      selector.innerHTML = '<option value="">Select a scene...</option>';
+
+      scenes.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.scene_number}. ${s.title || 'Untitled'}`;
+        selector.appendChild(opt);
+      });
+
+      updateNavButtons();
+    }
+
+    function loadSceneToCanvas() {
+      const sceneId = parseInt(document.getElementById('sceneSelector').value);
+      if (!sceneId) {
+        document.getElementById('canvasEmpty').style.display = 'flex';
+        document.getElementById('screenplayContent').style.display = 'none';
+        currentSceneId = null;
+        updateNavButtons();
+        return;
+      }
+
+      currentSceneId = sceneId;
+      const scene = allScenes.find(s => s.id === sceneId);
+      if (!scene) return;
+
+      // Show canvas content
+      document.getElementById('canvasEmpty').style.display = 'none';
+      document.getElementById('screenplayContent').style.display = 'block';
+
+      // Parse scene heading from title or use defaults
+      const heading = parseSceneHeading(scene.title || '');
+      document.getElementById('sceneIntExt').value = heading.intExt;
+      document.getElementById('sceneLocation').value = heading.location;
+      document.getElementById('sceneTime').value = heading.time;
+
+      // Load screenplay content if stored
+      loadCanvasContent(scene);
+
+      updateNavButtons();
+      document.getElementById('canvasStatus').textContent = '';
+    }
+
+    function parseSceneHeading(title) {
+      // Try to parse "INT. COFFEE SHOP - DAY" format
+      const match = title.match(/^(INT\.|EXT\.|INT\.\/EXT\.)\s*(.+?)\s*-\s*(.+)$/i);
+      if (match) {
+        return {
+          intExt: match[1].toUpperCase(),
+          location: match[2].trim().toUpperCase(),
+          time: match[3].trim().toUpperCase()
+        };
+      }
+      // Default
+      return {
+        intExt: 'INT.',
+        location: title.toUpperCase() || '',
+        time: 'DAY'
+      };
+    }
+
+    function loadCanvasContent(scene) {
+      const body = document.getElementById('screenplayBody');
+      body.innerHTML = '';
+      canvasElements = [];
+
+      // If scene has stored canvas_content, parse and load it
+      if (scene.canvas_content) {
+        try {
+          const content = JSON.parse(scene.canvas_content);
+          content.forEach(el => addElement(el.type, el.text));
+        } catch (e) {
+          // If no canvas content, start with action from description
+          if (scene.description) {
+            addElement('action', scene.description);
+          }
+        }
+      } else if (scene.description) {
+        // Start with description as action
+        addElement('action', scene.description);
+      }
+    }
+
+    function addElement(type, text = '') {
+      const body = document.getElementById('screenplayBody');
+      const id = 'elem-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+
+      const div = document.createElement('div');
+      div.id = id;
+      div.className = `screenplay-element element-${type}`;
+      div.dataset.type = type;
+
+      let input;
+      switch (type) {
+        case 'action':
+          input = document.createElement('textarea');
+          input.placeholder = 'Action description...';
+          input.value = text;
+          input.rows = 2;
+          break;
+        case 'character':
+          input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = 'CHARACTER NAME';
+          input.value = text;
+          break;
+        case 'dialogue':
+          input = document.createElement('textarea');
+          input.placeholder = 'Dialogue...';
+          input.value = text;
+          input.rows = 2;
+          break;
+        case 'parenthetical':
+          input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = '(beat)';
+          input.value = text || '(';
+          // Auto-add parentheses
+          input.addEventListener('focus', () => {
+            if (!input.value.startsWith('(')) input.value = '(' + input.value;
+          });
+          input.addEventListener('blur', () => {
+            if (!input.value.endsWith(')') && input.value.length > 1) input.value += ')';
+          });
+          break;
+        case 'transition':
+          input = document.createElement('input');
+          input.type = 'text';
+          input.placeholder = 'CUT TO:';
+          input.value = text;
+          break;
+      }
+
+      input.dataset.elemId = id;
+      div.appendChild(input);
+
+      // Delete button
+      const del = document.createElement('button');
+      del.className = 'element-delete';
+      del.textContent = '×';
+      del.onclick = () => removeElement(id);
+      div.appendChild(del);
+
+      body.appendChild(div);
+      canvasElements.push({ id, type });
+
+      // Focus the new element
+      input.focus();
+
+      return id;
+    }
+
+    function removeElement(id) {
+      const elem = document.getElementById(id);
+      if (elem) {
+        elem.remove();
+        canvasElements = canvasElements.filter(e => e.id !== id);
+      }
+    }
+
+    function prevScene() {
+      const currentIdx = allScenes.findIndex(s => s.id === currentSceneId);
+      if (currentIdx > 0) {
+        document.getElementById('sceneSelector').value = allScenes[currentIdx - 1].id;
+        loadSceneToCanvas();
+      }
+    }
+
+    function nextScene() {
+      const currentIdx = allScenes.findIndex(s => s.id === currentSceneId);
+      if (currentIdx < allScenes.length - 1) {
+        document.getElementById('sceneSelector').value = allScenes[currentIdx + 1].id;
+        loadSceneToCanvas();
+      }
+    }
+
+    function updateNavButtons() {
+      const currentIdx = allScenes.findIndex(s => s.id === currentSceneId);
+      document.getElementById('prevSceneBtn').disabled = currentIdx <= 0;
+      document.getElementById('nextSceneBtn').disabled = currentIdx >= allScenes.length - 1 || currentIdx < 0;
+    }
+
+    async function saveCanvas() {
+      if (!currentSceneId) return;
+
+      document.getElementById('canvasStatus').textContent = 'Saving...';
+
+      // Build scene heading
+      const intExt = document.getElementById('sceneIntExt').value;
+      const location = document.getElementById('sceneLocation').value;
+      const time = document.getElementById('sceneTime').value;
+      const title = `${intExt} ${location} - ${time}`;
+
+      // Gather canvas elements
+      const content = [];
+      document.querySelectorAll('#screenplayBody .screenplay-element').forEach(elem => {
+        const type = elem.dataset.type;
+        const input = elem.querySelector('input, textarea');
+        if (input && input.value.trim()) {
+          content.push({ type, text: input.value.trim() });
+        }
+      });
+
+      try {
+        await fetch(`${API_BASE}/api/outline/scenes/${currentSceneId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title,
+            canvas_content: JSON.stringify(content)
+          })
+        });
+
+        document.getElementById('canvasStatus').textContent = 'Saved';
+
+        // Update scene selector label
+        const opt = document.querySelector(`#sceneSelector option[value="${currentSceneId}"]`);
+        if (opt) {
+          const scene = allScenes.find(s => s.id === currentSceneId);
+          if (scene) {
+            scene.title = title;
+            opt.textContent = `${scene.scene_number}. ${title}`;
+          }
+        }
+
+        // Reload scenes list
+        loadOutline();
+      } catch (e) {
+        document.getElementById('canvasStatus').textContent = 'Error saving';
+      }
+    }
+
+    // ===================
+    // INIT
+    // ===================
+    loadOutline();
+    checkBuckets();
+    setupAutoSave();
+  </script>
+</body>
+</html>

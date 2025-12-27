@@ -103,10 +103,17 @@ class Database:
                     characters TEXT DEFAULT '',
                     tone TEXT DEFAULT '',
                     beats TEXT DEFAULT '[]',
+                    canvas_content TEXT DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            # Migration: add canvas_content if missing
+            cursor.execute("PRAGMA table_info(scenes)")
+            columns = [row[1] for row in cursor.fetchall()]
+            if 'canvas_content' not in columns:
+                cursor.execute("ALTER TABLE scenes ADD COLUMN canvas_content TEXT DEFAULT ''")
 
             # Create indices
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_number ON scenes(scene_number)")
@@ -310,7 +317,7 @@ class Database:
 
     def create_scene(self, scene_number: int, **kwargs) -> Dict:
         """Create a new scene."""
-        allowed = ['title', 'description', 'characters', 'tone', 'beats']
+        allowed = ['title', 'description', 'characters', 'tone', 'beats', 'canvas_content']
         data = {'scene_number': scene_number}
 
         for k, v in kwargs.items():
@@ -331,7 +338,7 @@ class Database:
 
     def update_scene(self, scene_id: int, **kwargs) -> Optional[Dict]:
         """Update a scene."""
-        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'beats']
+        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'beats', 'canvas_content']
         updates = {}
 
         for k, v in kwargs.items():

@@ -166,7 +166,7 @@ Hindsight contains both the structured data (from SQLite) and conversation conte
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         User Interface                       │
-│  home │ projects │ outline │ chat │ buckets │ settings      │
+│  home │ projects │ workspace │ buckets │ graph │ settings   │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -472,7 +472,7 @@ Local SQLite database for structured project data. Single-user, file-based stora
 - `project` — Title, logline, genre, description
 - `writer_notes` — Theme, tone, comps, braindump, outline
 - `characters` — Name, role, description, arc, age, personality, flaw, backstory, relationships
-- `scenes` — Scene number, title, description, characters, tone, beats
+- `scenes` — Scene number, title, description, characters, tone, beats, canvas_content (JSON)
 
 **Database location:** `data/lizzy.db`
 
@@ -554,13 +554,19 @@ See Neo4j section above for graph-related endpoints.
 |------|-----|-------------|
 | Home | `/home.html` | Landing page |
 | Projects | `/projects.html` | Project list and creation |
-| Outline | `/outline.html` | Project editor (tabbed: Project, Notes, Characters, Scenes) |
-| Query | `/query.html` | Expert chat interface (Books, Plays, Scripts experts) |
+| Workspace | `/workspace.html` | Combined workspace: outline (left) + Syd chat (right) + Canvas tab |
 | Buckets | `/buckets.html` | Manage LightRAG knowledge buckets |
 | Graph | `/graph.html` | Explore Neo4j entity relationships |
 | Settings | `/settings.html` | Theme, export, clear data |
 
-**User flow:** Home → Projects → Outline → (Query for expert help)
+**Workspace tabs:**
+- Project — Title, logline, genre, description
+- Notes — Theme, tone, comps, braindump
+- Characters — Character list with add/edit
+- Scenes — Scene list with add/edit
+- Canvas — Screenplay writing (one scene at a time, proper formatting)
+
+**User flow:** Home → Projects → Workspace (outline + chat + canvas in one view)
 
 ---
 

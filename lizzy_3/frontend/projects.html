@@ -383,7 +383,7 @@
           <button class="btn-new" id="newProjectBtn">+ New Project</button>
         </div>
         <div class="projects-list">
-          <a href="outline.html" class="project-card">
+          <a href="workspace.html" class="project-card">
             <div class="project-info">
               <div class="project-title">${project.title || 'Untitled Project'}</div>
               <div class="project-logline">${project.logline || 'No logline yet'}</div>
@@ -451,7 +451,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, logline, genre })
         });
-        window.location.href = 'outline.html';
+        window.location.href = 'workspace.html';
       } catch (err) {
         console.error('Failed to create:', err);
         alert('Failed to create project');
