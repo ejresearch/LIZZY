@@ -19,6 +19,9 @@ load_dotenv(Path(__file__).parent.parent.parent / ".env")
 from .buckets import BucketManager, BucketInfo
 from .graph import GraphService, sync_buckets_to_neo4j
 
+# Hindsight memory system
+from hindsight import start_server as start_hindsight_server, HindsightClient
+
 app = FastAPI(title="lizzy_3", version="0.1.0")
 
 # CORS for frontend
@@ -37,6 +40,22 @@ bucket_manager = BucketManager(str(BUCKETS_DIR))
 
 # Initialize graph service (Neo4j)
 graph_service = GraphService()
+
+# Initialize Hindsight memory system
+print("Starting Hindsight memory server...")
+hindsight_server = start_hindsight_server(
+    db_url="pg0",  # Embedded PostgreSQL
+    llm_provider="openai",
+    llm_api_key=os.environ.get("OPENAI_API_KEY", ""),
+    llm_model="gpt-4o-mini",
+    port=8888,
+    log_level="warning"
+)
+hindsight_client = HindsightClient(base_url=f"http://127.0.0.1:{hindsight_server.port}")
+print(f"Hindsight running on port {hindsight_server.port}")
+
+# Default bank ID for single-project mode (can be extended for multi-project)
+DEFAULT_BANK_ID = "lizzy-project-1"
 
 
 # --- Pydantic Models ---
@@ -282,17 +301,34 @@ async def health_check() -> dict:
 @app.post("/api/expert/chat")
 async def expert_chat(request: ExpertChatRequest) -> dict:
     """
-    Chat with an expert using the LLM + System Prompt + Bucket pattern.
+    Chat with an expert using the LLM + System Prompt + Bucket + Memory pattern.
 
-    1. Query the bucket for relevant context (RAG)
-    2. Build prompt with system prompt + context + conversation history
-    3. Call LLM and return response
+    1. Recall memories from Hindsight (project context)
+    2. Query the bucket for relevant context (RAG)
+    3. Build prompt with system prompt + memories + context + conversation history
+    4. Call LLM and return response
+    5. Retain the conversation turn to Hindsight
     """
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI()
 
-    # Step 1: Query bucket for relevant context
+    # Step 1: Recall memories from Hindsight
+    memory_context = ""
+    try:
+        memories = await hindsight_client.arecall(
+            bank_id=DEFAULT_BANK_ID,
+            query=request.message,
+            max_tokens=2000,
+            budget="mid"
+        )
+        if memories:
+            memory_parts = [m.text for m in memories[:5]]  # Top 5 memories
+            memory_context = "\n".join(memory_parts)
+    except Exception as e:
+        print(f"Hindsight recall failed: {e}")
+
+    # Step 2: Query bucket for relevant context (RAG)
     try:
         context = await bucket_manager.query(
             request.bucket,
@@ -305,11 +341,15 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
         # If RAG fails, continue without context
         context = ""
 
-    # Step 2: Build messages for LLM
+    # Step 3: Build messages for LLM
     messages = []
 
-    # System prompt with context injection
+    # System prompt with memory and context injection
     system_content = request.system_prompt
+
+    if memory_context:
+        system_content += f"\n\n---\nWhat you remember about this project:\n{memory_context}"
+
     if context:
         system_content += f"\n\n---\nRelevant knowledge from your expertise:\n{context[:3000]}"
 
@@ -337,15 +377,35 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
 
         assistant_message = response.choices[0].message.content
 
+        # Step 5: Retain conversation turn to Hindsight
+        try:
+            # Retain user message
+            await hindsight_client.aretain(
+                bank_id=DEFAULT_BANK_ID,
+                content=f"User said: {request.message}",
+                context="conversation with writer"
+            )
+            # Retain assistant response
+            await hindsight_client.aretain(
+                bank_id=DEFAULT_BANK_ID,
+                content=f"Syd responded: {assistant_message[:500]}",  # Truncate long responses
+                context="conversation with writer"
+            )
+        except Exception as e:
+            print(f"Hindsight retain failed: {e}")
+
         # Summarize context used
         context_summary = None
+        memory_summary = None
         if context:
-            context_preview = context[:200].replace("\n", " ")
-            context_summary = f"{len(context)} chars retrieved"
+            context_summary = f"{len(context)} chars from RAG"
+        if memory_context:
+            memory_summary = f"{len(memory_context)} chars from memory"
 
         return {
             "response": assistant_message,
             "context_used": context_summary,
+            "memory_used": memory_summary,
             "model": "gpt-4o"
         }
 
@@ -358,6 +418,18 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
 from .database import db as outline_db
 
 
+async def sync_to_memory(content: str):
+    """Helper to sync outline changes to Hindsight memory."""
+    try:
+        await hindsight_client.aretain(
+            bank_id=DEFAULT_BANK_ID,
+            content=content,
+            context="outline update"
+        )
+    except Exception as e:
+        print(f"Memory sync failed: {e}")
+
+
 @app.get("/api/outline/project")
 async def get_project() -> dict:
     """Get project metadata."""
@@ -367,7 +439,16 @@ async def get_project() -> dict:
 @app.put("/api/outline/project")
 async def update_project(request: ProjectUpdateRequest) -> dict:
     """Update project metadata."""
-    return outline_db.update_project(**request.model_dump(exclude_none=True))
+    result = outline_db.update_project(**request.model_dump(exclude_none=True))
+    # Sync to memory
+    parts = []
+    if request.title:
+        parts.append(f"Project title: {request.title}")
+    if request.logline:
+        parts.append(f"Logline: {request.logline}")
+    if parts:
+        await sync_to_memory(" | ".join(parts))
+    return result
 
 
 @app.get("/api/outline/notes")
@@ -391,7 +472,17 @@ async def get_characters() -> list:
 @app.post("/api/outline/characters")
 async def create_character(request: CharacterRequest) -> dict:
     """Create a new character."""
-    return outline_db.create_character(**request.model_dump(exclude_none=True))
+    result = outline_db.create_character(**request.model_dump(exclude_none=True))
+    # Sync to memory
+    parts = [f"Character: {request.name}"]
+    if request.role:
+        parts.append(f"role={request.role}")
+    if request.description:
+        parts.append(request.description)
+    if request.flaw:
+        parts.append(f"flaw: {request.flaw}")
+    await sync_to_memory(" | ".join(parts))
+    return result
 
 
 @app.get("/api/outline/characters/{character_id}")
@@ -409,6 +500,13 @@ async def update_character(character_id: int, request: CharacterRequest) -> dict
     char = outline_db.update_character(character_id, **request.model_dump(exclude_none=True))
     if not char:
         raise HTTPException(status_code=404, detail="Character not found")
+    # Sync to memory
+    parts = [f"Character updated: {char.get('name', 'Unknown')}"]
+    if request.arc:
+        parts.append(f"arc: {request.arc}")
+    if request.description:
+        parts.append(request.description)
+    await sync_to_memory(" | ".join(parts))
     return char
 
 
@@ -431,7 +529,15 @@ async def create_scene(request: SceneRequest) -> dict:
     """Create a new scene."""
     if request.scene_number is None:
         raise HTTPException(status_code=400, detail="scene_number is required")
-    return outline_db.create_scene(request.scene_number, **request.model_dump(exclude={'scene_number'}, exclude_none=True))
+    result = outline_db.create_scene(request.scene_number, **request.model_dump(exclude={'scene_number'}, exclude_none=True))
+    # Sync to memory
+    parts = [f"Scene {request.scene_number}"]
+    if request.title:
+        parts.append(request.title)
+    if request.description:
+        parts.append(request.description)
+    await sync_to_memory(" | ".join(parts))
+    return result
 
 
 @app.get("/api/outline/scenes/{scene_id}")
@@ -449,6 +555,14 @@ async def update_scene(scene_id: int, request: SceneRequest) -> dict:
     scene = outline_db.update_scene(scene_id, **request.model_dump(exclude_none=True))
     if not scene:
         raise HTTPException(status_code=404, detail="Scene not found")
+    # Sync to memory (only significant updates, not canvas content)
+    if request.title or request.description:
+        parts = [f"Scene {scene.get('scene_number', '?')} updated"]
+        if request.title:
+            parts.append(request.title)
+        if request.description:
+            parts.append(request.description[:200])
+        await sync_to_memory(" | ".join(parts))
     return scene
 
 
