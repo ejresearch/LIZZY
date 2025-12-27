@@ -50,12 +50,33 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
       color: var(--text-primary);
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
       transition: background var(--transition), color var(--transition);
     }
+
+    nav {
+      padding: 1.25rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-left { display: flex; align-items: center; gap: 3rem; }
+    .logo { font-size: 1.125rem; font-weight: 600; text-decoration: none; color: var(--text-primary); }
+
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .nav-link:hover { color: var(--text-primary); }
 
     .container {
       max-width: 900px;
@@ -90,34 +111,6 @@
     }
 
     .header-links a:hover { color: var(--text-primary); }
-
-    .theme-toggle { display: flex; align-items: center; gap: 0.5rem; }
-    .theme-toggle span { font-size: 0.75rem; color: var(--text-muted); }
-
-    .toggle-switch {
-      position: relative;
-      width: 44px;
-      height: 24px;
-      background: var(--bg-tertiary);
-      border-radius: 12px;
-      cursor: pointer;
-      transition: background var(--transition);
-      border: 1px solid var(--border);
-    }
-
-    .toggle-switch::after {
-      content: "";
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--text-primary);
-      border-radius: 50%;
-      transition: transform 0.25s ease, background var(--transition);
-    }
-
-    [data-theme="dark"] .toggle-switch::after { transform: translateX(20px); }
 
     /* Bucket Grid */
     .buckets-grid {
@@ -592,19 +585,19 @@
   </style>
 </head>
 <body>
+  <nav>
+    <div class="nav-left">
+      <a href="home.html" class="logo">lizzy</a>
+    </div>
+    <div class="nav-right">
+      <a href="projects.html" class="nav-link">Projects</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+    </div>
+  </nav>
+
   <div class="container">
     <div class="page-header">
       <h1>Knowledge Buckets</h1>
-      <div class="header-links">
-        <a href="outline.html">Outline</a>
-        <a href="query.html">Query</a>
-        <a href="buckets.html">Buckets</a>
-        <div class="theme-toggle">
-          <span>&#9788;</span>
-          <div class="toggle-switch" id="themeToggle"></div>
-          <span>&#9790;</span>
-        </div>
-      </div>
     </div>
 
     <!-- Buckets Grid -->
@@ -630,8 +623,8 @@
         <div class="drop-zone" id="dropZone">
           <div class="icon">&#128196;</div>
           <h3>Drop files here</h3>
-          <p>or click to browse (.txt, .pdf, .md, .html)</p>
-          <input type="file" id="fileInput" multiple accept=".txt,.pdf,.md,.html">
+          <p>or click to browse (.txt, .pdf, .md, .html, .docx)</p>
+          <input type="file" id="fileInput" multiple accept=".txt,.pdf,.md,.html,.docx">
         </div>
 
         <div class="folder-input">
@@ -910,18 +903,9 @@
   </style>
 
   <script>
-    // Theme handling
-    const html = document.documentElement;
-    const themeToggle = document.getElementById('themeToggle');
+    // Theme (system-wide, controlled in Settings)
     const savedTheme = localStorage.getItem('theme') || 'light';
-    html.setAttribute('data-theme', savedTheme);
-
-    themeToggle.addEventListener('click', () => {
-      const current = html.getAttribute('data-theme');
-      const next = current === 'light' ? 'dark' : 'light';
-      html.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    });
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
     // State
     let buckets = [];
@@ -1195,7 +1179,7 @@
     const queueList = document.getElementById('queueList');
     const queueCount = document.getElementById('queueCount');
 
-    const ALLOWED_TYPES = ['.txt', '.md', '.pdf', '.html'];
+    const ALLOWED_TYPES = ['.txt', '.md', '.pdf', '.html', '.docx'];
     const MAX_SIZE = 10 * 1024 * 1024; // 10MB warning threshold
 
     // Queue state: { id, file, name, size, status, error, progress, docId }

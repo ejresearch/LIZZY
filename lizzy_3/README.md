@@ -23,12 +23,150 @@ One continuous conversation that guides writers from initial idea through finish
 
 ## Architecture
 
-Three-layer data architecture:
+### How It Works
+
+Syd (the LLM) has two knowledge sources:
+
+```
+┌─────────────────┐                      ┌─────────────────┐
+│    LightRAG     │                      │    Hindsight    │
+│                 │                      │                 │
+│  DOMAIN EXPERT  │                      │   SYD'S BRAIN   │
+│   (shared)      │                      │  (per-project)  │
+│                 │                      │                 │
+│ Craft books     │                      │ What Syd knows  │
+│ Plays           │         ┌──────────▶ │ going into the  │
+│ Scripts         │         │            │ conversation    │
+└────────┬────────┘         │            └────────┬────────┘
+         │                  │                     │
+         │            ┌─────┴───────┐             │
+         │            │   SQLite    │             │
+         │            │ (notebook)  │             │
+         │            │             │             │
+         │            │ Characters  │             │
+         │            │ Scenes      │             │
+         │            │ Notes       │             │
+         │            └─────────────┘             │
+         │              manual edit               │
+         │                                        │
+         └──────────────┬─────────────────────────┘
+                        ▼
+                  ┌───────────┐
+                  │    LLM    │
+                  │   (Syd)   │
+                  └───────────┘
+```
+
+| Component | What it is | Example |
+|-----------|------------|---------|
+| **LightRAG** | Domain expertise (shared across all projects) | "Meet-cutes need tension + chemistry" |
+| **Hindsight** | Syd's brain (per-project memory) | "User prefers witty banter, hates big misunderstandings" |
+| **SQLite** | The notebook (structured editor for Hindsight) | `Emma: 32, divorce attorney` |
+
+### SQLite → Hindsight
+
+SQLite is a **structured editor** for what Hindsight knows. Instead of typing "Emma is 32, a divorce attorney" into chat, you fill out a form in the outline UI.
+
+```
+┌─────────────────┐         ┌─────────────────┐
+│     SQLite      │ ──────▶ │    Hindsight    │
+│  (manual edit)  │  sync   │  (Syd's brain)  │
+└─────────────────┘         └─────────────────┘
+                                    ▲
+                                    │ learns
+                                    │
+                            ┌───────────────┐
+                            │  Conversation │
+                            └───────────────┘
+```
+
+Hindsight learns from two sources:
+1. **SQLite sync** — manual prep (characters, scenes, notes you define in the UI)
+2. **Conversation** — what happens in the room ("user got excited about fake-dating trope")
+
+Each project gets its own Hindsight bank:
+- `project-second-chances` → `bank_id="project-1"`
+- `project-untitled-romcom` → `bank_id="project-2"`
+
+Switching projects = switching Syd's memory context.
+
+### Syd's Tools (Live Outline Editing)
+
+Syd can edit the outline during conversation via function calling. When the user mentions a character detail or scene idea, Syd saves it automatically.
+
+```python
+# api/syd_tools.py - Tool definitions
+from api.syd_tools import SYD_TOOLS
+
+# api/syd_tool_executor.py - Executes tools + syncs to Hindsight
+from api.syd_tool_executor import SydToolExecutor
+```
+
+**Available tools:**
+
+| Tool | Fields |
+|------|--------|
+| `update_project` | title, logline, genre, description |
+| `update_notes` | theme, tone, comps, braindump |
+| `create_character` | name, role, description, arc, age, personality, flaw, backstory, relationships |
+| `update_character` | character_id + any field above |
+| `delete_character` | character_id |
+| `create_scene` | scene_number, title, description, characters, tone, beats |
+| `update_scene` | scene_id + any field above |
+| `delete_scene` | scene_id |
+
+**Example flow:**
+```
+User: "Emma should be a divorce attorney, 32, kind of cynical about love"
+
+Syd: "Love that - cynicism as her armor."
+      ↓
+      [calls create_character(name="Emma", age="32", role="protagonist",
+                              description="divorce attorney, cynical about love")]
+      ↓
+      SQLite updated → syncs to Hindsight → UI reflects change
+```
+
+### Data Flow
+
+```
+User: "What should Emma's meet-cute look like?"
+                         │
+                         ▼
+                   ┌───────────┐
+                   │    Syd    │
+                   └─────┬─────┘
+                         │
+         ┌───────────────┴───────────────┐
+         ▼                               ▼
+    LightRAG                        Hindsight
+         │                               │
+    "Meet-cutes need               "Emma: divorce attorney
+     tension, chemistry,            User wants witty banter
+     reversal..."                   Hates big misunderstandings
+                                    Ben: wedding planner"
+         │                               │
+         └───────────────┬───────────────┘
+                         ▼
+                   ┌───────────┐
+                   │  RESPONSE │
+                   └───────────┘
+    "Given Emma's a divorce attorney and Ben plans
+     weddings, their meet-cute could be at the
+     courthouse - she's filing papers, he's picking
+     up a license. Quick banter about endings vs
+     beginnings. No contrived misunderstanding -
+     just genuine worldview clash."
+```
+
+Hindsight contains both the structured data (from SQLite) and conversation context. Syd queries two sources: LightRAG for domain expertise, Hindsight for project memory.
+
+### System Diagram
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                         User Interface                       │
-│  home │ projects │ outline │ query │ buckets │ settings     │
+│  home │ projects │ outline │ chat │ buckets │ settings      │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -37,28 +175,32 @@ Three-layer data architecture:
 │                      api/server.py                           │
 └─────────────────────────────────────────────────────────────┘
                               │
-        ┌─────────────────────┼─────────────────────┐
-        ▼                     ▼                     ▼
-┌───────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│    SQLite     │   │    LightRAG     │   │    Hindsight    │
-│  (Structured) │   │  (Domain RAG)   │   │    (Memory)     │
-├───────────────┤   ├─────────────────┤   ├─────────────────┤
-│ Project data  │   │ books-final     │   │ World network   │
-│ Characters    │   │ plays-final     │   │ Experience      │
-│ Scenes        │   │ scripts-final   │   │ Opinions        │
-│ Writer notes  │   │                 │   │ Observations    │
-└───────────────┘   └─────────────────┘   └─────────────────┘
-        │                     │                     │
-        │                     ▼                     │
-        │           ┌─────────────────┐             │
-        │           │      Neo4j      │             │
-        │           │ (Graph Explore) │             │
-        │           └─────────────────┘             │
-        │                                           │
-        └───────────────────────────────────────────┘
+              ┌───────────────┼───────────────┐
+              ▼               ▼               ▼
+       ┌───────────┐   ┌───────────┐   ┌───────────┐
+       │  SQLite   │   │ LightRAG  │   │ Hindsight │
+       │(notebook) │   │ (domain)  │   │  (brain)  │
+       └─────┬─────┘   └─────┬─────┘   └─────┬─────┘
+             │               │               │
+             │          books-final          │
+             │          plays-final     per-project
+             │          scripts-final   memory banks
+             │               │               │
+             │               └───────┬───────┘
+             │                       │
+             │                       ▼
+             │                 ┌───────────┐
+             └────── sync ────▶│    Syd    │◀── conversation
+                               │   (LLM)   │     learns
+                               └───────────┘
+                                     │
+                                     ▼ tool calls
+                               ┌───────────┐
+                               │  SQLite   │ (loop)
+                               └───────────┘
 ```
 
-**Expert Pattern:** `LLM + System Prompt + RAG Bucket = Expert`
+**The loop:** Syd reads from Hindsight → responds → tool calls update SQLite → syncs to Hindsight
 
 ## Dependencies
 

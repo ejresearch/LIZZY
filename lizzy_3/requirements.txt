@@ -15,3 +15,6 @@ networkx>=3.0
 
 # Environment loading
 python-dotenv>=1.0.0
+
+# Document parsing
+python-docx>=1.1.0

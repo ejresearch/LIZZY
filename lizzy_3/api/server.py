@@ -1,9 +1,11 @@
 """FastAPI server for lizzy_3."""
 
+import io
 import os
 from pathlib import Path
 from typing import Optional
 
+from docx import Document as DocxDocument
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -172,7 +174,14 @@ async def upload_document(name: str, file: UploadFile = File(...), background: b
 
     try:
         content = await file.read()
-        text = content.decode('utf-8', errors='ignore')
+
+        # Handle .docx files (binary format)
+        if file.filename and file.filename.lower().endswith('.docx'):
+            doc = DocxDocument(io.BytesIO(content))
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            text = '\n\n'.join(paragraphs)
+        else:
+            text = content.decode('utf-8', errors='ignore')
 
         if background:
             # Fire and forget - returns immediately

@@ -423,9 +423,8 @@
     </div>
 
     <div class="sidebar-footer">
-      <a href="buckets.html">Buckets</a>
+      <a href="projects.html">Projects</a>
       <a href="settings.html">Settings</a>
-      <a href="#" id="exportBtn">Export</a>
     </div>
   </aside>
 
@@ -437,7 +436,6 @@
       </div>
       <div class="header-right">
         <button id="clearBtn" class="icon-btn" title="Clear chat">&#8634;</button>
-        <button id="themeBtn" class="icon-btn" title="Toggle theme">&#9790;</button>
       </div>
     </header>
 
@@ -489,24 +487,15 @@
     const input = $('#messageInput');
     const sendBtn = $('#sendBtn');
     const statusEl = $('#status');
-    const themeBtn = $('#themeBtn');
     const clearBtn = $('#clearBtn');
     const apiKeyModal = $('#apiKeyModal');
     const apiKeyInput = $('#apiKeyInput');
     const saveApiKeyBtn = $('#saveApiKey');
     const closeModalBtn = $('#closeModal');
 
-    // ==========================================================================
-    // THEME
-    // ==========================================================================
+    // Theme (system-wide, controlled in Settings)
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
-
-    themeBtn.onclick = () => {
-      const next = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', next);
-      localStorage.setItem('theme', next);
-    };
 
     // ==========================================================================
     // API KEY MODAL

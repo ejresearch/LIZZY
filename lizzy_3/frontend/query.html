@@ -1,13 +1,27 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>lizzy - Query</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --transition: 0.25s ease; }
 
-    :root {
+    [data-theme="light"] {
+      --bg-primary: #fff;
+      --bg-secondary: #fafafa;
+      --bg-tertiary: #f4f4f5;
+      --text-primary: #111;
+      --text-secondary: #52525b;
+      --text-muted: #71717a;
+      --border: #e4e4e7;
+      --border-light: #f4f4f5;
+      --accent: #3b82f6;
+      --accent-bg: #eff6ff;
+    }
+
+    [data-theme="dark"] {
       --bg-primary: #18181b;
       --bg-secondary: #111;
       --bg-tertiary: #27272a;
@@ -15,48 +29,42 @@
       --text-secondary: #a1a1aa;
       --text-muted: #71717a;
       --border: #3f3f46;
+      --border-light: #27272a;
       --accent: #60a5fa;
       --accent-bg: #1e3a5f;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-      background: var(--bg-secondary);
+      background: var(--bg-primary);
       color: var(--text-primary);
       height: 100vh;
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
+      transition: background var(--transition), color var(--transition);
     }
 
-    /* Header */
-    .header {
-      padding: 1rem 1.5rem;
-      border-bottom: 1px solid var(--border);
+    nav {
+      padding: 1.25rem 2rem;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
     }
 
-    .header h1 {
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
+    .nav-left { display: flex; align-items: center; gap: 3rem; }
+    .logo { font-size: 1.125rem; font-weight: 600; text-decoration: none; color: var(--text-primary); }
 
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .header a {
-      font-size: 0.875rem;
-      color: var(--text-muted);
+    .nav-right { display: flex; align-items: center; gap: 1.5rem; }
+    .nav-link {
+      color: var(--text-secondary);
       text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
     }
-
-    .header a:hover { color: var(--text-primary); }
+    .nav-link:hover { color: var(--text-primary); }
 
     /* Expert Tabs */
     .expert-tabs {
@@ -271,13 +279,15 @@
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Query</h1>
-    <div class="header-right">
-      <a href="outline.html">Outline</a>
-      <a href="buckets.html">Buckets</a>
+  <nav>
+    <div class="nav-left">
+      <a href="home.html" class="logo">lizzy</a>
     </div>
-  </div>
+    <div class="nav-right">
+      <a href="projects.html" class="nav-link">Projects</a>
+      <a href="settings.html" class="nav-link">Settings</a>
+    </div>
+  </nav>
 
   <div class="expert-tabs">
     <button class="expert-tab" data-expert="books" onclick="selectExpert('books')">
@@ -308,6 +318,10 @@
   </div>
 
   <script>
+    // Theme (system-wide, controlled in Settings)
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
     const API_BASE = 'http://localhost:8000';
     const RAG_MODE = 'hybrid';
 
