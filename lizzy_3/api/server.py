@@ -650,6 +650,24 @@ Character and scene IDs are shown in brackets like [id=5]."""
         raise HTTPException(status_code=500, detail=f"LLM error: {str(e)}")
 
 
+@app.post("/api/reflect")
+async def trigger_reflection() -> dict:
+    """
+    Trigger Hindsight reflection at end of session.
+
+    Analyzes memories to form new connections, opinions, and observations
+    about the project and user preferences.
+    """
+    bank_id = get_memory_bank_id()
+    try:
+        await hindsight_client.areflect(bank_id=bank_id)
+        print(f"Reflection completed for bank: {bank_id}")
+        return {"success": True, "bank_id": bank_id}
+    except Exception as e:
+        print(f"Reflection failed: {e}")
+        return {"success": False, "error": str(e)}
+
+
 # --- Outline Endpoints (SQLite) ---
 
 from .database import db as outline_db

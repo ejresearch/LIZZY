@@ -1935,6 +1935,12 @@ You have access to expert knowledge buckets:
         console.log('Canvas auto-saved');
       }
     }, 60000);
+
+    // Trigger Hindsight reflection when leaving the page
+    window.addEventListener('beforeunload', () => {
+      // Use sendBeacon for reliable delivery on page unload
+      navigator.sendBeacon(`${API_BASE}/api/reflect`, '');
+    });
   </script>
 </body>
 </html>
