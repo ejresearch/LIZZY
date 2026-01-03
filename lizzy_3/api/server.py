@@ -100,7 +100,8 @@ class CypherQueryRequest(BaseModel):
 
 class ExpertChatRequest(BaseModel):
     message: str
-    bucket: str
+    buckets: Optional[list] = []  # List of active buckets to query
+    bucket: Optional[str] = None  # Legacy single bucket (fallback)
     system_prompt: str
     rag_mode: Optional[str] = "hybrid"
     history: Optional[list] = []
@@ -430,6 +431,42 @@ OUTLINE_TOOLS = [
             "description": "Get the current full outline (project, characters, scenes) to see what exists",
             "parameters": {"type": "object", "properties": {}}
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_scene",
+            "description": "Write formatted screenplay content for a scene. Use this when asked to 'write', 'draft', or 'flesh out' a scene. This writes actual screenplay format (sluglines, action, dialogue) to the Canvas.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "scene_id": {
+                        "type": "integer",
+                        "description": "ID of the scene to write (use get_outline to find scene IDs)"
+                    },
+                    "elements": {
+                        "type": "array",
+                        "description": "Array of screenplay elements in order",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": ["scene-heading", "action", "character", "dialogue", "parenthetical", "transition"],
+                                    "description": "Element type: scene-heading (INT./EXT. LOCATION - TIME), action (description), character (CHARACTER NAME), dialogue (what they say), parenthetical (how they say it), transition (CUT TO:)"
+                                },
+                                "text": {
+                                    "type": "string",
+                                    "description": "The content of this element"
+                                }
+                            },
+                            "required": ["type", "text"]
+                        }
+                    }
+                },
+                "required": ["scene_id", "elements"]
+            }
+        }
     }
 ]
 
@@ -458,6 +495,16 @@ def execute_outline_tool(name: str, args: dict) -> dict:
             scene_id = args.pop("scene_id")
             result = outline_db.update_scene(scene_id, **args)
             return result or {"error": "Scene not found"}
+
+        elif name == "write_scene":
+            scene_id = args.pop("scene_id")
+            elements = args.get("elements", [])
+            # Store as JSON in canvas_content
+            canvas_content = json.dumps(elements)
+            result = outline_db.update_scene(scene_id, canvas_content=canvas_content)
+            if result:
+                return {"success": True, "scene_id": scene_id, "elements_count": len(elements)}
+            return {"error": "Scene not found"}
 
         elif name == "get_outline":
             return {
@@ -501,17 +548,28 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
     except Exception as e:
         print(f"Hindsight recall failed: {e}")
 
-    # Step 2: Query bucket for relevant context (RAG)
-    try:
-        context = await bucket_manager.query(
-            request.bucket,
-            request.message,
-            request.rag_mode
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        context = ""
+    # Step 2: Query buckets for relevant context (RAG)
+    # Support both new 'buckets' list and legacy 'bucket' single value
+    buckets_to_query = request.buckets if request.buckets else ([request.bucket] if request.bucket else [])
+
+    context_parts = []
+    for bucket_name in buckets_to_query:
+        try:
+            bucket_context = await bucket_manager.query(
+                bucket_name,
+                request.message,
+                request.rag_mode
+            )
+            if bucket_context:
+                # Label context by source
+                bucket_label = {'books-final': 'Structure', 'plays-final': 'Dialogue', 'scripts-final': 'Execution'}.get(bucket_name, bucket_name)
+                context_parts.append(f"[{bucket_label}]\n{bucket_context}")
+        except ValueError as e:
+            print(f"Bucket {bucket_name} not found: {e}")
+        except Exception as e:
+            print(f"Bucket {bucket_name} query failed: {e}")
+
+    context = "\n\n".join(context_parts) if context_parts else ""
 
     # Step 2.5: Get current outline state from SQLite
     outline_context = ""
@@ -547,10 +605,23 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
     system_content = request.system_prompt
     system_content += """
 
-You have tools to edit the project outline. Use them when the writer asks you to:
+You have tools to edit the project outline and write scenes. Use them when the writer asks you to:
 - Create or update characters
-- Create or update scenes
+- Create or update scenes (metadata like title, description, beats)
 - Set the project title, logline, or description
+- WRITE actual screenplay content using write_scene
+
+WRITING SCENES with write_scene:
+When asked to "write", "draft", or "flesh out" a scene, use write_scene with formatted elements:
+- scene-heading: "INT. COFFEE SHOP - DAY" or "EXT. PARK - NIGHT"
+- action: Description of what we see (present tense)
+- character: Character name IN CAPS before their dialogue
+- dialogue: What the character says
+- parenthetical: (how they say it) - use sparingly
+- transition: CUT TO:, FADE OUT, etc.
+
+Example elements array:
+[{"type":"scene-heading","text":"INT. COFFEE SHOP - DAY"},{"type":"action","text":"EMMA, 30s, rushes in looking frazzled."},{"type":"character","text":"EMMA"},{"type":"dialogue","text":"I need coffee. Now."}]
 
 When making changes, use the tools. After using tools, summarize what you did.
 If you need to see what exists, use get_outline first.
@@ -956,6 +1027,7 @@ async def get_full_outline() -> dict:
 class ConversationRequest(BaseModel):
     title: Optional[str] = None
     messages: Optional[list] = None
+    active_buckets: Optional[list] = None
 
 
 @app.get("/api/conversations")
@@ -969,7 +1041,8 @@ async def create_conversation(request: ConversationRequest) -> dict:
     """Create a new conversation."""
     return outline_db.create_conversation(
         title=request.title or "New Chat",
-        messages=request.messages or []
+        messages=request.messages or [],
+        active_buckets=request.active_buckets or []
     )
 
 
@@ -984,11 +1057,12 @@ async def get_conversation(conversation_id: int) -> dict:
 
 @app.put("/api/conversations/{conversation_id}")
 async def update_conversation(conversation_id: int, request: ConversationRequest) -> dict:
-    """Update a conversation (title and/or messages)."""
+    """Update a conversation (title, messages, and/or active_buckets)."""
     conv = outline_db.update_conversation(
         conversation_id,
         title=request.title,
-        messages=request.messages
+        messages=request.messages,
+        active_buckets=request.active_buckets
     )
     if not conv:
         raise HTTPException(status_code=404, detail="Conversation not found")

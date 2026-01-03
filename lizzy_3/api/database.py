@@ -148,10 +148,17 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT DEFAULT 'New Chat',
                     messages TEXT DEFAULT '[]',
+                    active_buckets TEXT DEFAULT '[]',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
+
+            # Migration: add active_buckets if missing
+            cursor.execute("PRAGMA table_info(conversations)")
+            conv_columns = [row[1] for row in cursor.fetchall()]
+            if 'active_buckets' not in conv_columns:
+                cursor.execute("ALTER TABLE conversations ADD COLUMN active_buckets TEXT DEFAULT '[]'")
 
             # Create indices
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_number ON scenes(scene_number)")
@@ -687,21 +694,22 @@ class Database:
             if row:
                 conv = dict(row)
                 conv['messages'] = json.loads(conv['messages'] or '[]')
+                conv['active_buckets'] = json.loads(conv.get('active_buckets') or '[]')
                 return conv
             return None
 
-    def create_conversation(self, title: str = "New Chat", messages: List[Dict] = None) -> Dict:
+    def create_conversation(self, title: str = "New Chat", messages: List[Dict] = None, active_buckets: List[str] = None) -> Dict:
         """Create a new conversation."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO conversations (title, messages) VALUES (?, ?)",
-                (title, json.dumps(messages or []))
+                "INSERT INTO conversations (title, messages, active_buckets) VALUES (?, ?, ?)",
+                (title, json.dumps(messages or []), json.dumps(active_buckets or []))
             )
             conv_id = cursor.lastrowid
         return self.get_conversation(conv_id)
 
-    def update_conversation(self, conversation_id: int, title: str = None, messages: List[Dict] = None) -> Optional[Dict]:
+    def update_conversation(self, conversation_id: int, title: str = None, messages: List[Dict] = None, active_buckets: List[str] = None) -> Optional[Dict]:
         """Update a conversation."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -715,6 +723,10 @@ class Database:
             if messages is not None:
                 updates.append("messages = ?")
                 values.append(json.dumps(messages))
+
+            if active_buckets is not None:
+                updates.append("active_buckets = ?")
+                values.append(json.dumps(active_buckets))
 
             if updates:
                 updates.append("updated_at = CURRENT_TIMESTAMP")

@@ -306,8 +306,9 @@
     }
 
     .scene-drag-handle:hover { opacity: 1; }
-    .scene-item.dragging { opacity: 0.5; background: var(--bg-tertiary); }
-    .scene-item.drag-over { border-color: var(--accent); border-style: dashed; }
+    .scene-wrapper.dragging { opacity: 0.5; }
+    .scene-wrapper.dragging .scene-header { background: var(--bg-tertiary); }
+    .scene-wrapper.drag-over .scene-header { border-color: var(--accent); border-style: dashed; }
 
     .scene-delete {
       background: none;
@@ -322,6 +323,123 @@
 
     .list-item:hover .scene-delete { opacity: 0.6; }
     .scene-delete:hover { opacity: 1 !important; color: #dc2626; }
+    .scene-header .scene-delete { opacity: 0; }
+
+    /* Scene detail panel (notebook view) */
+    .scene-wrapper {
+      margin-bottom: 0.5rem;
+    }
+    .scene-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.625rem 0.75rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .scene-wrapper.expanded .scene-header {
+      border-radius: 6px 6px 0 0;
+      border-bottom: none;
+    }
+    .scene-header:hover { background: var(--bg-tertiary); }
+    .scene-header:hover .scene-drag-handle { opacity: 1; }
+    .scene-header:hover .scene-delete { opacity: 0.6; }
+    .scene-expand-icon {
+      color: var(--text-muted);
+      font-size: 0.625rem;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+    .scene-wrapper.expanded .scene-expand-icon { transform: rotate(90deg); }
+    .scene-title-row {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+    .scene-number {
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    .scene-title {
+      font-weight: 500;
+      font-size: 0.8125rem;
+    }
+    .scene-detail {
+      display: none;
+      padding: 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+    }
+    .scene-wrapper.expanded .scene-detail { display: block; }
+    .scene-detail .field-group {
+      margin-bottom: 0.75rem;
+    }
+    .scene-detail .field-group:last-child { margin-bottom: 0; }
+    .scene-detail label {
+      display: block;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .scene-detail input,
+    .scene-detail textarea {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.8125rem;
+      background: var(--bg-secondary);
+    }
+    .scene-detail textarea { min-height: 60px; resize: vertical; }
+    .scene-detail .beats-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    .scene-detail .beat-item {
+      display: flex;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+    .scene-detail .beat-item input {
+      flex: 1;
+    }
+    .scene-detail .beat-remove {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    .scene-detail .beat-remove:hover { color: #dc2626; }
+    .scene-detail .add-beat-btn {
+      font-size: 0.75rem;
+      color: var(--accent);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.25rem 0;
+      margin-top: 0.25rem;
+    }
+    .scene-detail .add-beat-btn:hover { text-decoration: underline; }
+    .scene-detail-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid var(--border);
+    }
+    .scene-detail-actions .btn-sm { font-size: 0.75rem; }
 
     .empty-list {
       text-align: center;
@@ -1197,7 +1315,7 @@
         <div class="outline-tab active" data-tab="project">Project</div>
         <div class="outline-tab" data-tab="notes">Notes</div>
         <div class="outline-tab" data-tab="characters">Characters</div>
-        <div class="outline-tab" data-tab="scenes">Scenes</div>
+        <div class="outline-tab" data-tab="scenes">Outline</div>
         <div class="outline-tab" data-tab="canvas">Canvas</div>
         <div class="outline-tab" data-tab="memory">Memory</div>
       </div>
@@ -1251,7 +1369,7 @@
         <!-- Scenes Tab -->
         <div class="tab-panel" id="panel-scenes">
           <div class="list-header">
-            <h3>Scenes</h3>
+            <h3>Outline</h3>
             <button class="btn-sm" onclick="addScene()">+ Scene</button>
           </div>
           <div id="actsList"></div>
@@ -1831,15 +1949,53 @@
     }
 
     function renderSceneItem(s) {
-      const actBadge = s.act_id ? '' : '';
+      const beats = s.beats || [];
+      const beatsHtml = beats.map((b, i) => `
+        <div class="beat-item">
+          <input type="text" value="${(b || '').replace(/"/g, '&quot;')}" onchange="updateSceneBeat(${s.id}, ${i}, this.value)" placeholder="Beat ${i + 1}...">
+          <button class="beat-remove" onclick="removeSceneBeat(${s.id}, ${i})">&times;</button>
+        </div>
+      `).join('');
+
       return `
-        <div class="list-item scene-item" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}" data-act-id="${s.act_id || ''}">
-          <span class="scene-drag-handle" title="Drag to reorder">⋮⋮</span>
-          <div class="list-item-content" onclick="openSceneInCanvas(${s.id})">
-            <div class="list-item-name">${s.scene_number}. ${s.title || 'Untitled'}${actBadge}</div>
-            <div class="list-item-meta">${s.description ? s.description.substring(0, 50) + '...' : 'No description'}</div>
+        <div class="scene-wrapper" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}" data-act-id="${s.act_id || ''}">
+          <div class="scene-header">
+            <span class="scene-drag-handle" title="Drag to reorder">⋮⋮</span>
+            <span class="scene-expand-icon" onclick="toggleSceneDetail(${s.id})">▶</span>
+            <div class="scene-title-row" onclick="toggleSceneDetail(${s.id})">
+              <span class="scene-number">${s.scene_number}.</span>
+              <span class="scene-title">${s.title || 'Untitled'}</span>
+            </div>
+            <button class="scene-delete" onclick="event.stopPropagation(); deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')" title="Delete">&times;</button>
           </div>
-          <button class="scene-delete" onclick="event.stopPropagation(); deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')" title="Delete scene">&times;</button>
+          <div class="scene-detail">
+            <div class="field-group">
+              <label>Title</label>
+              <input type="text" value="${(s.title || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'title', this.value)" placeholder="Scene title...">
+            </div>
+            <div class="field-group">
+              <label>Description</label>
+              <textarea onchange="updateSceneField(${s.id}, 'description', this.value)" placeholder="What happens in this scene...">${s.description || ''}</textarea>
+            </div>
+            <div class="field-group">
+              <label>Beats</label>
+              <div class="beats-list" id="beats-${s.id}">
+                ${beatsHtml || '<div class="beat-item"><input type="text" onchange="updateSceneBeat('+s.id+', 0, this.value)" placeholder="First beat..."></div>'}
+              </div>
+              <button class="add-beat-btn" onclick="addSceneBeat(${s.id})">+ Add beat</button>
+            </div>
+            <div class="field-group">
+              <label>Characters</label>
+              <input type="text" value="${(s.characters || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'characters', this.value)" placeholder="Who's in this scene...">
+            </div>
+            <div class="field-group">
+              <label>Tone</label>
+              <input type="text" value="${(s.tone || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'tone', this.value)" placeholder="e.g., tense, comedic, romantic...">
+            </div>
+            <div class="scene-detail-actions">
+              <button class="btn-sm" onclick="openSceneInCanvas(${s.id})">Write in Canvas</button>
+            </div>
+          </div>
         </div>
       `;
     }
@@ -1853,6 +2009,111 @@
       const section = document.querySelector(`.act-section[data-act-id="${actId}"]`);
       if (section) {
         section.classList.toggle('collapsed');
+      }
+    }
+
+    function toggleSceneDetail(sceneId) {
+      const wrapper = document.querySelector(`.scene-wrapper[data-scene-id="${sceneId}"]`);
+      if (wrapper) {
+        wrapper.classList.toggle('expanded');
+      }
+    }
+
+    let sceneUpdateTimeout = {};
+    async function updateSceneField(sceneId, field, value) {
+      // Update local state
+      const scene = currentScenes.find(s => s.id === sceneId);
+      if (scene) scene[field] = value;
+
+      // Debounced save
+      clearTimeout(sceneUpdateTimeout[sceneId]);
+      sceneUpdateTimeout[sceneId] = setTimeout(async () => {
+        try {
+          await fetch(`${API_BASE}/api/outline/scenes/${sceneId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: value })
+          });
+          // Update title display if changed
+          if (field === 'title') {
+            const titleEl = document.querySelector(`.scene-wrapper[data-scene-id="${sceneId}"] .scene-title`);
+            if (titleEl) titleEl.textContent = value || 'Untitled';
+          }
+        } catch (e) {
+          console.error('Failed to update scene:', e);
+        }
+      }, 500);
+    }
+
+    async function updateSceneBeat(sceneId, index, value) {
+      const scene = currentScenes.find(s => s.id === sceneId);
+      if (!scene) return;
+
+      if (!scene.beats) scene.beats = [];
+      scene.beats[index] = value;
+
+      // Debounced save
+      clearTimeout(sceneUpdateTimeout[`${sceneId}-beats`]);
+      sceneUpdateTimeout[`${sceneId}-beats`] = setTimeout(async () => {
+        try {
+          await fetch(`${API_BASE}/api/outline/scenes/${sceneId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ beats: scene.beats.filter(b => b) })
+          });
+        } catch (e) {
+          console.error('Failed to update beats:', e);
+        }
+      }, 500);
+    }
+
+    function addSceneBeat(sceneId) {
+      const scene = currentScenes.find(s => s.id === sceneId);
+      if (!scene) return;
+
+      if (!scene.beats) scene.beats = [];
+      scene.beats.push('');
+
+      const container = document.getElementById(`beats-${sceneId}`);
+      if (container) {
+        const index = scene.beats.length - 1;
+        const beatHtml = `
+          <div class="beat-item">
+            <input type="text" onchange="updateSceneBeat(${sceneId}, ${index}, this.value)" placeholder="Beat ${index + 1}...">
+            <button class="beat-remove" onclick="removeSceneBeat(${sceneId}, ${index})">&times;</button>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', beatHtml);
+        container.lastElementChild.querySelector('input').focus();
+      }
+    }
+
+    async function removeSceneBeat(sceneId, index) {
+      const scene = currentScenes.find(s => s.id === sceneId);
+      if (!scene || !scene.beats) return;
+
+      scene.beats.splice(index, 1);
+
+      // Re-render beats
+      const container = document.getElementById(`beats-${sceneId}`);
+      if (container) {
+        container.innerHTML = scene.beats.map((b, i) => `
+          <div class="beat-item">
+            <input type="text" value="${(b || '').replace(/"/g, '&quot;')}" onchange="updateSceneBeat(${sceneId}, ${i}, this.value)" placeholder="Beat ${i + 1}...">
+            <button class="beat-remove" onclick="removeSceneBeat(${sceneId}, ${i})">&times;</button>
+          </div>
+        `).join('') || `<div class="beat-item"><input type="text" onchange="updateSceneBeat(${sceneId}, 0, this.value)" placeholder="First beat..."></div>`;
+      }
+
+      // Save
+      try {
+        await fetch(`${API_BASE}/api/outline/scenes/${sceneId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ beats: scene.beats })
+        });
+      } catch (e) {
+        console.error('Failed to update beats:', e);
       }
     }
 
@@ -2193,8 +2454,8 @@
     }
 
     function setupSceneDragAndDrop() {
-      const container = document.getElementById('scenesList');
-      const items = container.querySelectorAll('.scene-item');
+      const container = document.getElementById('actsList');
+      const items = container.querySelectorAll('.scene-wrapper');
       let draggedItem = null;
 
       items.forEach(item => {
@@ -2207,7 +2468,7 @@
 
         item.addEventListener('dragend', () => {
           item.classList.remove('dragging');
-          items.forEach(i => i.classList.remove('drag-over'));
+          container.querySelectorAll('.scene-wrapper').forEach(i => i.classList.remove('drag-over'));
           draggedItem = null;
         });
 
@@ -2273,7 +2534,7 @@
       });
     }
 
-    function toggleBucket(bucket) {
+    async function toggleBucket(bucket) {
       if (!availableBuckets[bucket]) return;
 
       const chip = document.querySelector(`[data-bucket="${bucket}"]`);
@@ -2287,6 +2548,19 @@
         activeBuckets.push(bucket);
         chip.classList.add('active');
         addSystemMessage(`${getBucketName(bucket)} activated`);
+      }
+
+      // Save bucket state to current conversation
+      if (currentConversationId) {
+        try {
+          await fetch(`${API_BASE}/api/conversations/${currentConversationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active_buckets: activeBuckets })
+          });
+        } catch (e) {
+          console.error('Failed to save bucket state:', e);
+        }
       }
     }
 
@@ -2314,6 +2588,8 @@
             if (convRes.ok) {
               const conv = await convRes.json();
               chatHistory = conv.messages || [];
+              activeBuckets = conv.active_buckets || [];
+              updateBucketChips();
               renderChatHistory();
               updateConvoButtons();
             }
@@ -2371,6 +2647,10 @@
           currentConversationId = conv.id;
           chatHistory = conv.messages || [];
 
+          // Restore active buckets
+          activeBuckets = conv.active_buckets || [];
+          updateBucketChips();
+
           // Render messages
           const container = document.getElementById('messages');
           container.innerHTML = '';
@@ -2394,6 +2674,8 @@
     function newConversation() {
       currentConversationId = null;
       chatHistory = [];
+      activeBuckets = [];
+      updateBucketChips();
       document.getElementById('conversationSelect').value = '';
       document.getElementById('messages').innerHTML = `
         <div class="chat-empty" id="chatEmpty">
@@ -2401,6 +2683,17 @@
           <p>Get help with your screenplay. Toggle knowledge sources above for domain expertise.</p>
         </div>`;
       updateConvoButtons();
+    }
+
+    function updateBucketChips() {
+      document.querySelectorAll('.bucket-chip').forEach(chip => {
+        const bucket = chip.dataset.bucket;
+        if (activeBuckets.includes(bucket)) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
     }
 
     async function renameConversation() {
@@ -2464,14 +2757,14 @@
           await fetch(`${API_BASE}/api/conversations/${currentConversationId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messages: chatHistory })
+            body: JSON.stringify({ messages: chatHistory, active_buckets: activeBuckets })
           });
         } else {
           // Create new
           const res = await fetch(`${API_BASE}/api/conversations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, messages: chatHistory })
+            body: JSON.stringify({ title, messages: chatHistory, active_buckets: activeBuckets })
           });
           if (res.ok) {
             const conv = await res.json();
@@ -2511,7 +2804,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
-            bucket: activeBuckets[0] || 'scripts-final',
+            buckets: activeBuckets,
             system_prompt: systemPrompt,
             rag_mode: 'hybrid',
             history: chatHistory.slice(-10)

@@ -372,6 +372,43 @@ DELETE_SCENE = {
     }
 }
 
+WRITE_SCENE = {
+    "type": "function",
+    "function": {
+        "name": "write_scene",
+        "description": "Write formatted screenplay content for a scene. Use when user asks you to write, draft, or flesh out an actual scene. This writes to the Canvas.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "integer",
+                    "description": "ID of the scene to write"
+                },
+                "elements": {
+                    "type": "array",
+                    "description": "Array of screenplay elements in order. Each element has 'type' and 'text'.",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {
+                                "type": "string",
+                                "enum": ["scene-heading", "action", "character", "dialogue", "parenthetical", "transition"],
+                                "description": "Element type: scene-heading (INT./EXT. LOCATION - TIME), action (description), character (CHARACTER NAME in caps), dialogue (what they say), parenthetical (how they say it), transition (CUT TO:, FADE OUT, etc.)"
+                            },
+                            "text": {
+                                "type": "string",
+                                "description": "The content of this element"
+                            }
+                        },
+                        "required": ["type", "text"]
+                    }
+                }
+            },
+            "required": ["scene_id", "elements"]
+        }
+    }
+}
+
 # =============================================================================
 # ALL TOOLS
 # =============================================================================
@@ -388,6 +425,7 @@ SYD_TOOLS = [
     CREATE_SCENE,
     UPDATE_SCENE,
     DELETE_SCENE,
+    WRITE_SCENE,
 ]
 
 
