@@ -120,6 +120,7 @@ class ProjectUpdateRequest(BaseModel):
     logline_locked: Optional[bool] = None
     genre: Optional[str] = None
     description: Optional[str] = None
+    phase: Optional[str] = None  # intake, brainstorm, write
 
 
 class WriterNotesUpdateRequest(BaseModel):
@@ -151,6 +152,13 @@ class SceneRequest(BaseModel):
     tone: Optional[str] = None
     beats: Optional[list] = None
     canvas_content: Optional[str] = None
+    act_id: Optional[int] = None
+
+
+class ActRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
 
 
 # --- Bucket Endpoints ---
@@ -804,6 +812,64 @@ async def delete_character(character_id: int) -> dict:
     raise HTTPException(status_code=404, detail="Character not found")
 
 
+@app.get("/api/outline/acts")
+async def get_acts() -> list:
+    """Get all acts."""
+    return outline_db.get_acts()
+
+
+@app.post("/api/outline/acts")
+async def create_act(request: ActRequest) -> dict:
+    """Create a new act."""
+    title = request.title or "New Act"
+    return outline_db.create_act(
+        title=title,
+        description=request.description or "",
+        sort_order=request.sort_order
+    )
+
+
+@app.get("/api/outline/acts/{act_id}")
+async def get_act(act_id: int) -> dict:
+    """Get a single act."""
+    act = outline_db.get_act(act_id)
+    if not act:
+        raise HTTPException(status_code=404, detail="Act not found")
+    return act
+
+
+@app.put("/api/outline/acts/{act_id}")
+async def update_act(act_id: int, request: ActRequest) -> dict:
+    """Update an act."""
+    act = outline_db.update_act(act_id, **request.model_dump(exclude_none=True))
+    if not act:
+        raise HTTPException(status_code=404, detail="Act not found")
+    return act
+
+
+@app.delete("/api/outline/acts/{act_id}")
+async def delete_act(act_id: int) -> dict:
+    """Delete an act. Scenes will become unassigned."""
+    if outline_db.delete_act(act_id):
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Act not found")
+
+
+@app.get("/api/outline/acts/{act_id}/scenes")
+async def get_scenes_by_act(act_id: int) -> list:
+    """Get all scenes in an act."""
+    return outline_db.get_scenes_by_act(act_id)
+
+
+@app.put("/api/outline/scenes/{scene_id}/act")
+async def assign_scene_to_act(scene_id: int, act_id: Optional[int] = None) -> dict:
+    """Assign a scene to an act (or remove from act if act_id is null)."""
+    scene = outline_db.assign_scene_to_act(scene_id, act_id)
+    if not scene:
+        raise HTTPException(status_code=404, detail="Scene not found")
+    return scene
+
+
 @app.get("/api/outline/scenes")
 async def get_scenes() -> list:
     """Get all scenes."""
@@ -875,11 +941,12 @@ async def reorder_scene(scene_id: int, request: SceneReorderRequest) -> dict:
 
 @app.get("/api/outline")
 async def get_full_outline() -> dict:
-    """Get the complete outline (project + notes + characters + scenes)."""
+    """Get the complete outline (project + notes + characters + acts + scenes)."""
     return {
         "project": outline_db.get_project(),
         "notes": outline_db.get_writer_notes(),
         "characters": outline_db.get_characters(),
+        "acts": outline_db.get_acts(),
         "scenes": outline_db.get_scenes()
     }
 
@@ -934,6 +1001,41 @@ async def delete_conversation(conversation_id: int) -> dict:
     if outline_db.delete_conversation(conversation_id):
         return {"success": True}
     raise HTTPException(status_code=404, detail="Conversation not found")
+
+
+# --- Memory Endpoints (Hindsight proxy) ---
+
+@app.get("/api/memory/banks")
+async def list_memory_banks() -> dict:
+    """List all Hindsight memory banks."""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:{hindsight_server.port}/v1/default/banks")
+        return res.json()
+
+@app.get("/api/memory/banks/{bank_id}/memories")
+async def list_memories(bank_id: str) -> dict:
+    """List memories in a bank."""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:{hindsight_server.port}/v1/default/banks/{bank_id}/memories/list")
+        return res.json()
+
+@app.get("/api/memory/banks/{bank_id}/entities")
+async def list_entities(bank_id: str) -> dict:
+    """List entities in a bank."""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:{hindsight_server.port}/v1/default/banks/{bank_id}/entities")
+        return res.json()
+
+@app.get("/api/memory/banks/{bank_id}/stats")
+async def get_memory_stats(bank_id: str) -> dict:
+    """Get stats for a memory bank."""
+    import httpx
+    async with httpx.AsyncClient() as client:
+        res = await client.get(f"http://127.0.0.1:{hindsight_server.port}/v1/default/banks/{bank_id}/stats")
+        return res.json()
 
 
 # --- Graph Endpoints (Neo4j) ---

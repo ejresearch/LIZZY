@@ -56,6 +56,7 @@ class Database:
                     logline_locked INTEGER DEFAULT 0,
                     genre TEXT DEFAULT 'Romantic Comedy',
                     description TEXT DEFAULT '',
+                    phase TEXT DEFAULT 'intake',
                     memory_bank_id TEXT DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -67,6 +68,8 @@ class Database:
             project_columns = [row[1] for row in cursor.fetchall()]
             if 'memory_bank_id' not in project_columns:
                 cursor.execute("ALTER TABLE project ADD COLUMN memory_bank_id TEXT DEFAULT ''")
+            if 'phase' not in project_columns:
+                cursor.execute("ALTER TABLE project ADD COLUMN phase TEXT DEFAULT 'intake'")
 
             # Writer notes
             cursor.execute("""
@@ -101,10 +104,23 @@ class Database:
                 )
             """)
 
-            # Scenes (30 beats)
+            # Acts (story structure)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS acts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL DEFAULT '',
+                    description TEXT DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # Scenes (within acts)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS scenes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    act_id INTEGER,
                     scene_number INTEGER NOT NULL UNIQUE,
                     title TEXT DEFAULT '',
                     description TEXT DEFAULT '',
@@ -113,7 +129,8 @@ class Database:
                     beats TEXT DEFAULT '[]',
                     canvas_content TEXT DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (act_id) REFERENCES acts(id) ON DELETE SET NULL
                 )
             """)
 
@@ -122,6 +139,8 @@ class Database:
             columns = [row[1] for row in cursor.fetchall()]
             if 'canvas_content' not in columns:
                 cursor.execute("ALTER TABLE scenes ADD COLUMN canvas_content TEXT DEFAULT ''")
+            if 'act_id' not in columns:
+                cursor.execute("ALTER TABLE scenes ADD COLUMN act_id INTEGER")
 
             # Conversations (chat history with Syd)
             cursor.execute("""
@@ -136,6 +155,8 @@ class Database:
 
             # Create indices
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_number ON scenes(scene_number)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_act ON scenes(act_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_acts_order ON acts(sort_order)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_characters_order ON characters(sort_order)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC)")
 
@@ -185,7 +206,7 @@ class Database:
 
     def update_project(self, **kwargs) -> Dict:
         """Update project metadata."""
-        allowed = ['title', 'title_locked', 'logline', 'logline_locked', 'genre', 'description']
+        allowed = ['title', 'title_locked', 'logline', 'logline_locked', 'genre', 'description', 'phase']
         updates = {k: v for k, v in kwargs.items() if k in allowed}
 
         if not updates:
@@ -196,15 +217,19 @@ class Database:
 
             # Ensure project exists with a bank ID
             cursor.execute("SELECT id FROM project LIMIT 1")
-            if not cursor.fetchone():
+            row = cursor.fetchone()
+            if not row:
                 bank_id = f"lizzy-{uuid.uuid4().hex[:8]}"
                 cursor.execute("INSERT INTO project (title, memory_bank_id) VALUES ('', ?)", (bank_id,))
+                cursor.execute("SELECT id FROM project LIMIT 1")
+                row = cursor.fetchone()
 
+            project_id = row[0]
             set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
             set_clause += ", updated_at = CURRENT_TIMESTAMP"
-            values = list(updates.values())
+            values = list(updates.values()) + [project_id]
 
-            cursor.execute(f"UPDATE project SET {set_clause} WHERE id = 1", values)
+            cursor.execute(f"UPDATE project SET {set_clause} WHERE id = ?", values)
 
         return self.get_project()
 
@@ -301,7 +326,8 @@ class Database:
             values = list(data.values())
 
             cursor.execute(f"INSERT INTO characters ({columns}) VALUES ({placeholders})", values)
-            return self.get_character(cursor.lastrowid)
+            char_id = cursor.lastrowid
+        return self.get_character(char_id)
 
     def update_character(self, character_id: int, **kwargs) -> Optional[Dict]:
         """Update a character."""
@@ -364,7 +390,7 @@ class Database:
 
     def create_scene(self, scene_number: int, **kwargs) -> Dict:
         """Create a new scene."""
-        allowed = ['title', 'description', 'characters', 'tone', 'beats', 'canvas_content']
+        allowed = ['title', 'description', 'characters', 'tone', 'beats', 'canvas_content', 'act_id']
         data = {'scene_number': scene_number}
 
         for k, v in kwargs.items():
@@ -381,11 +407,12 @@ class Database:
             values = list(data.values())
 
             cursor.execute(f"INSERT INTO scenes ({columns}) VALUES ({placeholders})", values)
-            return self.get_scene(cursor.lastrowid)
+            scene_id = cursor.lastrowid
+        return self.get_scene(scene_id)
 
     def update_scene(self, scene_id: int, **kwargs) -> Optional[Dict]:
         """Update a scene."""
-        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'beats', 'canvas_content']
+        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'beats', 'canvas_content', 'act_id']
         updates = {}
 
         for k, v in kwargs.items():
@@ -469,6 +496,86 @@ class Database:
             else:
                 return self.create_scene(scene_number, **kwargs)
 
+    # =========================================================================
+    # ACT METHODS
+    # =========================================================================
+
+    def get_acts(self) -> List[Dict]:
+        """Get all acts ordered by sort_order."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM acts ORDER BY sort_order, id")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_act(self, act_id: int) -> Optional[Dict]:
+        """Get a single act by ID."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM acts WHERE id = ?", (act_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def create_act(self, title: str, description: str = '', sort_order: int = None) -> Dict:
+        """Create a new act."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+
+            # Auto-assign sort_order if not provided
+            if sort_order is None:
+                cursor.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM acts")
+                sort_order = cursor.fetchone()[0]
+
+            cursor.execute(
+                "INSERT INTO acts (title, description, sort_order) VALUES (?, ?, ?)",
+                (title, description, sort_order)
+            )
+            act_id = cursor.lastrowid
+
+        return self.get_act(act_id)
+
+    def update_act(self, act_id: int, **kwargs) -> Optional[Dict]:
+        """Update an act's properties."""
+        allowed = ['title', 'description', 'sort_order']
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+
+        if not updates:
+            return self.get_act(act_id)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+            set_clause += ", updated_at = CURRENT_TIMESTAMP"
+            values = list(updates.values()) + [act_id]
+            cursor.execute(f"UPDATE acts SET {set_clause} WHERE id = ?", values)
+
+        return self.get_act(act_id)
+
+    def delete_act(self, act_id: int) -> bool:
+        """Delete an act. Scenes in this act will have act_id set to NULL."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM acts WHERE id = ?", (act_id,))
+            return cursor.rowcount > 0
+
+    def get_scenes_by_act(self, act_id: int = None) -> List[Dict]:
+        """Get scenes for a specific act, or unassigned scenes if act_id is None."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if act_id is None:
+                cursor.execute("SELECT * FROM scenes WHERE act_id IS NULL ORDER BY scene_number")
+            else:
+                cursor.execute("SELECT * FROM scenes WHERE act_id = ? ORDER BY scene_number", (act_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def assign_scene_to_act(self, scene_id: int, act_id: int = None) -> Optional[Dict]:
+        """Assign a scene to an act (or remove from act if act_id is None)."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE scenes SET act_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (act_id, scene_id)
+            )
+        return self.get_scene(scene_id)
 
     # =========================================================================
     # TEMPLATE INITIALIZATION
@@ -591,7 +698,8 @@ class Database:
                 "INSERT INTO conversations (title, messages) VALUES (?, ?)",
                 (title, json.dumps(messages or []))
             )
-            return self.get_conversation(cursor.lastrowid)
+            conv_id = cursor.lastrowid
+        return self.get_conversation(conv_id)
 
     def update_conversation(self, conversation_id: int, title: str = None, messages: List[Dict] = None) -> Optional[Dict]:
         """Update a conversation."""

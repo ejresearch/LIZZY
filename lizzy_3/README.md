@@ -34,10 +34,11 @@ Open `http://localhost:8000/home.html`
 |---------|-------------|
 | **Syd** | AI writing partner with domain expertise and project memory |
 | **Knowledge Buckets** | RAG-powered expertise (screenwriting books, plays, scripts) |
-| **Outline Editor** | Characters, scenes, notes - structured story bible |
+| **Outline Editor** | Characters, acts, scenes - structured story bible |
+| **3-Act Structure** | Organize scenes into acts with collapsible sections |
 | **Canvas** | Screenplay formatting (sluglines, action, dialogue) |
 | **Tool Use** | Syd can edit your outline during conversation |
-| **Memory** | Per-project memory that persists and learns |
+| **Memory Tab** | View what Syd remembers about your project |
 | **Reflection** | Analyzes sessions to form insights about your preferences |
 
 ---
@@ -46,22 +47,29 @@ Open `http://localhost:8000/home.html`
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  lizzy   [Title]                    [Save]  Projects  ...   │
+│  lizzy   [Title]              ● ● ● ●   [Save]  Projects    │
 ├─────────────────────────────────────────────────────────────┤
-│  Project │ Notes │ Characters │ Scenes │ Canvas             │
-│  ────────────────────────────────────   ┌─────────────────┐ │
+│  Idea │ Project │ Notes │ Characters │ Scenes │ Canvas │ Memory
+│  ─────────────────────────────────────  ┌─────────────────┐ │
 │                                         │ Chat with Syd   │ │
 │  [Outline Forms]                        │ [Books] [Plays] │ │
-│  [Character Modal]                      │ [Scripts]       │ │
-│  [Scene List]                           │                 │ │
-│  [Canvas Editor]                        │ Conversations ▾ │ │
-│                                         └─────────────────┘ │
+│  [Character Cards]                      │ [Scripts]       │ │
+│  [Acts → Scenes]                        │ ✎ ✕ + Convos ▾  │ │
+│  [Canvas Editor]                        │                 │ │
+│  [Memory Viewer]                        └─────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-**Tabs:** Project metadata, writer notes, characters (add/edit/delete), scenes (reorder, delete), canvas (screenplay editor)
+**Tabs:**
+- **Idea** - Quick capture for initial sparks
+- **Project** - Title, logline, description
+- **Notes** - Theme, tone, comps, braindump
+- **Characters** - Add/edit/delete with detailed profiles
+- **Scenes** - 3-act structure with collapsible acts
+- **Canvas** - Write screenplay content per scene
+- **Memory** - View Syd's memory about your project
 
-**Chat:** Toggle knowledge buckets, conversation history persists, Syd can edit outline via tools
+**Chat:** Toggle knowledge buckets, rename/delete conversations, Syd edits outline via tools
 
 ---
 
@@ -85,7 +93,7 @@ Open `http://localhost:8000/home.html`
 │                 │  │                 │  │                 │
 │ • Project       │  │ • books-final   │  │ • Per-project   │
 │ • Characters    │  │ • plays-final   │  │ • Retain/Recall │
-│ • Scenes        │  │ • scripts-final │  │ • Reflect       │
+│ • Acts/Scenes   │  │ • scripts-final │  │ • Reflect       │
 │ • Conversations │  │                 │  │                 │
 └────────┬────────┘  └────────┬────────┘  └────────┬────────┘
          │                    │                    │
@@ -151,20 +159,30 @@ Hindsight learns from:
 ### Outline
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/outline` | GET | Full outline (project, notes, characters, scenes) |
+| `/api/outline` | GET | Full outline (project, notes, characters, acts, scenes) |
 | `/api/outline/project` | GET/PUT | Project metadata |
 | `/api/outline/notes` | GET/PUT | Writer notes |
 | `/api/outline/characters` | GET/POST | List/create characters |
 | `/api/outline/characters/{id}` | GET/PUT/DELETE | Character by ID |
+| `/api/outline/acts` | GET/POST | List/create acts |
+| `/api/outline/acts/{id}` | GET/PUT/DELETE | Act by ID |
 | `/api/outline/scenes` | GET/POST | List/create scenes |
 | `/api/outline/scenes/{id}` | GET/PUT/DELETE | Scene by ID |
-| `/api/outline/scenes/{id}/reorder` | PUT | Move scene |
+| `/api/outline/scenes/{id}/act` | PUT | Assign scene to act |
 
 ### Conversations
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/conversations` | GET/POST | List/create chats |
-| `/api/conversations/{id}` | GET/PUT/DELETE | Chat by ID |
+| `/api/conversations/{id}` | GET/PUT/DELETE | Chat by ID (rename, delete) |
+
+### Memory (Hindsight)
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/memory/banks` | GET | List all memory banks |
+| `/api/memory/banks/{id}/memories` | GET | List memories in a bank |
+| `/api/memory/banks/{id}/entities` | GET | List entities (characters, concepts) |
+| `/api/memory/banks/{id}/stats` | GET | Memory bank statistics |
 
 ### Buckets
 | Endpoint | Method | Description |

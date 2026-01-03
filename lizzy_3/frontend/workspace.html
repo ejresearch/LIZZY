@@ -71,6 +71,53 @@
       width: 200px;
     }
 
+    /* Project Progress Indicator */
+    .progress-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 1rem;
+      padding-left: 1rem;
+      border-left: 1px solid var(--border);
+    }
+
+    .progress-dots {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .progress-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: all 0.3s;
+      cursor: help;
+    }
+
+    .progress-dot.filled {
+      background: var(--accent);
+    }
+
+    .progress-dot.partial {
+      background: linear-gradient(90deg, var(--accent) 50%, var(--border) 50%);
+    }
+
+    .progress-label {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .progress-label.clickable {
+      cursor: pointer;
+    }
+
+    .progress-label.clickable:hover {
+      color: var(--text-primary);
+    }
+
     .nav-right { display: flex; align-items: center; gap: 1rem; }
     .save-btn {
       font-size: 0.75rem;
@@ -344,6 +391,36 @@
       border-radius: 0.375rem;
       background: var(--bg-primary);
       color: var(--text-primary);
+    }
+
+    .convo-actions {
+      display: flex;
+      gap: 0.25rem;
+    }
+
+    .convo-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem 0.375rem;
+      font-size: 0.6875rem;
+      border-radius: 0.25rem;
+      transition: all 0.2s;
+    }
+
+    .convo-action-btn:hover {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .convo-action-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .convo-action-btn.delete:hover {
+      color: #dc2626;
     }
 
     .chat-header h3 {
@@ -752,6 +829,340 @@
       font-size: 0.6875rem;
       color: var(--text-muted);
     }
+
+    /* Memory tab styles */
+    .memory-stats {
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .memory-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: calc(100vh - 300px);
+      overflow-y: auto;
+    }
+    .memory-item {
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+    }
+    .memory-item .memory-text {
+      font-size: 0.8125rem;
+      margin-bottom: 0.25rem;
+    }
+    .memory-item .memory-meta {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+    .memory-item .memory-entity {
+      display: inline-block;
+      background: var(--accent);
+      color: white;
+      padding: 0.125rem 0.375rem;
+      border-radius: 3px;
+      font-size: 0.625rem;
+      margin-right: 0.25rem;
+    }
+    .memory-empty {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem;
+    }
+
+    /* Phase influences defaults but doesn't hide anything */
+    /* All tabs always accessible */
+
+    /* Intake panel styles - shown as a tab option */
+    #panel-intake {
+      display: none;
+    }
+
+    #panel-intake.active {
+      display: block;
+    }
+
+    .intake-header {
+      text-align: center;
+      padding: 2rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.5rem;
+    }
+
+    .intake-header h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .intake-header p {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .intake-field {
+      margin-bottom: 1.25rem;
+    }
+
+    .intake-field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 0.375rem;
+    }
+
+    .intake-field textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+    }
+
+    .intake-field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .intake-progress {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center;
+    }
+
+    .next-phase-btn {
+      padding: 0.75rem 1.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .next-phase-btn:hover { opacity: 0.9; }
+    .next-phase-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .phase-hint {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    /* Act structure in Scenes tab */
+    .act-section {
+      margin-bottom: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .act-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: var(--bg-tertiary);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .act-header:hover {
+      background: var(--bg-secondary);
+    }
+
+    .act-title-area {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+    }
+
+    .act-toggle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .act-section.collapsed .act-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .act-title {
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .act-title-input {
+      font-size: 0.875rem;
+      font-weight: 600;
+      background: var(--bg-primary);
+      border: 1px solid var(--accent);
+      border-radius: 0.25rem;
+      padding: 0.125rem 0.375rem;
+      outline: none;
+    }
+
+    .act-scene-count {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+    }
+
+    .act-actions {
+      display: flex;
+      gap: 0.25rem;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .act-header:hover .act-actions {
+      opacity: 1;
+    }
+
+    .act-action-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem;
+      font-size: 0.75rem;
+    }
+
+    .act-action-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .act-action-btn.delete:hover {
+      color: #dc2626;
+    }
+
+    .act-scenes {
+      padding: 0.5rem;
+      min-height: 40px;
+    }
+
+    .act-section.collapsed .act-scenes {
+      display: none;
+    }
+
+    .act-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      border: 1px dashed var(--border);
+      border-radius: 0.375rem;
+      margin: 0.25rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .act-empty:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(139, 92, 246, 0.05);
+    }
+
+    .unassigned-section {
+      margin-top: 1.5rem;
+    }
+
+    .unassigned-header {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      padding-left: 0.25rem;
+    }
+
+    .add-act-btn {
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 1rem;
+      background: none;
+      border: 1px dashed var(--border);
+      border-radius: 0.5rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.8125rem;
+      transition: all 0.2s;
+    }
+
+    .add-act-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .scenes-hint {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.8125rem;
+    }
+
+    .scenes-hint h4 {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+    }
+
+    .scenes-hint p {
+      margin-bottom: 1rem;
+    }
+
+    .scenes-hint-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .scenes-hint-btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .scenes-hint-btn.primary {
+      background: var(--accent);
+      color: white;
+      border: none;
+    }
+
+    .scenes-hint-btn.primary:hover {
+      opacity: 0.9;
+    }
+
+    .scenes-hint-btn.secondary {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .scenes-hint-btn.secondary:hover {
+      border-color: var(--text-muted);
+    }
+
   </style>
 </head>
 <body>
@@ -760,6 +1171,15 @@
       <a href="home.html" class="logo">lizzy</a>
       <span class="project-name" id="projectName" onclick="editProjectName()" title="Click to edit">Loading...</span>
       <input type="text" class="project-name-input" id="projectNameInput" onblur="saveProjectName()" onkeydown="if(event.key==='Enter')saveProjectName()" style="display:none;">
+      <div class="progress-indicator">
+        <div class="progress-dots">
+          <span class="progress-dot" id="dotIdea" title="Idea (title/logline)"></span>
+          <span class="progress-dot" id="dotCharacters" title="Characters"></span>
+          <span class="progress-dot" id="dotStructure" title="Structure (scenes)"></span>
+          <span class="progress-dot" id="dotDrafts" title="Drafts"></span>
+        </div>
+        <span class="progress-label" id="progressLabel">Getting started</span>
+      </div>
     </div>
     <div class="nav-right">
       <button class="save-btn" id="saveStatus" onclick="manualSave()">Save</button>
@@ -773,11 +1193,13 @@
     <!-- Left Panel: Outline -->
     <div class="panel-left" id="panelLeft">
       <div class="outline-tabs">
+        <div class="outline-tab" data-tab="idea">Idea</div>
         <div class="outline-tab active" data-tab="project">Project</div>
         <div class="outline-tab" data-tab="notes">Notes</div>
         <div class="outline-tab" data-tab="characters">Characters</div>
         <div class="outline-tab" data-tab="scenes">Scenes</div>
         <div class="outline-tab" data-tab="canvas">Canvas</div>
+        <div class="outline-tab" data-tab="memory">Memory</div>
       </div>
 
       <div class="outline-content">
@@ -830,9 +1252,10 @@
         <div class="tab-panel" id="panel-scenes">
           <div class="list-header">
             <h3>Scenes</h3>
-            <button class="btn-sm" onclick="addScene()">+ Add</button>
+            <button class="btn-sm" onclick="addScene()">+ Scene</button>
           </div>
-          <div id="scenesList"></div>
+          <div id="actsList"></div>
+          <button class="add-act-btn" onclick="addAct()">+ Add Act</button>
         </div>
 
         <!-- Canvas Tab -->
@@ -892,6 +1315,46 @@
             <span class="canvas-status" id="canvasStatus"></span>
           </div>
         </div>
+
+        <!-- Memory Tab - View Hindsight memories -->
+        <div class="tab-panel" id="panel-memory">
+          <div class="list-header">
+            <h3>Syd's Memory</h3>
+            <button class="btn-sm" onclick="loadMemories()">Refresh</button>
+          </div>
+          <div class="memory-stats" id="memoryStats"></div>
+          <div class="memory-list" id="memoryList">
+            <p class="memory-empty">Loading memories...</p>
+          </div>
+        </div>
+
+        <!-- Idea Tab - Quick capture for the spark -->
+        <div class="tab-panel" id="panel-idea">
+          <div class="intake-header">
+            <h2>Capture the spark</h2>
+            <p>Jot down whatever's in your head. Or just talk to Syd.</p>
+          </div>
+
+          <div class="intake-field">
+            <label>The Idea</label>
+            <textarea id="ideaSpark" placeholder="What's the core idea? A situation, a character, a 'what if'..."></textarea>
+          </div>
+
+          <div class="intake-field">
+            <label>The Feeling</label>
+            <textarea id="ideaFeeling" placeholder="What emotion should it evoke?"></textarea>
+          </div>
+
+          <div class="intake-field">
+            <label>Inspirations</label>
+            <textarea id="ideaInspirations" placeholder="Movies, books, real life moments..."></textarea>
+          </div>
+
+          <div class="intake-progress">
+            <button class="next-phase-btn" onclick="saveIdeaToNotes()">Save to Notes</button>
+            <p class="phase-hint">These notes flow into your braindump</p>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -905,7 +1368,11 @@
           <select id="conversationSelect" onchange="loadConversation()">
             <option value="">New Chat</option>
           </select>
-          <button class="btn-sm" onclick="newConversation()" title="New Chat">+</button>
+          <div class="convo-actions">
+            <button class="convo-action-btn" onclick="renameConversation()" id="renameConvoBtn" disabled title="Rename">✎</button>
+            <button class="convo-action-btn delete" onclick="deleteConversation()" id="deleteConvoBtn" disabled title="Delete">✕</button>
+            <button class="convo-action-btn" onclick="newConversation()" title="New Chat">+</button>
+          </div>
         </div>
         <div class="bucket-toggles">
           <span class="bucket-chip" data-bucket="books-final" onclick="toggleBucket('books-final')">Books</span>
@@ -975,6 +1442,126 @@
     let saveTimeout = null;
     let currentConversationId = null;
     let conversations = [];
+    // Project state for progress tracking
+    let projectState = {
+      hasTitle: false,
+      hasLogline: false,
+      characterCount: 0,
+      sceneCount: 0,
+      scenesWithContent: 0
+    };
+
+    // ===================
+    // PROJECT PROGRESS
+    // ===================
+    function updateProjectProgress() {
+      // Update dots based on project state
+      const dotIdea = document.getElementById('dotIdea');
+      const dotCharacters = document.getElementById('dotCharacters');
+      const dotStructure = document.getElementById('dotStructure');
+      const dotDrafts = document.getElementById('dotDrafts');
+      const label = document.getElementById('progressLabel');
+
+      // Idea: title or logline
+      if (projectState.hasTitle && projectState.hasLogline) {
+        dotIdea.className = 'progress-dot filled';
+      } else if (projectState.hasTitle || projectState.hasLogline) {
+        dotIdea.className = 'progress-dot partial';
+      } else {
+        dotIdea.className = 'progress-dot';
+      }
+
+      // Characters
+      if (projectState.characterCount >= 3) {
+        dotCharacters.className = 'progress-dot filled';
+      } else if (projectState.characterCount > 0) {
+        dotCharacters.className = 'progress-dot partial';
+      } else {
+        dotCharacters.className = 'progress-dot';
+      }
+
+      // Structure (scenes)
+      if (projectState.sceneCount >= 10) {
+        dotStructure.className = 'progress-dot filled';
+      } else if (projectState.sceneCount > 0) {
+        dotStructure.className = 'progress-dot partial';
+      } else {
+        dotStructure.className = 'progress-dot';
+      }
+
+      // Drafts (scenes with canvas content)
+      if (projectState.scenesWithContent >= 10) {
+        dotDrafts.className = 'progress-dot filled';
+      } else if (projectState.scenesWithContent > 0) {
+        dotDrafts.className = 'progress-dot partial';
+      } else {
+        dotDrafts.className = 'progress-dot';
+      }
+
+      // Update label based on state
+      if (projectState.scenesWithContent >= 10) {
+        label.textContent = 'Writing';
+      } else if (projectState.sceneCount >= 10) {
+        label.textContent = 'Structured';
+      } else if (projectState.characterCount >= 2) {
+        label.textContent = 'Developing';
+      } else if (projectState.hasTitle || projectState.hasLogline) {
+        label.textContent = 'Has an idea';
+      } else {
+        label.textContent = 'Getting started';
+      }
+    }
+
+    async function saveIdeaToNotes() {
+      const spark = document.getElementById('ideaSpark')?.value || '';
+      const feeling = document.getElementById('ideaFeeling')?.value || '';
+      const inspirations = document.getElementById('ideaInspirations')?.value || '';
+
+      // Get existing braindump and append
+      let braindump = document.getElementById('braindump')?.value || '';
+
+      let newContent = '';
+      if (spark) newContent += `**The Spark:** ${spark}\n\n`;
+      if (feeling) newContent += `**The Feeling:** ${feeling}\n\n`;
+      if (inspirations) newContent += `**Inspirations:** ${inspirations}\n\n`;
+
+      if (newContent) {
+        braindump = newContent + (braindump ? '---\n\n' + braindump : '');
+
+        try {
+          await fetch(`${API_BASE}/api/outline/notes`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ braindump })
+          });
+
+          // Update the braindump textarea
+          document.getElementById('braindump').value = braindump;
+
+          // Clear the idea fields
+          document.getElementById('ideaSpark').value = '';
+          document.getElementById('ideaFeeling').value = '';
+          document.getElementById('ideaInspirations').value = '';
+
+          // Switch to notes tab to show them
+          switchToTab('notes');
+
+          addSystemMessage('Ideas saved to notes');
+        } catch (e) {
+          console.error('Failed to save idea:', e);
+        }
+      }
+    }
+
+    function switchToTab(tabName) {
+      document.querySelectorAll('.outline-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      const tab = document.querySelector(`[data-tab="${tabName}"]`);
+      if (tab) {
+        tab.classList.add('active');
+        document.getElementById('panel-' + tabName).classList.add('active');
+      }
+    }
 
     // ===================
     // RESIZER
@@ -1015,12 +1602,64 @@
         document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
         tab.classList.add('active');
         document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+        // Auto-load memories when Memory tab is clicked
+        if (tab.dataset.tab === 'memory') {
+          loadMemories();
+        }
       });
     });
 
     // ===================
     // DATA LOADING
     // ===================
+
+    async function loadMemories() {
+      const list = document.getElementById('memoryList');
+      const stats = document.getElementById('memoryStats');
+
+      try {
+        // Get project to find bank ID
+        const projRes = await fetch(`${API_BASE}/api/outline/project`);
+        const project = await projRes.json();
+        const bankId = project.memory_bank_id;
+
+        if (!bankId) {
+          list.innerHTML = '<p class="memory-empty">No memory bank linked to this project</p>';
+          stats.innerHTML = '';
+          return;
+        }
+
+        // Fetch memories via proxy
+        const memRes = await fetch(`${API_BASE}/api/memory/banks/${bankId}/memories`);
+        const data = await memRes.json();
+        const memories = data.items || [];
+
+        // Stats
+        const entities = [...new Set(memories.map(m => m.entities).filter(Boolean))];
+        stats.innerHTML = `<strong>${memories.length}</strong> memories about <strong>${entities.length}</strong> entities: ${entities.slice(0, 5).join(', ')}${entities.length > 5 ? '...' : ''}`;
+
+        // Render memories
+        if (memories.length === 0) {
+          list.innerHTML = '<p class="memory-empty">No memories yet. Chat with Syd to build project memory.</p>';
+          return;
+        }
+
+        list.innerHTML = memories.map(m => `
+          <div class="memory-item">
+            <div class="memory-text">${m.text}</div>
+            <div class="memory-meta">
+              ${m.entities ? `<span class="memory-entity">${m.entities}</span>` : ''}
+              ${m.fact_type || 'observation'} · ${new Date(m.date).toLocaleDateString()}
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load memories:', e);
+        list.innerHTML = '<p class="memory-empty">Could not load memories. Is Hindsight running?</p>';
+        stats.innerHTML = '';
+      }
+    }
+
     async function loadOutline() {
       try {
         const res = await fetch(`${API_BASE}/api/outline`);
@@ -1033,7 +1672,23 @@
           document.getElementById('logline').value = data.project.logline || '';
           document.getElementById('description').value = data.project.description || '';
           document.getElementById('projectName').textContent = data.project.title || 'Untitled';
+
+          // Update project state
+          projectState.hasTitle = !!(data.project.title && data.project.title.trim());
+          projectState.hasLogline = !!(data.project.logline && data.project.logline.trim());
         }
+
+        // Characters - count named ones
+        const characters = data.characters || [];
+        projectState.characterCount = characters.filter(c => c.name && c.name.trim()).length;
+
+        // Scenes
+        const scenes = data.scenes || [];
+        projectState.sceneCount = scenes.length;
+        projectState.scenesWithContent = scenes.filter(s => s.canvas_content && s.canvas_content.trim()).length;
+
+        // Update progress indicator
+        updateProjectProgress();
 
         // Notes
         if (data.notes) {
@@ -1046,8 +1701,8 @@
         // Characters
         renderCharacters(data.characters || []);
 
-        // Scenes
-        renderScenes(data.scenes || []);
+        // Acts and Scenes
+        renderActsAndScenes(data.acts || [], data.scenes || []);
 
       } catch (e) {
         console.error('Load error:', e);
@@ -1068,29 +1723,225 @@
       `).join('');
     }
 
-    function renderScenes(scenes) {
-      const container = document.getElementById('scenesList');
-      if (scenes.length === 0) {
-        container.innerHTML = '<div class="empty-list">No scenes yet</div>';
+    // Store acts for reference
+    let currentActs = [];
+    let currentScenes = [];
+
+    function renderActsAndScenes(acts, scenes) {
+      currentActs = acts || [];
+      currentScenes = scenes || [];
+
+      const container = document.getElementById('actsList');
+
+      // Show helpful start state if nothing exists
+      if (acts.length === 0 && scenes.length === 0) {
+        container.innerHTML = `
+          <div class="scenes-hint">
+            <h4>Structure your story</h4>
+            <p>Add acts to organize your scenes, or start with individual scenes.</p>
+            <div class="scenes-hint-actions">
+              <button class="scenes-hint-btn primary" onclick="createStandardActs()">Start with 3 Acts</button>
+              <button class="scenes-hint-btn secondary" onclick="addScene()">Add a Scene</button>
+            </div>
+          </div>
+        `;
         populateSceneSelector([]);
         return;
       }
-      container.innerHTML = scenes.map(s => `
-        <div class="list-item scene-item" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}">
-          <span class="scene-drag-handle" title="Drag to reorder">⋮⋮</span>
-          <div class="list-item-content" onclick="openSceneInCanvas(${s.id})">
-            <div class="list-item-name">${s.scene_number}. ${s.title || 'Untitled'}</div>
-            <div class="list-item-meta">${s.description ? s.description.substring(0, 50) + '...' : 'No description'}</div>
+
+      // Group scenes by act
+      const scenesByAct = {};
+      const unassignedScenes = [];
+
+      scenes.forEach(s => {
+        if (s.act_id) {
+          if (!scenesByAct[s.act_id]) scenesByAct[s.act_id] = [];
+          scenesByAct[s.act_id].push(s);
+        } else {
+          unassignedScenes.push(s);
+        }
+      });
+
+      let html = '';
+
+      // Render each act with its scenes
+      acts.forEach(act => {
+        const actScenes = scenesByAct[act.id] || [];
+        const emptyState = `<div class="act-empty" onclick="addSceneToAct(${act.id})">+ Add scene to ${act.title}</div>`;
+
+        html += `
+          <div class="act-section" data-act-id="${act.id}">
+            <div class="act-header" onclick="toggleAct(${act.id})">
+              <div class="act-title-area">
+                <span class="act-toggle">▼</span>
+                <span class="act-title" ondblclick="event.stopPropagation(); editActTitle(${act.id})">${act.title}</span>
+                <span class="act-scene-count">${actScenes.length} scene${actScenes.length !== 1 ? 's' : ''}</span>
+              </div>
+              <div class="act-actions">
+                <button class="act-action-btn delete" onclick="event.stopPropagation(); deleteAct(${act.id}, '${act.title.replace(/'/g, "\\'")}')" title="Delete act">&times;</button>
+              </div>
+            </div>
+            <div class="act-scenes">
+              ${actScenes.length === 0 ? emptyState : actScenes.map(s => renderSceneItem(s)).join('')}
+            </div>
           </div>
-          <button class="scene-delete" onclick="event.stopPropagation(); deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')" title="Delete scene">&times;</button>
-        </div>
-      `).join('');
+        `;
+      });
+
+      // Render unassigned scenes only if there are any
+      if (unassignedScenes.length > 0) {
+        html += `
+          <div class="unassigned-section">
+            <div class="unassigned-header">Unassigned</div>
+            ${unassignedScenes.map(s => renderSceneItem(s)).join('')}
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
 
       // Also populate the canvas scene selector
       populateSceneSelector(scenes);
 
-      // Setup drag-and-drop
+      // Setup drag-and-drop for scenes
       setupSceneDragAndDrop();
+    }
+
+    async function createStandardActs() {
+      try {
+        await fetch(`${API_BASE}/api/outline/acts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Act 1 - Setup' })
+        });
+        await fetch(`${API_BASE}/api/outline/acts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Act 2 - Confrontation' })
+        });
+        await fetch(`${API_BASE}/api/outline/acts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: 'Act 3 - Resolution' })
+        });
+        await loadOutline();
+      } catch (e) {
+        console.error('Failed to create acts:', e);
+      }
+    }
+
+    function renderSceneItem(s) {
+      const actBadge = s.act_id ? '' : '';
+      return `
+        <div class="list-item scene-item" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}" data-act-id="${s.act_id || ''}">
+          <span class="scene-drag-handle" title="Drag to reorder">⋮⋮</span>
+          <div class="list-item-content" onclick="openSceneInCanvas(${s.id})">
+            <div class="list-item-name">${s.scene_number}. ${s.title || 'Untitled'}${actBadge}</div>
+            <div class="list-item-meta">${s.description ? s.description.substring(0, 50) + '...' : 'No description'}</div>
+          </div>
+          <button class="scene-delete" onclick="event.stopPropagation(); deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')" title="Delete scene">&times;</button>
+        </div>
+      `;
+    }
+
+    function renderScenes(scenes) {
+      // Legacy function - now calls renderActsAndScenes
+      renderActsAndScenes(currentActs, scenes);
+    }
+
+    function toggleAct(actId) {
+      const section = document.querySelector(`.act-section[data-act-id="${actId}"]`);
+      if (section) {
+        section.classList.toggle('collapsed');
+      }
+    }
+
+    async function addAct() {
+      try {
+        const res = await fetch(`${API_BASE}/api/outline/acts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: `Act ${currentActs.length + 1}` })
+        });
+        const newAct = await res.json();
+        currentActs.push(newAct);
+        renderActsAndScenes(currentActs, currentScenes);
+      } catch (e) {
+        console.error('Failed to add act:', e);
+      }
+    }
+
+    async function deleteAct(actId, title) {
+      if (!confirm(`Delete "${title}"? Scenes will become unassigned.`)) return;
+      try {
+        await fetch(`${API_BASE}/api/outline/acts/${actId}`, { method: 'DELETE' });
+        // Move scenes to unassigned
+        currentScenes.forEach(s => {
+          if (s.act_id === actId) s.act_id = null;
+        });
+        currentActs = currentActs.filter(a => a.id !== actId);
+        renderActsAndScenes(currentActs, currentScenes);
+      } catch (e) {
+        console.error('Failed to delete act:', e);
+      }
+    }
+
+    function editActTitle(actId) {
+      const section = document.querySelector(`.act-section[data-act-id="${actId}"]`);
+      const titleSpan = section.querySelector('.act-title');
+      const currentTitle = titleSpan.textContent;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'act-title-input';
+      input.value = currentTitle;
+
+      const saveTitle = async () => {
+        const newTitle = input.value.trim() || currentTitle;
+        titleSpan.textContent = newTitle;
+        titleSpan.style.display = '';
+        input.remove();
+
+        try {
+          await fetch(`${API_BASE}/api/outline/acts/${actId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: newTitle })
+          });
+          const act = currentActs.find(a => a.id === actId);
+          if (act) act.title = newTitle;
+        } catch (e) {
+          console.error('Failed to update act title:', e);
+        }
+      };
+
+      input.onblur = saveTitle;
+      input.onkeydown = (e) => { if (e.key === 'Enter') saveTitle(); };
+
+      titleSpan.style.display = 'none';
+      titleSpan.parentNode.insertBefore(input, titleSpan.nextSibling);
+      input.focus();
+      input.select();
+    }
+
+    async function addSceneToAct(actId) {
+      // Get next scene number
+      const maxNum = currentScenes.reduce((max, s) => Math.max(max, s.scene_number), 0);
+      const newNum = maxNum + 1;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/outline/scenes`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scene_number: newNum, title: '', act_id: actId })
+        });
+        const newScene = await res.json();
+        currentScenes.push(newScene);
+        renderActsAndScenes(currentActs, currentScenes);
+        updateProjectProgress();
+      } catch (e) {
+        console.error('Failed to add scene:', e);
+      }
     }
 
     function openSceneInCanvas(sceneId) {
@@ -1446,16 +2297,49 @@
     // ===================
     // CONVERSATIONS
     // ===================
-    async function loadConversations() {
+    async function loadConversations(autoSelectMostRecent = false) {
       try {
         const res = await fetch(`${API_BASE}/api/conversations`);
         if (res.ok) {
           conversations = await res.json();
           updateConversationSelect();
+
+          // Auto-select most recent conversation if requested and one exists
+          if (autoSelectMostRecent && conversations.length > 0 && !currentConversationId) {
+            const mostRecent = conversations[0]; // Already sorted by updated_at desc
+            currentConversationId = mostRecent.id;
+            document.getElementById('conversationSelect').value = mostRecent.id;
+            // Load the conversation messages
+            const convRes = await fetch(`${API_BASE}/api/conversations/${mostRecent.id}`);
+            if (convRes.ok) {
+              const conv = await convRes.json();
+              chatHistory = conv.messages || [];
+              renderChatHistory();
+              updateConvoButtons();
+            }
+          }
         }
       } catch (e) {
         console.error('Failed to load conversations:', e);
       }
+    }
+
+    function renderChatHistory() {
+      const container = document.getElementById('messages');
+      if (chatHistory.length === 0) {
+        container.innerHTML = `
+          <div class="chat-empty" id="chatEmpty">
+            <h3>Ask Syd anything</h3>
+            <p>Get help with your screenplay. Toggle knowledge sources above for domain expertise.</p>
+          </div>`;
+        return;
+      }
+
+      // Clear empty state and render messages
+      container.innerHTML = '';
+      chatHistory.forEach(msg => {
+        addMessage(msg.role, msg.content);
+      });
     }
 
     function updateConversationSelect() {
@@ -1500,6 +2384,7 @@
           } else {
             chatHistory.forEach(msg => addMessage(msg.role, msg.content));
           }
+          updateConvoButtons();
         }
       } catch (e) {
         console.error('Failed to load conversation:', e);
@@ -1515,6 +2400,55 @@
           <h3>Ask Syd anything</h3>
           <p>Get help with your screenplay. Toggle knowledge sources above for domain expertise.</p>
         </div>`;
+      updateConvoButtons();
+    }
+
+    async function renameConversation() {
+      if (!currentConversationId) return;
+
+      const conv = conversations.find(c => c.id === currentConversationId);
+      if (!conv) return;
+
+      const newTitle = prompt('Rename conversation:', conv.title);
+      if (newTitle === null || newTitle.trim() === '') return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/conversations/${currentConversationId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle.trim() })
+        });
+        if (res.ok) {
+          await loadConversations();
+          document.getElementById('conversationSelect').value = currentConversationId;
+        }
+      } catch (e) {
+        console.error('Failed to rename conversation:', e);
+      }
+    }
+
+    async function deleteConversation() {
+      if (!currentConversationId) return;
+
+      if (!confirm('Delete this conversation?')) return;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/conversations/${currentConversationId}`, {
+          method: 'DELETE'
+        });
+        if (res.ok) {
+          newConversation();
+          await loadConversations();
+        }
+      } catch (e) {
+        console.error('Failed to delete conversation:', e);
+      }
+    }
+
+    function updateConvoButtons() {
+      const hasConvo = !!currentConversationId;
+      document.getElementById('renameConvoBtn').disabled = !hasConvo;
+      document.getElementById('deleteConvoBtn').disabled = !hasConvo;
     }
 
     async function saveConversation() {
@@ -1621,25 +2555,65 @@
       // Get project context
       const title = document.getElementById('title').value;
       const logline = document.getElementById('logline').value;
+      const theme = document.getElementById('theme')?.value || '';
 
-      let prompt = `You are Syd, a creative screenwriting partner for romantic comedies.
+      // Adaptive prompt based on project state, not rigid phases
+      let prompt = `You are Syd, an expert romantic comedy collaborator. You know the genre deeply—
+from Shakespeare's comedies to modern classics, from Save the Cat to Robert McKee.
 
-PROJECT: ${title || 'Untitled'}
-${logline ? 'LOGLINE: ' + logline : ''}
+YOUR APPROACH:
+- Follow the writer's lead. They might want to explore ideas, build structure, or write scenes.
+- Respond to what they're actually saying, not what phase they "should" be in.
+- If they're excited about an idea, explore it with them.
+- If they're stuck on structure, help them find it.
+- If they're writing dialogue, help with craft.
+- Ask ONE question at a time. React → Build → Ask.
 
-You have access to expert knowledge buckets:
-- books-final (Structure): act breaks, midpoints, pacing
-- plays-final (Dialogue): subtext, banter, confrontations
-- scripts-final (Execution): writing scenes, meet-cutes, tone
+YOU CAN:
+- Help discover and develop ideas (ask questions, reflect back, find the spark)
+- Build characters (flaws, arcs, chemistry, relationships)
+- Develop structure (beats, turning points, the romcom framework)
+- Write scenes (action lines, dialogue, subtext, pacing)
+- Use your tools to update the outline when the writer wants to capture something
 
-`;
-      if (activeBuckets.length > 0) {
-        prompt += `ACTIVE: ${activeBuckets.map(getBucketName).join(', ')}. Query freely.\n\n`;
-      } else {
-        prompt += `NO BUCKETS ACTIVE. Suggest one if helpful: "I think [bucket] could help with [reason]. Want me to pull that in?"\n\n`;
+THE PROJECT:`;
+
+      // Add what exists
+      if (title) prompt += `\nTitle: ${title}`;
+      if (logline) prompt += `\nLogline: ${logline}`;
+      if (theme) prompt += `\nTheme: ${theme}`;
+
+      // Describe project state
+      prompt += `\n\nPROJECT STATE:`;
+      if (!projectState.hasTitle && !projectState.hasLogline) {
+        prompt += `\n- Just getting started - no title or logline yet`;
+      } else if (!projectState.hasLogline) {
+        prompt += `\n- Has a title but no logline`;
+      }
+      prompt += `\n- ${projectState.characterCount} characters defined`;
+      prompt += `\n- ${projectState.sceneCount} scenes outlined`;
+      if (projectState.scenesWithContent > 0) {
+        prompt += `\n- ${projectState.scenesWithContent} scenes have draft content`;
       }
 
-      prompt += `Be warm, encouraging, specific. Help develop this screenplay.`;
+      // Suggest focus based on what's missing (but don't enforce)
+      if (!projectState.hasLogline) {
+        prompt += `\n\n(The logline might be worth exploring - but follow the writer's lead.)`;
+      } else if (projectState.characterCount < 2) {
+        prompt += `\n\n(Characters could use development - but follow the writer's lead.)`;
+      } else if (projectState.sceneCount < 5) {
+        prompt += `\n\n(Structure is sparse - but follow the writer's lead.)`;
+      }
+
+      prompt += `\n\nKnowledge buckets available:
+- books-final (Structure): act breaks, midpoints, pacing
+- plays-final (Dialogue): subtext, banter, confrontations
+- scripts-final (Execution): writing scenes, meet-cutes, tone`;
+
+      if (activeBuckets.length > 0) {
+        prompt += `\n\nACTIVE: ${activeBuckets.map(getBucketName).join(', ')}. Query freely.`;
+      }
+
       return prompt;
     }
 
@@ -1926,15 +2900,15 @@ You have access to expert knowledge buckets:
     loadOutline();
     checkBuckets();
     setupAutoSave();
-    loadConversations();
+    loadConversations(true); // Auto-select most recent conversation
 
-    // Auto-save canvas every 60 seconds
+    // Auto-save canvas every 10 seconds
     setInterval(() => {
       if (currentSceneId) {
         saveCanvas();
         console.log('Canvas auto-saved');
       }
-    }, 60000);
+    }, 10000);
 
     // Trigger Hindsight reflection when leaving the page
     window.addEventListener('beforeunload', () => {
