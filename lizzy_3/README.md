@@ -90,6 +90,88 @@ Each project gets its own Hindsight bank:
 
 Switching projects = switching Syd's memory context.
 
+### Project Creation
+
+When a new project is created (with template option enabled), the following data structures are initialized:
+
+```
+PROJECT CREATION FLOW
+=====================
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         NEW PROJECT CREATED                             │
+│                    (with template checkbox = ON)                        │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           SQLite (data/lizzy.db)                        │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  PROJECT table                                                          │
+│  ├── id, title, logline, genre                                          │
+│  └── memory_bank_id: "lizzy-{random}"  ◄── unique per project           │
+│                                                                         │
+│  WRITER_NOTES table                                                     │
+│  └── theme, tone, comps, braindump, outline (empty)                     │
+│                                                                         │
+│  CHARACTERS table (5 rows)                                              │
+│  ├── 1. Protagonist                                                     │
+│  ├── 2. Love Interest                                                   │
+│  ├── 3. Best Friend                                                     │
+│  ├── 4. Obstacle                                                        │
+│  └── 5. Mentor                                                          │
+│                                                                         │
+│  SCENES table (30 rows - romcom beat sheet)                             │
+│  ├──  1. Opening Image                                                  │
+│  ├──  2. Theme Stated                                                   │
+│  ├──  3. Setup - Protagonist's World                                    │
+│  ├──  4. Setup - The Flaw                                               │
+│  ├──  5. Catalyst / Meet-Cute                                           │
+│  ├──  6. Debate - Should They?                                          │
+│  ├──  7. Break Into Two                                                 │
+│  ├──  8. B Story / Supporting Cast                                      │
+│  ├──  9. Fun and Games - Falling                                        │
+│  ├── 10. Fun and Games - The Date                                       │
+│  ├── 11. Fun and Games - Getting Closer                                 │
+│  ├── 12. Midpoint - The Kiss / Declaration                              │
+│  ├── 13. Bad Guys Close In - Doubts                                     │
+│  ├── 14. Bad Guys Close In - External Pressure                          │
+│  ├── 15. Bad Guys Close In - Secrets Surface                            │
+│  ├── 16. All Is Lost - The Breakup                                      │
+│  ├── 17. Dark Night of the Soul                                         │
+│  ├── 18. Break Into Three - Realization                                 │
+│  ├── 19. Gathering the Team                                             │
+│  ├── 20. Finale - Storming the Castle                                   │
+│  ├── 21. Finale - The Grand Gesture                                     │
+│  ├── 22. Finale - Confronting the Flaw                                  │
+│  ├── 23. Finale - The Choice                                            │
+│  ├── 24. Final Image - Together                                         │
+│  └── 25-30. Tag Scenes 1-6                                              │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    Hindsight Memory (Embedded Postgres)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Bank: "lizzy-{random}"  ◄── matches project.memory_bank_id             │
+│  └── memories: [] (empty on creation, populated during chat)            │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+**Template vs Blank:**
+
+| Option | project | writer_notes | characters | scenes | memory_bank |
+|--------|---------|--------------|------------|--------|-------------|
+| Template ON | 1 row | 1 row | 5 rows | 30 rows | new ID |
+| Template OFF | 1 row | 0 rows | 0 rows | 0 rows | new ID |
+
+**External resources (shared, not per-project):**
+- `buckets/books-final/` — Screenwriting craft (10 docs)
+- `buckets/scripts-final/` — Romcom screenplays (85 docs)
+- `buckets/plays-final/` — Shakespeare (42 docs)
+
 ### Syd's Tools (Live Outline Editing)
 
 Syd can edit the outline during conversation via function calling. When the user mentions a character detail or scene idea, Syd saves it automatically.

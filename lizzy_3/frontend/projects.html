@@ -211,6 +211,23 @@
       margin-left: 1.5rem;
     }
 
+    .project-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.5rem;
+      font-size: 1rem;
+      opacity: 0.5;
+      transition: opacity 0.2s, color 0.2s;
+      margin-left: 0.5rem;
+    }
+
+    .project-delete:hover {
+      opacity: 1;
+      color: #dc2626;
+    }
+
     /* Modal */
     .modal {
       position: fixed;
@@ -315,12 +332,27 @@
       <a href="home.html" class="logo">lizzy</a>
     </div>
     <div class="nav-right">
+      <a href="buckets.html" class="nav-link">Buckets</a>
       <a href="settings.html" class="nav-link">Settings</a>
     </div>
   </nav>
 
   <div class="container" id="content">
     <!-- Content loaded dynamically -->
+  </div>
+
+  <!-- Delete Project Modal -->
+  <div class="modal hidden" id="deleteProjectModal">
+    <div class="modal-content">
+      <h2>Delete Project</h2>
+      <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+        Are you sure you want to delete this project? This will permanently remove all characters, scenes, and notes.
+      </p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+        <button class="btn" id="confirmDeleteBtn" style="background: #dc2626; color: white;">Delete Project</button>
+      </div>
+    </div>
   </div>
 
   <!-- New Project Modal -->
@@ -346,6 +378,12 @@
           <option value="Horror">Horror</option>
           <option value="Sci-Fi">Sci-Fi</option>
         </select>
+      </div>
+      <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
+        <input type="checkbox" id="useTemplate" checked style="width: auto;">
+        <label for="useTemplate" style="margin: 0; font-size: 0.875rem; color: var(--text-primary);">
+          Start with 30-scene beat sheet + 5 character slots
+        </label>
       </div>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="cancelBtn">Cancel</button>
@@ -392,7 +430,7 @@
               <span>${characters.length} characters</span>
               <span>${scenes.length} scenes</span>
             </div>
-            <div class="project-arrow">&rarr;</div>
+            <button class="project-delete" onclick="showDeleteProjectModal(event)" title="Delete project">&times;</button>
           </a>
         </div>
       `;
@@ -435,6 +473,7 @@
       document.getElementById('newTitle').value = '';
       document.getElementById('newLogline').value = '';
       document.getElementById('newGenre').value = 'Romantic Comedy';
+      document.getElementById('useTemplate').checked = true;
     }
 
     cancelBtn.onclick = hideModal;
@@ -444,17 +483,47 @@
       const title = document.getElementById('newTitle').value.trim() || 'Untitled Project';
       const logline = document.getElementById('newLogline').value.trim();
       const genre = document.getElementById('newGenre').value;
+      const useTemplate = document.getElementById('useTemplate').checked;
 
       try {
         await fetch(`${API}/outline/project`, {
-          method: 'PUT',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, logline, genre })
+          body: JSON.stringify({ title, logline, genre, use_template: useTemplate })
         });
         window.location.href = 'workspace.html';
       } catch (err) {
         console.error('Failed to create:', err);
         alert('Failed to create project');
+      }
+    };
+
+    // Delete Project Modal
+    const deleteModal = document.getElementById('deleteProjectModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    function showDeleteProjectModal(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      deleteModal.classList.remove('hidden');
+    }
+
+    function hideDeleteModal() {
+      deleteModal.classList.add('hidden');
+    }
+
+    cancelDeleteBtn.onclick = hideDeleteModal;
+    deleteModal.onclick = (e) => { if (e.target === deleteModal) hideDeleteModal(); };
+
+    confirmDeleteBtn.onclick = async () => {
+      try {
+        await fetch(`${API}/outline/project`, { method: 'DELETE' });
+        hideDeleteModal();
+        loadProjects();
+      } catch (err) {
+        console.error('Failed to delete:', err);
+        alert('Failed to delete project');
       }
     };
 
