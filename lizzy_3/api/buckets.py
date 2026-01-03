@@ -323,3 +323,42 @@ class BucketManager:
         except Exception as e:
             print(f"Error resetting stuck documents: {e}")
             return 0
+
+    def delete_document(self, bucket_name: str, doc_id: str) -> bool:
+        """Delete a document from a bucket."""
+        bucket_path = self.buckets_dir / bucket_name
+        doc_status_file = bucket_path / "kv_store_doc_status.json"
+
+        if not bucket_path.exists():
+            raise ValueError(f"Bucket '{bucket_name}' not found")
+
+        if not doc_status_file.exists():
+            raise ValueError(f"No documents in bucket '{bucket_name}'")
+
+        try:
+            data = json.loads(doc_status_file.read_text())
+
+            if doc_id not in data:
+                raise ValueError(f"Document '{doc_id}' not found")
+
+            del data[doc_id]
+            doc_status_file.write_text(json.dumps(data, indent=2))
+
+            # Also remove from filename mapping if exists
+            mapping_file = bucket_path / "filename_mapping.json"
+            if mapping_file.exists():
+                try:
+                    mapping = json.loads(mapping_file.read_text())
+                    if doc_id in mapping:
+                        del mapping[doc_id]
+                        mapping_file.write_text(json.dumps(mapping, indent=2))
+                except:
+                    pass
+
+            return True
+
+        except ValueError:
+            raise
+        except Exception as e:
+            print(f"Error deleting document: {e}")
+            return False

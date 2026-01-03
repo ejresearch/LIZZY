@@ -284,6 +284,18 @@ async def reset_stuck_documents(name: str) -> dict:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.delete("/api/buckets/{name}/documents/{doc_id}")
+async def delete_document(name: str, doc_id: str) -> dict:
+    """Delete a document from a bucket."""
+    try:
+        bucket_manager.delete_document(name, doc_id)
+        return {"success": True}
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # --- Health Check ---
 
 @app.get("/api/health")

@@ -749,9 +749,14 @@
       justify-content: space-between;
       padding: 0.75rem 1rem;
       border-bottom: 1px solid var(--border);
+      position: relative;
     }
     .doc-item:last-child {
       border-bottom: none;
+    }
+    .doc-info {
+      flex: 1;
+      min-width: 0;
     }
     .doc-title {
       font-weight: 500;
@@ -763,6 +768,22 @@
       gap: 0.75rem;
       font-size: 0.75rem;
       color: var(--text-muted);
+    }
+    .doc-delete {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      font-size: 1rem;
+      line-height: 1;
+      opacity: 0.5;
+      transition: opacity 0.2s, color 0.2s;
+      margin-left: 0.5rem;
+    }
+    .doc-delete:hover {
+      opacity: 1;
+      color: var(--danger);
     }
     .doc-preview {
       display: none;
@@ -910,6 +931,7 @@
     // State
     let buckets = [];
     let pendingDeleteBucket = null;
+    let currentViewingBucket = null;
     const API_BASE = 'http://localhost:8000';
 
     // Load buckets on page load
@@ -1045,6 +1067,7 @@
     }
 
     async function showDocuments(bucketName) {
+      currentViewingBucket = bucketName;
       document.getElementById('docsBucketName').textContent = bucketName;
       document.getElementById('docsLoading').style.display = 'block';
       document.getElementById('docsList').innerHTML = '';
@@ -1067,13 +1090,15 @@
 
           document.getElementById('docsList').innerHTML = docs.map(doc => `
             <div class="doc-item">
-              <div class="doc-title">${escapeHtml(doc.title)}</div>
-              <div class="doc-meta">
-                <span class="doc-status ${doc.status}">${doc.status}</span>
-                <span>${doc.chunks} chunks</span>
-                <span>${formatSize(doc.length)}</span>
+              <div class="doc-info">
+                <div class="doc-title">${escapeHtml(doc.title)}</div>
+                <div class="doc-meta">
+                  <span class="doc-status ${doc.status}">${doc.status}</span>
+                  <span>${doc.chunks} chunks</span>
+                  <span>${formatSize(doc.length)}</span>
+                </div>
               </div>
-              <div class="doc-preview">${escapeHtml(doc.preview)}</div>
+              <button class="doc-delete" onclick="deleteDocument('${doc.id}')" title="Delete document">&times;</button>
             </div>
           `).join('');
         }
@@ -1091,6 +1116,28 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    async function deleteDocument(docId) {
+      if (!currentViewingBucket) return;
+      if (!confirm('Delete this document?')) return;
+
+      try {
+        const response = await fetch(`${API_BASE}/api/buckets/${currentViewingBucket}/documents/${docId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          // Refresh the documents list
+          showDocuments(currentViewingBucket);
+          loadBuckets(); // Also refresh bucket counts
+        } else {
+          const error = await response.json();
+          alert('Failed to delete: ' + (error.detail || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Failed to delete document');
+      }
     }
 
     function showDeleteModal(name) {
