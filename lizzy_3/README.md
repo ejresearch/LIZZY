@@ -551,10 +551,11 @@ python -m api.server
 Local SQLite database for structured project data. Single-user, file-based storage perfect for screenwriting projects.
 
 **Schema** (`api/database.py`):
-- `project` — Title, logline, genre, description
+- `project` — Title, logline, genre, description, memory_bank_id
 - `writer_notes` — Theme, tone, comps, braindump, outline
 - `characters` — Name, role, description, arc, age, personality, flaw, backstory, relationships
-- `scenes` — Scene number, title, description, characters, tone, beats, canvas_content (JSON)
+- `scenes` — Scene number, title, description, characters, tone, beats, canvas_content
+- `conversations` — Chat history with Syd (title, messages JSON, timestamps)
 
 **Database location:** `data/lizzy.db`
 
@@ -606,6 +607,17 @@ db.upsert_scene(1, title="Meet Cute", description="They collide at a coffee shop
 | `/api/outline/scenes/{id}` | GET | Get scene by ID |
 | `/api/outline/scenes/{id}` | PUT | Update scene |
 | `/api/outline/scenes/{id}` | DELETE | Delete scene |
+| `/api/outline/scenes/{id}/reorder` | PUT | Reorder scene to new position |
+
+### Conversation Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/conversations` | GET | List all conversations |
+| `/api/conversations` | POST | Create conversation |
+| `/api/conversations/{id}` | GET | Get conversation with messages |
+| `/api/conversations/{id}` | PUT | Update conversation |
+| `/api/conversations/{id}` | DELETE | Delete conversation |
 
 ### Expert Chat Endpoint
 
@@ -642,11 +654,17 @@ See Neo4j section above for graph-related endpoints.
 | Settings | `/settings.html` | Theme, export, clear data |
 
 **Workspace tabs:**
-- Project — Title, logline, genre, description
+- Project — Title, logline, description (click title in nav to edit inline)
 - Notes — Theme, tone, comps, braindump
-- Characters — Character list with add/edit
-- Scenes — Scene list with add/edit
-- Canvas — Screenplay writing (one scene at a time, proper formatting)
+- Characters — Character list with add/edit/delete modal
+- Scenes — Scene list with add/edit, drag-to-reorder, delete
+- Canvas — Screenplay writing (one scene at a time, proper formatting, auto-saves every 60s)
+
+**Workspace features:**
+- **Save button** — Manual save for outline + canvas
+- **Auto-save** — Canvas saves every 60 seconds, outline saves on field change
+- **Conversation history** — Chat sessions persist, switch via dropdown
+- **Syd tool use** — Syd can create/edit characters and scenes via chat
 
 **User flow:** Home → Projects → Workspace (outline + chat + canvas in one view)
 

@@ -58,10 +58,31 @@
 
     .nav-left { display: flex; align-items: center; gap: 1.5rem; }
     .logo { font-size: 1rem; font-weight: 600; text-decoration: none; color: var(--text-primary); }
-    .project-name { font-size: 0.875rem; color: var(--text-muted); }
+    .project-name { font-size: 0.875rem; color: var(--text-muted); cursor: pointer; }
+    .project-name:hover { color: var(--text-primary); }
+    .project-name-input {
+      font-size: 0.875rem;
+      color: var(--text-primary);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--accent);
+      border-radius: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      outline: none;
+      width: 200px;
+    }
 
     .nav-right { display: flex; align-items: center; gap: 1rem; }
-    .save-status { font-size: 0.6875rem; color: var(--text-muted); padding: 0.25rem 0.5rem; background: var(--bg-tertiary); border-radius: 0.25rem; }
+    .save-btn {
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      padding: 0.375rem 0.75rem;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .save-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
     .nav-link { color: var(--text-secondary); text-decoration: none; font-size: 0.8125rem; font-weight: 500; }
     .nav-link:hover { color: var(--text-primary); }
 
@@ -261,6 +282,42 @@
       color: var(--text-muted);
       font-size: 0.8125rem;
     }
+
+    /* Modal Styles */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal.hidden { display: none; }
+    .modal-content {
+      background: var(--bg-primary);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .modal-content h2 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      margin-top: 1.25rem;
+    }
+    .btn { padding: 0.5rem 1rem; border-radius: 0.375rem; font-size: 0.8125rem; font-weight: 500; cursor: pointer; }
+    .btn-primary { background: var(--text-primary); color: var(--bg-primary); border: none; }
+    .btn-secondary { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-danger { background: #dc2626; color: white; border: none; }
 
     /* Chat Panel Styles */
     .chat-header {
@@ -701,10 +758,11 @@
   <nav>
     <div class="nav-left">
       <a href="home.html" class="logo">lizzy</a>
-      <span class="project-name" id="projectName">Loading...</span>
+      <span class="project-name" id="projectName" onclick="editProjectName()" title="Click to edit">Loading...</span>
+      <input type="text" class="project-name-input" id="projectNameInput" onblur="saveProjectName()" onkeydown="if(event.key==='Enter')saveProjectName()" style="display:none;">
     </div>
     <div class="nav-right">
-      <span class="save-status" id="saveStatus">Saved</span>
+      <button class="save-btn" id="saveStatus" onclick="manualSave()">Save</button>
       <a href="projects.html" class="nav-link">Projects</a>
       <a href="buckets.html" class="nav-link">Buckets</a>
       <a href="settings.html" class="nav-link">Settings</a>
@@ -725,19 +783,9 @@
       <div class="outline-content">
         <!-- Project Tab -->
         <div class="tab-panel active" id="panel-project">
-          <div class="form-row">
-            <div class="form-group">
-              <label>Title</label>
-              <input type="text" id="title" placeholder="Your screenplay title">
-            </div>
-            <div class="form-group">
-              <label>Genre</label>
-              <select id="genre">
-                <option value="Romantic Comedy">Romantic Comedy</option>
-                <option value="Comedy">Comedy</option>
-                <option value="Drama">Drama</option>
-              </select>
-            </div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" id="title" placeholder="Your screenplay title">
           </div>
           <div class="form-group">
             <label>Logline</label>
@@ -880,6 +928,39 @@
     </div>
   </div>
 
+  <!-- Character Modal -->
+  <div class="modal hidden" id="characterModal">
+    <div class="modal-content">
+      <h2 id="characterModalTitle">Add Character</h2>
+      <input type="hidden" id="characterId">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="charName" placeholder="Character name">
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <input type="text" id="charRole" placeholder="e.g., Protagonist, Love Interest">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="charDescription" placeholder="Brief character description"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Arc</label>
+        <textarea id="charArc" placeholder="Character's journey/transformation"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Flaw</label>
+        <input type="text" id="charFlaw" placeholder="Main character flaw">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="deleteCharBtn" onclick="deleteCharacter()" style="margin-right: auto; display: none;">Delete</button>
+        <button class="btn btn-secondary" onclick="hideCharacterModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCharacter()">Save</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // Theme
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -949,7 +1030,6 @@
         // Project
         if (data.project) {
           document.getElementById('title').value = data.project.title || '';
-          document.getElementById('genre').value = data.project.genre || 'Romantic Comedy';
           document.getElementById('logline').value = data.project.logline || '';
           document.getElementById('description').value = data.project.description || '';
           document.getElementById('projectName').textContent = data.project.title || 'Untitled';
@@ -1026,10 +1106,48 @@
     }
 
     // ===================
+    // PROJECT NAME EDIT
+    // ===================
+    function editProjectName() {
+      const span = document.getElementById('projectName');
+      const input = document.getElementById('projectNameInput');
+      input.value = span.textContent === 'Untitled' ? '' : span.textContent;
+      span.style.display = 'none';
+      input.style.display = 'block';
+      input.focus();
+      input.select();
+    }
+
+    async function saveProjectName() {
+      const span = document.getElementById('projectName');
+      const input = document.getElementById('projectNameInput');
+      const newTitle = input.value.trim() || 'Untitled';
+
+      span.textContent = newTitle;
+      span.style.display = 'inline';
+      input.style.display = 'none';
+
+      // Update the title input in the form too
+      document.getElementById('title').value = newTitle === 'Untitled' ? '' : newTitle;
+
+      // Save to server
+      try {
+        await fetch(`${API_BASE}/api/outline/project`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle === 'Untitled' ? '' : newTitle })
+        });
+        document.getElementById('saveStatus').textContent = 'Saved';
+      } catch (e) {
+        document.getElementById('saveStatus').textContent = 'Error';
+      }
+    }
+
+    // ===================
     // AUTO-SAVE
     // ===================
     function setupAutoSave() {
-      const fields = ['title', 'genre', 'logline', 'description', 'theme', 'tone', 'comps', 'braindump'];
+      const fields = ['title', 'logline', 'description', 'theme', 'tone', 'comps', 'braindump'];
       fields.forEach(id => {
         const el = document.getElementById(id);
         if (el) {
@@ -1050,7 +1168,6 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: document.getElementById('title').value,
-            genre: document.getElementById('genre').value,
             logline: document.getElementById('logline').value,
             description: document.getElementById('description').value
           })
@@ -1068,16 +1185,124 @@
           })
         });
 
-        document.getElementById('saveStatus').textContent = 'Saved';
+        document.getElementById('saveStatus').textContent = 'Save';
         document.getElementById('projectName').textContent = document.getElementById('title').value || 'Untitled';
       } catch (e) {
         document.getElementById('saveStatus').textContent = 'Error';
       }
     }
 
-    // Placeholder functions for character/scene editing (TODO: implement modals)
-    function addCharacter() { alert('Character modal - TODO'); }
-    function editCharacter(id) { alert('Edit character ' + id + ' - TODO'); }
+    async function manualSave() {
+      document.getElementById('saveStatus').textContent = 'Saving...';
+      try {
+        await saveOutline();
+        if (currentSceneId) {
+          await saveCanvas();
+        }
+        document.getElementById('saveStatus').textContent = 'Saved!';
+        setTimeout(() => {
+          document.getElementById('saveStatus').textContent = 'Save';
+        }, 2000);
+      } catch (e) {
+        document.getElementById('saveStatus').textContent = 'Error';
+      }
+    }
+
+    // ===================
+    // CHARACTER MODAL
+    // ===================
+    function addCharacter() {
+      document.getElementById('characterModalTitle').textContent = 'Add Character';
+      document.getElementById('characterId').value = '';
+      document.getElementById('charName').value = '';
+      document.getElementById('charRole').value = '';
+      document.getElementById('charDescription').value = '';
+      document.getElementById('charArc').value = '';
+      document.getElementById('charFlaw').value = '';
+      document.getElementById('deleteCharBtn').style.display = 'none';
+      document.getElementById('characterModal').classList.remove('hidden');
+      document.getElementById('charName').focus();
+    }
+
+    async function editCharacter(id) {
+      try {
+        const res = await fetch(`${API_BASE}/api/outline/characters/${id}`);
+        if (!res.ok) throw new Error('Not found');
+        const char = await res.json();
+
+        document.getElementById('characterModalTitle').textContent = 'Edit Character';
+        document.getElementById('characterId').value = id;
+        document.getElementById('charName').value = char.name || '';
+        document.getElementById('charRole').value = char.role || '';
+        document.getElementById('charDescription').value = char.description || '';
+        document.getElementById('charArc').value = char.arc || '';
+        document.getElementById('charFlaw').value = char.flaw || '';
+        document.getElementById('deleteCharBtn').style.display = 'block';
+        document.getElementById('characterModal').classList.remove('hidden');
+        document.getElementById('charName').focus();
+      } catch (e) {
+        alert('Failed to load character');
+      }
+    }
+
+    function hideCharacterModal() {
+      document.getElementById('characterModal').classList.add('hidden');
+    }
+
+    async function saveCharacter() {
+      const id = document.getElementById('characterId').value;
+      const data = {
+        name: document.getElementById('charName').value.trim(),
+        role: document.getElementById('charRole').value.trim(),
+        description: document.getElementById('charDescription').value.trim(),
+        arc: document.getElementById('charArc').value.trim(),
+        flaw: document.getElementById('charFlaw').value.trim()
+      };
+
+      if (!data.name) {
+        alert('Name is required');
+        return;
+      }
+
+      try {
+        if (id) {
+          await fetch(`${API_BASE}/api/outline/characters/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        } else {
+          await fetch(`${API_BASE}/api/outline/characters`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+        }
+        hideCharacterModal();
+        await loadOutline();
+      } catch (e) {
+        alert('Failed to save character');
+      }
+    }
+
+    async function deleteCharacter() {
+      const id = document.getElementById('characterId').value;
+      if (!id) return;
+      if (!confirm('Delete this character?')) return;
+
+      try {
+        await fetch(`${API_BASE}/api/outline/characters/${id}`, { method: 'DELETE' });
+        hideCharacterModal();
+        await loadOutline();
+      } catch (e) {
+        alert('Failed to delete character');
+      }
+    }
+
+    // Close modal on backdrop click
+    document.getElementById('characterModal').addEventListener('click', (e) => {
+      if (e.target.id === 'characterModal') hideCharacterModal();
+    });
 
     async function addScene() {
       // Quick add: find next available scene number
@@ -1702,6 +1927,14 @@ You have access to expert knowledge buckets:
     checkBuckets();
     setupAutoSave();
     loadConversations();
+
+    // Auto-save canvas every 60 seconds
+    setInterval(() => {
+      if (currentSceneId) {
+        saveCanvas();
+        console.log('Canvas auto-saved');
+      }
+    }, 60000);
   </script>
 </body>
 </html>

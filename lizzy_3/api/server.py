@@ -150,6 +150,7 @@ class SceneRequest(BaseModel):
     characters: Optional[str] = None
     tone: Optional[str] = None
     beats: Optional[list] = None
+    canvas_content: Optional[str] = None
 
 
 # --- Bucket Endpoints ---

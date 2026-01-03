@@ -367,18 +367,6 @@
         <label>Logline</label>
         <textarea id="newLogline" placeholder="A brief summary of your story..."></textarea>
       </div>
-      <div class="form-group">
-        <label>Genre</label>
-        <select id="newGenre">
-          <option value="Romantic Comedy">Romantic Comedy</option>
-          <option value="Comedy">Comedy</option>
-          <option value="Drama">Drama</option>
-          <option value="Thriller">Thriller</option>
-          <option value="Action">Action</option>
-          <option value="Horror">Horror</option>
-          <option value="Sci-Fi">Sci-Fi</option>
-        </select>
-      </div>
       <div class="form-group" style="display: flex; align-items: center; gap: 0.75rem;">
         <input type="checkbox" id="useTemplate" checked style="width: auto;">
         <label for="useTemplate" style="margin: 0; font-size: 0.875rem; color: var(--text-primary);">
@@ -472,7 +460,6 @@
       modal.classList.add('hidden');
       document.getElementById('newTitle').value = '';
       document.getElementById('newLogline').value = '';
-      document.getElementById('newGenre').value = 'Romantic Comedy';
       document.getElementById('useTemplate').checked = true;
     }
 
@@ -482,14 +469,13 @@
     createBtn.onclick = async () => {
       const title = document.getElementById('newTitle').value.trim() || 'Untitled Project';
       const logline = document.getElementById('newLogline').value.trim();
-      const genre = document.getElementById('newGenre').value;
       const useTemplate = document.getElementById('useTemplate').checked;
 
       try {
         await fetch(`${API}/outline/project`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, logline, genre, use_template: useTemplate })
+          body: JSON.stringify({ title, logline, use_template: useTemplate })
         });
         window.location.href = 'workspace.html';
       } catch (err) {
