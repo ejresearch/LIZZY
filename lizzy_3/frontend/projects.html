@@ -402,41 +402,45 @@
     }
 
     // Render projects list
-    function renderProjects(project, characters, scenes) {
+    function renderProjects(projects) {
+      const projectCards = projects.map(p => `
+        <div class="project-card" onclick="openProject(${p.id})" style="cursor: pointer;">
+          <div class="project-info">
+            <div class="project-title">${p.title || 'Untitled Project'}</div>
+            <div class="project-logline">${p.logline || 'No logline yet'}</div>
+          </div>
+          <div class="project-meta">
+            <span>${p.genre || 'Romantic Comedy'}</span>
+          </div>
+          <button class="project-delete" onclick="showDeleteProjectModal(event, ${p.id})" title="Delete project">&times;</button>
+        </div>
+      `).join('');
+
       content.innerHTML = `
         <div class="projects-header">
           <h1>Projects</h1>
           <button class="btn-new" id="newProjectBtn">+ New Project</button>
         </div>
         <div class="projects-list">
-          <a href="workspace.html" class="project-card">
-            <div class="project-info">
-              <div class="project-title">${project.title || 'Untitled Project'}</div>
-              <div class="project-logline">${project.logline || 'No logline yet'}</div>
-            </div>
-            <div class="project-meta">
-              <span>${characters.length} characters</span>
-              <span>${scenes.length} scenes</span>
-            </div>
-            <button class="project-delete" onclick="showDeleteProjectModal(event)" title="Delete project">&times;</button>
-          </a>
+          ${projectCards}
         </div>
       `;
       document.getElementById('newProjectBtn').onclick = showModal;
     }
 
+    // Open project
+    function openProject(projectId) {
+      window.location.href = `workspace.html?project=${projectId}`;
+    }
+
     // Load projects
     async function loadProjects() {
       try {
-        const res = await fetch(`${API}/outline`);
-        const data = await res.json();
+        const res = await fetch(`${API}/projects`);
+        const projects = await res.json();
 
-        const project = data.project || {};
-        const characters = data.characters || [];
-        const scenes = data.scenes || [];
-
-        if (project.title || project.logline || characters.length || scenes.length) {
-          renderProjects(project, characters, scenes);
+        if (projects.length > 0) {
+          renderProjects(projects);
         } else {
           renderEmpty();
         }
@@ -472,15 +476,22 @@
       const useTemplate = document.getElementById('useTemplate').checked;
 
       try {
-        await fetch(`${API}/outline/project`, {
+        const res = await fetch(`${API}/projects`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title, logline, use_template: useTemplate })
         });
-        window.location.href = 'workspace.html';
+        if (!res.ok) {
+          throw new Error(`Server error: ${res.status}`);
+        }
+        const project = await res.json();
+        if (!project.id) {
+          throw new Error('No project ID returned');
+        }
+        window.location.href = `workspace.html?project=${project.id}`;
       } catch (err) {
         console.error('Failed to create:', err);
-        alert('Failed to create project');
+        alert('Failed to create project: ' + err.message);
       }
     };
 
@@ -488,23 +499,27 @@
     const deleteModal = document.getElementById('deleteProjectModal');
     const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    let projectToDelete = null;
 
-    function showDeleteProjectModal(e) {
+    function showDeleteProjectModal(e, projectId) {
       e.preventDefault();
       e.stopPropagation();
+      projectToDelete = projectId;
       deleteModal.classList.remove('hidden');
     }
 
     function hideDeleteModal() {
       deleteModal.classList.add('hidden');
+      projectToDelete = null;
     }
 
     cancelDeleteBtn.onclick = hideDeleteModal;
     deleteModal.onclick = (e) => { if (e.target === deleteModal) hideDeleteModal(); };
 
     confirmDeleteBtn.onclick = async () => {
+      if (!projectToDelete) return;
       try {
-        await fetch(`${API}/outline/project`, { method: 'DELETE' });
+        await fetch(`${API}/projects/${projectToDelete}`, { method: 'DELETE' });
         hideDeleteModal();
         loadProjects();
       } catch (err) {

@@ -1553,6 +1553,13 @@
 
     const API_BASE = 'http://localhost:8000';
 
+    // Get project ID from URL, redirect if invalid
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentProjectId = urlParams.get('project');
+    if (!currentProjectId || currentProjectId === 'undefined' || isNaN(parseInt(currentProjectId))) {
+      window.location.href = 'projects.html';
+    }
+
     // State
     let activeBuckets = [];
     let availableBuckets = {};
@@ -1647,7 +1654,7 @@
         braindump = newContent + (braindump ? '---\n\n' + braindump : '');
 
         try {
-          await fetch(`${API_BASE}/api/outline/notes`, {
+          await fetch(`${API_BASE}/api/outline/notes?project_id=${currentProjectId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ braindump })
@@ -1737,7 +1744,7 @@
 
       try {
         // Get project to find bank ID
-        const projRes = await fetch(`${API_BASE}/api/outline/project`);
+        const projRes = await fetch(`${API_BASE}/api/projects/${currentProjectId}`);
         const project = await projRes.json();
         const bankId = project.memory_bank_id;
 
@@ -1780,7 +1787,7 @@
 
     async function loadOutline() {
       try {
-        const res = await fetch(`${API_BASE}/api/outline`);
+        const res = await fetch(`${API_BASE}/api/outline?project_id=${currentProjectId}`);
         if (!res.ok) throw new Error('Failed to load');
         const data = await res.json();
 
@@ -1927,17 +1934,17 @@
 
     async function createStandardActs() {
       try {
-        await fetch(`${API_BASE}/api/outline/acts`, {
+        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'Act 1 - Setup' })
         });
-        await fetch(`${API_BASE}/api/outline/acts`, {
+        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'Act 2 - Confrontation' })
         });
-        await fetch(`${API_BASE}/api/outline/acts`, {
+        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: 'Act 3 - Resolution' })
@@ -2119,7 +2126,7 @@
 
     async function addAct() {
       try {
-        const res = await fetch(`${API_BASE}/api/outline/acts`, {
+        const res = await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: `Act ${currentActs.length + 1}` })
@@ -2191,7 +2198,7 @@
       const newNum = maxNum + 1;
 
       try {
-        const res = await fetch(`${API_BASE}/api/outline/scenes`, {
+        const res = await fetch(`${API_BASE}/api/outline/scenes?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scene_number: newNum, title: '', act_id: actId })
@@ -2244,7 +2251,7 @@
 
       // Save to server
       try {
-        await fetch(`${API_BASE}/api/outline/project`, {
+        await fetch(`${API_BASE}/api/projects/${currentProjectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ title: newTitle === 'Untitled' ? '' : newTitle })
@@ -2275,7 +2282,7 @@
     async function saveOutline() {
       try {
         // Save project
-        await fetch(`${API_BASE}/api/outline/project`, {
+        await fetch(`${API_BASE}/api/projects/${currentProjectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2286,7 +2293,7 @@
         });
 
         // Save notes
-        await fetch(`${API_BASE}/api/outline/notes`, {
+        await fetch(`${API_BASE}/api/outline/notes?project_id=${currentProjectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2384,7 +2391,7 @@
             body: JSON.stringify(data)
           });
         } else {
-          await fetch(`${API_BASE}/api/outline/characters`, {
+          await fetch(`${API_BASE}/api/outline/characters?project_id=${currentProjectId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -2420,7 +2427,7 @@
       // Quick add: find next available scene number
       const nextNum = allScenes.length > 0 ? Math.max(...allScenes.map(s => s.scene_number)) + 1 : 1;
       try {
-        await fetch(`${API_BASE}/api/outline/scenes`, {
+        await fetch(`${API_BASE}/api/outline/scenes?project_id=${currentProjectId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scene_number: nextNum, title: `Scene ${nextNum}` })
@@ -2495,7 +2502,7 @@
 
           // Reorder: move dragged scene to target's position
           try {
-            await fetch(`${API_BASE}/api/outline/scenes/${draggedId}/reorder`, {
+            await fetch(`${API_BASE}/api/outline/scenes/${draggedId}/reorder?project_id=${currentProjectId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ new_scene_number: targetNumber })
@@ -2573,7 +2580,7 @@
     // ===================
     async function loadConversations(autoSelectMostRecent = false) {
       try {
-        const res = await fetch(`${API_BASE}/api/conversations`);
+        const res = await fetch(`${API_BASE}/api/conversations?project_id=${currentProjectId}`);
         if (res.ok) {
           conversations = await res.json();
           updateConversationSelect();
@@ -2761,7 +2768,7 @@
           });
         } else {
           // Create new
-          const res = await fetch(`${API_BASE}/api/conversations`, {
+          const res = await fetch(`${API_BASE}/api/conversations?project_id=${currentProjectId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, messages: chatHistory, active_buckets: activeBuckets })
@@ -2804,6 +2811,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             message,
+            project_id: parseInt(currentProjectId),
             buckets: activeBuckets,
             system_prompt: systemPrompt,
             rag_mode: 'hybrid',

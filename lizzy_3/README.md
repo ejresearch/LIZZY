@@ -22,7 +22,7 @@ pip install -r requirements.txt
 python -m api.server
 ```
 
-Open `http://localhost:8000/home.html`
+Open `http://localhost:8000/projects.html`
 
 **Required:** `OPENAI_API_KEY` in environment or `../.env`
 
@@ -32,6 +32,7 @@ Open `http://localhost:8000/home.html`
 
 | Feature | Description |
 |---------|-------------|
+| **Multi-Project** | Create and manage multiple screenplays, each with isolated data and memory |
 | **Syd** | AI writing partner with domain expertise and project memory |
 | **Knowledge Buckets** | RAG-powered expertise (screenwriting books, plays, scripts) |
 | **Outline Editor** | Characters, acts, scenes - structured story bible |
@@ -150,30 +151,38 @@ Hindsight learns from:
 
 ## API Reference
 
+### Projects
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/projects` | GET | List all projects |
+| `/api/projects` | POST | Create new project |
+| `/api/projects/{id}` | GET/PUT/DELETE | Project by ID |
+
 ### Chat
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/expert/chat` | POST | Chat with Syd (RAG + memory + tools) |
+| `/api/expert/chat` | POST | Chat with Syd (requires `project_id` in body) |
 | `/api/reflect` | POST | Trigger memory reflection |
 
 ### Outline
+All outline endpoints require `?project_id=X` query parameter for list/create operations.
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/outline` | GET | Full outline (project, notes, characters, acts, scenes) |
-| `/api/outline/project` | GET/PUT | Project metadata |
-| `/api/outline/notes` | GET/PUT | Writer notes |
-| `/api/outline/characters` | GET/POST | List/create characters |
+| `/api/outline?project_id=X` | GET | Full outline (project, notes, characters, acts, scenes) |
+| `/api/outline/notes?project_id=X` | GET/PUT | Writer notes |
+| `/api/outline/characters?project_id=X` | GET/POST | List/create characters |
 | `/api/outline/characters/{id}` | GET/PUT/DELETE | Character by ID |
-| `/api/outline/acts` | GET/POST | List/create acts |
+| `/api/outline/acts?project_id=X` | GET/POST | List/create acts |
 | `/api/outline/acts/{id}` | GET/PUT/DELETE | Act by ID |
-| `/api/outline/scenes` | GET/POST | List/create scenes |
+| `/api/outline/scenes?project_id=X` | GET/POST | List/create scenes |
 | `/api/outline/scenes/{id}` | GET/PUT/DELETE | Scene by ID |
 | `/api/outline/scenes/{id}/act` | PUT | Assign scene to act |
 
 ### Conversations
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/conversations` | GET/POST | List/create chats |
+| `/api/conversations?project_id=X` | GET/POST | List/create chats for a project |
 | `/api/conversations/{id}` | GET/PUT/DELETE | Chat by ID (rename, delete) |
 
 ### Memory (Hindsight)
@@ -207,5 +216,5 @@ Plus 5 character slots: Protagonist, Love Interest, Best Friend, Obstacle, Mento
 ## What's Next
 
 - [ ] Export canvas to FDX/PDF
-- [ ] Multi-project dashboard
+- [x] Multi-project dashboard
 - [ ] Voice mode for brainstorming

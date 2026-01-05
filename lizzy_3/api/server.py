@@ -54,12 +54,12 @@ hindsight_server = start_hindsight_server(
 hindsight_client = HindsightClient(base_url=f"http://127.0.0.1:{hindsight_server.port}")
 print(f"Hindsight running on port {hindsight_server.port}")
 
-def get_memory_bank_id() -> str:
-    """Get the current project's memory bank ID."""
-    project = outline_db.get_project()
+def get_memory_bank_id(project_id: int) -> str:
+    """Get a project's memory bank ID."""
+    project = outline_db.get_project(project_id)
     if project and project.get('memory_bank_id'):
         return project['memory_bank_id']
-    return "lizzy-default"  # Fallback
+    return f"lizzy-project-{project_id}"  # Fallback per project
 
 
 # --- Pydantic Models ---
@@ -100,6 +100,7 @@ class CypherQueryRequest(BaseModel):
 
 class ExpertChatRequest(BaseModel):
     message: str
+    project_id: int  # Required: which project context to use
     buckets: Optional[list] = []  # List of active buckets to query
     bucket: Optional[str] = None  # Legacy single bucket (fallback)
     system_prompt: str
@@ -436,51 +437,250 @@ OUTLINE_TOOLS = [
         "type": "function",
         "function": {
             "name": "write_scene",
-            "description": "Write formatted screenplay content for a scene. Use this when asked to 'write', 'draft', or 'flesh out' a scene. This writes actual screenplay format (sluglines, action, dialogue) to the Canvas.",
+            "description": "Write a full scene as formatted screenplay. Use when asked to 'write', 'draft', or 'flesh out' a scene. The system will use your conversation as context (the 'blueprint') and generate proper screenplay format to the Canvas. Just provide the scene_id - the backend handles the rest.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "scene_id": {
                         "type": "integer",
                         "description": "ID of the scene to write (use get_outline to find scene IDs)"
-                    },
-                    "elements": {
-                        "type": "array",
-                        "description": "Array of screenplay elements in order",
-                        "items": {
-                            "type": "object",
-                            "properties": {
-                                "type": {
-                                    "type": "string",
-                                    "enum": ["scene-heading", "action", "character", "dialogue", "parenthetical", "transition"],
-                                    "description": "Element type: scene-heading (INT./EXT. LOCATION - TIME), action (description), character (CHARACTER NAME), dialogue (what they say), parenthetical (how they say it), transition (CUT TO:)"
-                                },
-                                "text": {
-                                    "type": "string",
-                                    "description": "The content of this element"
-                                }
-                            },
-                            "required": ["type", "text"]
-                        }
                     }
                 },
-                "required": ["scene_id", "elements"]
+                "required": ["scene_id"]
             }
         }
     }
 ]
 
 
-def execute_outline_tool(name: str, args: dict) -> dict:
+# =============================================================================
+# SCENE WRITING ENGINE
+# =============================================================================
+
+
+def parse_screenplay_to_elements(raw_text: str) -> list:
+    """
+    Parse raw screenplay prose into structured elements.
+
+    Returns list of {type, text} dicts for Canvas display.
+    """
+    import re
+
+    elements = []
+    lines = raw_text.strip().split('\n')
+
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+
+        # Skip empty lines
+        if not line.strip():
+            i += 1
+            continue
+
+        # Scene heading: INT./EXT. LOCATION - TIME
+        if re.match(r'^(INT\.|EXT\.|INT/EXT\.|I/E\.)', line.strip(), re.IGNORECASE):
+            elements.append({"type": "scene-heading", "text": line.strip()})
+            i += 1
+            continue
+
+        # Transition: CUT TO:, FADE IN:, FADE OUT, DISSOLVE TO:, etc.
+        if re.match(r'^(CUT TO:|FADE IN:|FADE OUT|DISSOLVE TO:|SMASH CUT:|MATCH CUT:|JUMP CUT:)', line.strip(), re.IGNORECASE):
+            elements.append({"type": "transition", "text": line.strip()})
+            i += 1
+            continue
+
+        # Character name: ALL CAPS, possibly centered, before dialogue
+        # Look ahead to see if next non-empty line is dialogue
+        stripped = line.strip()
+        if stripped.isupper() and len(stripped) < 40 and not stripped.startswith('INT') and not stripped.startswith('EXT'):
+            # Check if this looks like a character name (not a transition or heading)
+            if not re.match(r'.*(TO:|IN:|OUT)$', stripped):
+                elements.append({"type": "character", "text": stripped})
+                i += 1
+
+                # Look for parenthetical and/or dialogue
+                while i < len(lines):
+                    next_line = lines[i].rstrip()
+                    if not next_line.strip():
+                        i += 1
+                        break
+
+                    # Parenthetical: (text in parentheses)
+                    paren_match = re.match(r'^\s*\(([^)]+)\)\s*$', next_line)
+                    if paren_match:
+                        elements.append({"type": "parenthetical", "text": f"({paren_match.group(1)})"})
+                        i += 1
+                        continue
+
+                    # If next line is also all caps, it's a new character - stop
+                    if next_line.strip().isupper() and len(next_line.strip()) < 40:
+                        break
+
+                    # If next line starts with INT/EXT, it's a new scene - stop
+                    if re.match(r'^(INT\.|EXT\.)', next_line.strip(), re.IGNORECASE):
+                        break
+
+                    # Otherwise it's dialogue
+                    elements.append({"type": "dialogue", "text": next_line.strip()})
+                    i += 1
+
+                continue
+
+        # Default: action line
+        elements.append({"type": "action", "text": line.strip()})
+        i += 1
+
+    return elements
+
+
+async def generate_scene_prose(
+    scene_id: int,
+    project_id: int,
+    conversation_history: list,
+    target_words: int = 800
+) -> tuple[str, list]:
+    """
+    Generate screenplay prose for a scene using conversation as blueprint.
+
+    Args:
+        scene_id: The scene to write
+        project_id: The project context
+        conversation_history: Recent conversation (the "blueprint")
+        target_words: Target word count (700-900)
+
+    Returns:
+        tuple of (raw_prose, parsed_elements)
+    """
+    from openai import AsyncOpenAI
+
+    client = AsyncOpenAI()
+
+    # Get scene details
+    scene = outline_db.get_scene(scene_id)
+    if not scene:
+        return "", []
+
+    # Get characters for reference
+    characters = outline_db.get_characters(project_id)
+    char_summary = ", ".join([f"{c['name']} ({c.get('role', 'unknown')})" for c in characters[:5]]) if characters else "No characters defined"
+
+    # Get previous scene for continuity
+    all_scenes = outline_db.get_scenes(project_id)
+    scene_index = next((i for i, s in enumerate(all_scenes) if s['id'] == scene_id), -1)
+
+    previous_content = ""
+    if scene_index > 0:
+        prev_scene = all_scenes[scene_index - 1]
+        if prev_scene.get('canvas_content'):
+            try:
+                prev_elements = json.loads(prev_scene['canvas_content'])
+                # Extract first 300 chars of text
+                prev_text = " ".join([e.get('text', '') for e in prev_elements[:10]])
+                previous_content = prev_text[:300] + "..." if len(prev_text) > 300 else prev_text
+            except:
+                pass
+
+    # Get next scene outline for foreshadowing
+    next_outline = ""
+    if scene_index >= 0 and scene_index < len(all_scenes) - 1:
+        next_scene = all_scenes[scene_index + 1]
+        next_outline = next_scene.get('description', '') or next_scene.get('title', '')
+
+    # Build blueprint from conversation history (last 10 messages)
+    blueprint_parts = []
+    for msg in conversation_history[-10:]:
+        if isinstance(msg, dict) and msg.get('content'):
+            role = "Writer" if msg.get('role') == 'user' else "Syd"
+            blueprint_parts.append(f"{role}: {msg['content'][:500]}")
+    blueprint = "\n".join(blueprint_parts) if blueprint_parts else "No conversation context available."
+
+    # Build the prompt (like legacy write.py)
+    prompt = f"""**SCENE {scene.get('scene_number', '?')}: {scene.get('title', 'Untitled')}**
+
+Description: {scene.get('description', 'No description')}
+Characters in scene: {scene.get('characters', char_summary)}
+Tone: {scene.get('tone', 'romantic comedy')}
+
+**BLUEPRINT FROM CONVERSATION:**
+{blueprint}
+
+"""
+
+    # Add beats if available
+    if scene.get('beats'):
+        try:
+            beats = json.loads(scene['beats']) if isinstance(scene['beats'], str) else scene['beats']
+            if beats:
+                prompt += f"**KEY BEATS:**\n" + "\n".join([f"• {b}" for b in beats]) + "\n\n"
+        except:
+            pass
+
+    # Add continuity context
+    if previous_content:
+        prompt += f"""**PREVIOUS SCENE (for continuity):**
+{previous_content}
+
+"""
+
+    if next_outline:
+        prompt += f"""**NEXT SCENE (to foreshadow):**
+{next_outline}
+
+"""
+
+    # Instructions
+    prompt += f"""**YOUR TASK:**
+Write this scene in PROPER SCREENPLAY FORMAT following industry standards.
+
+TARGET: {target_words} words / 2-3 pages (1 page ≈ 1 minute of screen time)
+
+SCREENPLAY FORMAT REQUIREMENTS:
+1. Scene heading: INT./EXT. LOCATION - TIME (all caps)
+2. Action lines: Present tense, active voice, visual descriptions
+3. Character names: ALL CAPS before dialogue
+4. Dialogue: Natural, character-specific, advances plot
+5. Parentheticals: (brief acting directions) - use sparingly
+6. Transitions: CUT TO:, DISSOLVE TO: (only when needed)
+
+CONTENT REQUIREMENTS:
+1. Show character emotions through actions, NOT exposition
+2. Make dialogue witty, natural, and character-specific
+3. Build romantic/comedic tension
+4. Maintain continuity with previous scene
+5. Include specific visual details and character reactions
+
+Write the complete scene now in proper screenplay format:"""
+
+    # Call GPT-4o
+    response = await client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {"role": "system", "content": "You are a screenwriter."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.8,
+        max_tokens=2500
+    )
+
+    raw_prose = response.choices[0].message.content or ""
+
+    # Parse into elements
+    elements = parse_screenplay_to_elements(raw_prose)
+
+    return raw_prose, elements
+
+
+def execute_outline_tool(name: str, args: dict, project_id: int) -> dict:
     """Execute an outline tool and return the result."""
     import json
 
     try:
         if name == "update_project":
-            return outline_db.update_project(**args)
+            return outline_db.update_project(project_id, **args)
 
         elif name == "create_character":
-            return outline_db.create_character(**args)
+            return outline_db.create_character(project_id, **args)
 
         elif name == "update_character":
             char_id = args.pop("character_id")
@@ -489,7 +689,7 @@ def execute_outline_tool(name: str, args: dict) -> dict:
 
         elif name == "create_scene":
             scene_num = args.pop("scene_number")
-            return outline_db.create_scene(scene_num, **args)
+            return outline_db.create_scene(project_id, scene_num, **args)
 
         elif name == "update_scene":
             scene_id = args.pop("scene_id")
@@ -508,9 +708,9 @@ def execute_outline_tool(name: str, args: dict) -> dict:
 
         elif name == "get_outline":
             return {
-                "project": outline_db.get_project(),
-                "characters": outline_db.get_characters(),
-                "scenes": outline_db.get_scenes()
+                "project": outline_db.get_project(project_id),
+                "characters": outline_db.get_characters(project_id),
+                "scenes": outline_db.get_scenes(project_id)
             }
 
         else:
@@ -528,75 +728,77 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
     Syd can now use tools to edit the project outline (characters, scenes, etc.)
     """
     import json
+    import asyncio
     from openai import AsyncOpenAI
 
     client = AsyncOpenAI()
+    project_id = request.project_id
+    bank_id = get_memory_bank_id(project_id)
 
-    # Step 1: Recall memories from Hindsight
-    memory_context = ""
-    bank_id = get_memory_bank_id()
-    try:
-        memories = await hindsight_client.arecall(
-            bank_id=bank_id,
-            query=request.message,
-            max_tokens=2000,
-            budget="mid"
-        )
-        if memories:
-            memory_parts = [m.text for m in memories[:5]]
-            memory_context = "\n".join(memory_parts)
-    except Exception as e:
-        print(f"Hindsight recall failed: {e}")
+    # === PARALLEL CONTEXT GATHERING ===
+    # Run memory recall, bucket queries, and outline fetch concurrently
 
-    # Step 2: Query buckets for relevant context (RAG)
-    # Support both new 'buckets' list and legacy 'bucket' single value
-    buckets_to_query = request.buckets if request.buckets else ([request.bucket] if request.bucket else [])
-
-    context_parts = []
-    for bucket_name in buckets_to_query:
+    async def recall_memories():
         try:
-            bucket_context = await bucket_manager.query(
-                bucket_name,
-                request.message,
-                request.rag_mode
+            memories = await hindsight_client.arecall(
+                bank_id=bank_id,
+                query=request.message,
+                max_tokens=1500,
+                budget="low"  # faster
             )
-            if bucket_context:
-                # Label context by source
-                bucket_label = {'books-final': 'Structure', 'plays-final': 'Dialogue', 'scripts-final': 'Execution'}.get(bucket_name, bucket_name)
-                context_parts.append(f"[{bucket_label}]\n{bucket_context}")
-        except ValueError as e:
-            print(f"Bucket {bucket_name} not found: {e}")
+            if memories:
+                return "\n".join([m.text for m in memories[:3]])
+        except Exception as e:
+            print(f"Hindsight recall failed: {e}")
+        return ""
+
+    async def query_bucket(bucket_name: str):
+        try:
+            result = await bucket_manager.query(bucket_name, request.message, request.rag_mode)
+            if result:
+                label = {'books-final': 'Structure', 'plays-final': 'Dialogue', 'scripts-final': 'Execution'}.get(bucket_name, bucket_name)
+                return f"[{label}]\n{result}"
         except Exception as e:
             print(f"Bucket {bucket_name} query failed: {e}")
+        return ""
 
+    def get_outline_context():
+        try:
+            project = outline_db.get_project(project_id)
+            characters = outline_db.get_characters(project_id)
+            scenes = outline_db.get_scenes(project_id)
+
+            parts = []
+            if project and (project.get('title') or project.get('logline')):
+                parts.append(f"Project: {project.get('title', 'Untitled')} - {project.get('logline', '')}")
+            if characters:
+                char_list = [f"- [id={c['id']}] {c['name'] or 'Unnamed'} ({c['role'] or 'no role'})" for c in characters[:8]]
+                parts.append(f"Characters:\n" + "\n".join(char_list))
+            if scenes:
+                scene_list = [f"- [id={s['id']}] {s['scene_number']}. {s['title']}" for s in scenes if s.get('title')][:12]
+                if scene_list:
+                    parts.append(f"Scenes:\n" + "\n".join(scene_list))
+            return "\n\n".join(parts) if parts else ""
+        except Exception as e:
+            print(f"Outline fetch failed: {e}")
+            return ""
+
+    # Build list of parallel tasks
+    buckets_to_query = request.buckets if request.buckets else ([request.bucket] if request.bucket else [])
+
+    tasks = [recall_memories()]
+    tasks.extend([query_bucket(b) for b in buckets_to_query])
+
+    # Run outline fetch in thread (it's sync SQLite)
+    outline_context = await asyncio.get_event_loop().run_in_executor(None, get_outline_context)
+
+    # Gather async tasks in parallel
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Parse results
+    memory_context = results[0] if isinstance(results[0], str) else ""
+    context_parts = [r for r in results[1:] if isinstance(r, str) and r]
     context = "\n\n".join(context_parts) if context_parts else ""
-
-    # Step 2.5: Get current outline state from SQLite
-    outline_context = ""
-    try:
-        project = outline_db.get_project()
-        characters = outline_db.get_characters()
-        scenes = outline_db.get_scenes()
-
-        outline_parts = []
-        if project and (project.get('title') or project.get('logline')):
-            outline_parts.append(f"Project: {project.get('title', 'Untitled')} - {project.get('logline', '')}")
-
-        if characters:
-            char_list = [f"- [id={c['id']}] {c['name'] or 'Unnamed'} ({c['role'] or 'no role'}): {c.get('description', '')[:50]}" for c in characters[:10]]
-            outline_parts.append(f"Characters:\n" + "\n".join(char_list))
-
-        if scenes:
-            scene_list = [f"- [id={s['id']}] {s['scene_number']}. {s['title']}: {s.get('description', '')[:40]}" for s in scenes if s.get('title')]
-            if scene_list:
-                outline_parts.append(f"Scenes ({len(scenes)} total):\n" + "\n".join(scene_list[:15]))
-                if len(scenes) > 15:
-                    outline_parts.append(f"  ... and {len(scenes) - 15} more scenes")
-
-        if outline_parts:
-            outline_context = "\n\n".join(outline_parts)
-    except Exception as e:
-        print(f"Outline fetch failed: {e}")
 
     # Step 3: Build messages for LLM
     messages = []
@@ -612,16 +814,16 @@ You have tools to edit the project outline and write scenes. Use them when the w
 - WRITE actual screenplay content using write_scene
 
 WRITING SCENES with write_scene:
-When asked to "write", "draft", or "flesh out" a scene, use write_scene with formatted elements:
-- scene-heading: "INT. COFFEE SHOP - DAY" or "EXT. PARK - NIGHT"
-- action: Description of what we see (present tense)
-- character: Character name IN CAPS before their dialogue
-- dialogue: What the character says
-- parenthetical: (how they say it) - use sparingly
-- transition: CUT TO:, FADE OUT, etc.
+When asked to "write", "draft", or "flesh out" a scene, just call write_scene(scene_id).
+The system will use your conversation as the "blueprint" and automatically:
+- Pull scene metadata (title, description, characters, tone, beats)
+- Use conversation context to understand what you discussed
+- Add continuity from previous scene
+- Generate proper screenplay format (700-900 words)
+- Save to Canvas
 
-Example elements array:
-[{"type":"scene-heading","text":"INT. COFFEE SHOP - DAY"},{"type":"action","text":"EMMA, 30s, rushes in looking frazzled."},{"type":"character","text":"EMMA"},{"type":"dialogue","text":"I need coffee. Now."}]
+Just provide the scene_id - the backend handles everything else!
+Example: write_scene(scene_id=5)
 
 When making changes, use the tools. After using tools, summarize what you did.
 If you need to see what exists, use get_outline first.
@@ -653,12 +855,12 @@ Character and scene IDs are shown in brackets like [id=5]."""
     try:
         for _ in range(max_iterations):
             response = await client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-4o-mini",  # Faster for chat; write_scene uses gpt-4o
                 messages=messages,
                 tools=OUTLINE_TOOLS,
                 tool_choice="auto",
                 temperature=0.7,
-                max_tokens=1500
+                max_tokens=1000
             )
 
             assistant_msg = response.choices[0].message
@@ -674,7 +876,34 @@ Character and scene IDs are shown in brackets like [id=5]."""
                     func_args = json.loads(tool_call.function.arguments)
 
                     print(f"Syd using tool: {func_name}({func_args})")
-                    result = execute_outline_tool(func_name, func_args)
+
+                    # Special handling for write_scene - needs conversation context
+                    if func_name == "write_scene":
+                        scene_id = func_args.get("scene_id")
+                        if scene_id:
+                            raw_prose, elements = await generate_scene_prose(
+                                scene_id=scene_id,
+                                project_id=project_id,
+                                conversation_history=request.history
+                            )
+                            if elements:
+                                # Store in database
+                                canvas_content = json.dumps(elements)
+                                outline_db.update_scene(scene_id, canvas_content=canvas_content)
+                                result = {
+                                    "success": True,
+                                    "scene_id": scene_id,
+                                    "elements_count": len(elements),
+                                    "word_count": len(raw_prose.split()),
+                                    "preview": raw_prose[:200] + "..." if len(raw_prose) > 200 else raw_prose
+                                }
+                            else:
+                                result = {"error": "Failed to generate scene prose"}
+                        else:
+                            result = {"error": "scene_id is required"}
+                    else:
+                        result = execute_outline_tool(func_name, func_args, project_id)
+
                     tools_used.append({"tool": func_name, "args": func_args, "result": result})
 
                     # Add tool result to messages
@@ -693,36 +922,25 @@ Character and scene IDs are shown in brackets like [id=5]."""
         else:
             assistant_message = "I made several changes but ran into a loop. Please check the outline."
 
-        # Step 5: Retain conversation turn to Hindsight
-        try:
-            await hindsight_client.aretain(
-                bank_id=bank_id,
-                content=f"User said: {request.message}",
-                context="conversation with writer"
-            )
-            # Include tool use in memory
-            if tools_used:
-                tool_summary = ", ".join([t["tool"] for t in tools_used])
+        # Step 5: Retain conversation turn to Hindsight (fire-and-forget for speed)
+        async def retain_memory():
+            try:
                 await hindsight_client.aretain(
                     bank_id=bank_id,
-                    content=f"Syd used tools ({tool_summary}) and responded: {assistant_message[:400]}",
-                    context="conversation with writer"
+                    content=f"User: {request.message[:200]} | Syd: {assistant_message[:300]}",
+                    context="conversation"
                 )
-            else:
-                await hindsight_client.aretain(
-                    bank_id=bank_id,
-                    content=f"Syd responded: {assistant_message[:500]}",
-                    context="conversation with writer"
-                )
-        except Exception as e:
-            print(f"Hindsight retain failed: {e}")
+            except Exception as e:
+                print(f"Hindsight retain failed: {e}")
+
+        asyncio.create_task(retain_memory())  # Don't wait
 
         return {
             "response": assistant_message,
             "tools_used": tools_used if tools_used else None,
             "context_used": f"{len(context)} chars from RAG" if context else None,
             "memory_used": f"{len(memory_context)} chars from memory" if memory_context else None,
-            "model": "gpt-4o"
+            "model": "gpt-4o-mini"
         }
 
     except Exception as e:
@@ -752,11 +970,11 @@ async def trigger_reflection() -> dict:
 from .database import db as outline_db
 
 
-async def sync_to_memory(content: str):
+async def sync_to_memory(project_id: int, content: str):
     """Helper to sync outline changes to Hindsight memory."""
     try:
         await hindsight_client.aretain(
-            bank_id=get_memory_bank_id(),
+            bank_id=get_memory_bank_id(project_id),
             content=content,
             context="outline update"
         )
@@ -764,89 +982,102 @@ async def sync_to_memory(content: str):
         print(f"Memory sync failed: {e}")
 
 
-@app.get("/api/outline/project")
-async def get_project() -> dict:
-    """Get project metadata."""
-    return outline_db.get_project()
+# =============================================================================
+# PROJECT ENDPOINTS (Multi-project support)
+# =============================================================================
+
+@app.get("/api/projects")
+async def list_projects() -> list:
+    """List all projects."""
+    return outline_db.list_projects()
 
 
-@app.post("/api/outline/project")
+@app.post("/api/projects")
 async def create_project(request: ProjectCreateRequest) -> dict:
     """Create a new project, optionally with 30-scene + 5-character template."""
-    if request.use_template:
-        result = outline_db.initialize_project_with_template(
-            title=request.title or "",
-            logline=request.logline or "",
-            genre=request.genre or "Romantic Comedy"
-        )
-        return result
-    else:
-        return outline_db.update_project(
-            title=request.title or "",
-            logline=request.logline or "",
-            genre=request.genre or "Romantic Comedy"
-        )
+    return outline_db.create_project(
+        title=request.title or "",
+        logline=request.logline or "",
+        genre=request.genre or "Romantic Comedy",
+        use_template=request.use_template or False
+    )
 
 
-@app.put("/api/outline/project")
-async def update_project(request: ProjectUpdateRequest) -> dict:
+@app.get("/api/projects/{project_id}")
+async def get_project(project_id: int) -> dict:
+    """Get a single project."""
+    project = outline_db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project
+
+
+@app.put("/api/projects/{project_id}")
+async def update_project(project_id: int, request: ProjectUpdateRequest) -> dict:
     """Update project metadata."""
-    result = outline_db.update_project(**request.model_dump(exclude_none=True))
-    # Sync to memory
-    parts = []
-    if request.title:
-        parts.append(f"Project title: {request.title}")
-    if request.logline:
-        parts.append(f"Logline: {request.logline}")
-    if parts:
-        await sync_to_memory(" | ".join(parts))
+    result = outline_db.update_project(project_id, **request.model_dump(exclude_none=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Project not found")
     return result
 
 
-@app.delete("/api/outline/project")
-async def delete_project() -> dict:
-    """Delete entire project (all data).
+@app.delete("/api/projects/{project_id}")
+async def delete_project(project_id: int) -> dict:
+    """Delete a project and all its data, including Hindsight memory bank."""
+    import httpx
 
-    Note: The old Hindsight memory bank is orphaned (not deleted).
-    Each new project gets a fresh bank ID, so old memories won't interfere.
-    """
-    old_bank_id = outline_db.reset_project()
+    old_bank_id = outline_db.delete_project(project_id)
+    if old_bank_id is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Delete the Hindsight memory bank
+    memory_deleted = False
     if old_bank_id:
-        print(f"Project deleted. Orphaned memory bank: {old_bank_id}")
-    return {"success": True, "orphaned_memory_bank": old_bank_id}
+        try:
+            async with httpx.AsyncClient() as client:
+                res = await client.delete(
+                    f"http://127.0.0.1:{hindsight_server.port}/v1/default/banks/{old_bank_id}"
+                )
+                memory_deleted = res.status_code in (200, 204, 404)  # 404 = already gone
+        except Exception as e:
+            print(f"Failed to delete memory bank {old_bank_id}: {e}")
 
+    return {"success": True, "memory_bank_deleted": memory_deleted}
+
+
+# =============================================================================
+# OUTLINE ENDPOINTS (require project_id query param)
+# =============================================================================
 
 @app.get("/api/outline/notes")
-async def get_writer_notes() -> dict:
-    """Get writer notes."""
-    return outline_db.get_writer_notes()
+async def get_writer_notes(project_id: int) -> dict:
+    """Get writer notes for a project."""
+    return outline_db.get_writer_notes(project_id) or {}
 
 
 @app.put("/api/outline/notes")
-async def update_writer_notes(request: WriterNotesUpdateRequest) -> dict:
-    """Update writer notes."""
-    return outline_db.update_writer_notes(**request.model_dump(exclude_none=True))
+async def update_writer_notes(project_id: int, request: WriterNotesUpdateRequest) -> dict:
+    """Update writer notes for a project."""
+    return outline_db.update_writer_notes(project_id, **request.model_dump(exclude_none=True)) or {}
 
 
 @app.get("/api/outline/characters")
-async def get_characters() -> list:
-    """Get all characters."""
-    return outline_db.get_characters()
+async def get_characters(project_id: int) -> list:
+    """Get all characters for a project."""
+    return outline_db.get_characters(project_id)
 
 
 @app.post("/api/outline/characters")
-async def create_character(request: CharacterRequest) -> dict:
-    """Create a new character."""
-    result = outline_db.create_character(**request.model_dump(exclude_none=True))
+async def create_character(project_id: int, request: CharacterRequest) -> dict:
+    """Create a new character in a project."""
+    result = outline_db.create_character(project_id, **request.model_dump(exclude_none=True))
     # Sync to memory
     parts = [f"Character: {request.name}"]
     if request.role:
         parts.append(f"role={request.role}")
     if request.description:
         parts.append(request.description)
-    if request.flaw:
-        parts.append(f"flaw: {request.flaw}")
-    await sync_to_memory(" | ".join(parts))
+    await sync_to_memory(project_id, " | ".join(parts))
     return result
 
 
@@ -865,13 +1096,6 @@ async def update_character(character_id: int, request: CharacterRequest) -> dict
     char = outline_db.update_character(character_id, **request.model_dump(exclude_none=True))
     if not char:
         raise HTTPException(status_code=404, detail="Character not found")
-    # Sync to memory
-    parts = [f"Character updated: {char.get('name', 'Unknown')}"]
-    if request.arc:
-        parts.append(f"arc: {request.arc}")
-    if request.description:
-        parts.append(request.description)
-    await sync_to_memory(" | ".join(parts))
     return char
 
 
@@ -884,16 +1108,17 @@ async def delete_character(character_id: int) -> dict:
 
 
 @app.get("/api/outline/acts")
-async def get_acts() -> list:
-    """Get all acts."""
-    return outline_db.get_acts()
+async def get_acts(project_id: int) -> list:
+    """Get all acts for a project."""
+    return outline_db.get_acts(project_id)
 
 
 @app.post("/api/outline/acts")
-async def create_act(request: ActRequest) -> dict:
-    """Create a new act."""
+async def create_act(project_id: int, request: ActRequest) -> dict:
+    """Create a new act in a project."""
     title = request.title or "New Act"
     return outline_db.create_act(
+        project_id,
         title=title,
         description=request.description or "",
         sort_order=request.sort_order
@@ -927,9 +1152,9 @@ async def delete_act(act_id: int) -> dict:
 
 
 @app.get("/api/outline/acts/{act_id}/scenes")
-async def get_scenes_by_act(act_id: int) -> list:
+async def get_scenes_by_act(project_id: int, act_id: int) -> list:
     """Get all scenes in an act."""
-    return outline_db.get_scenes_by_act(act_id)
+    return outline_db.get_scenes_by_act(project_id, act_id)
 
 
 @app.put("/api/outline/scenes/{scene_id}/act")
@@ -942,24 +1167,24 @@ async def assign_scene_to_act(scene_id: int, act_id: Optional[int] = None) -> di
 
 
 @app.get("/api/outline/scenes")
-async def get_scenes() -> list:
-    """Get all scenes."""
-    return outline_db.get_scenes()
+async def get_scenes(project_id: int) -> list:
+    """Get all scenes for a project."""
+    return outline_db.get_scenes(project_id)
 
 
 @app.post("/api/outline/scenes")
-async def create_scene(request: SceneRequest) -> dict:
-    """Create a new scene."""
+async def create_scene(project_id: int, request: SceneRequest) -> dict:
+    """Create a new scene in a project."""
     if request.scene_number is None:
         raise HTTPException(status_code=400, detail="scene_number is required")
-    result = outline_db.create_scene(request.scene_number, **request.model_dump(exclude={'scene_number'}, exclude_none=True))
+    result = outline_db.create_scene(project_id, request.scene_number, **request.model_dump(exclude={'scene_number'}, exclude_none=True))
     # Sync to memory
     parts = [f"Scene {request.scene_number}"]
     if request.title:
         parts.append(request.title)
     if request.description:
         parts.append(request.description)
-    await sync_to_memory(" | ".join(parts))
+    await sync_to_memory(project_id, " | ".join(parts))
     return result
 
 
@@ -978,14 +1203,6 @@ async def update_scene(scene_id: int, request: SceneRequest) -> dict:
     scene = outline_db.update_scene(scene_id, **request.model_dump(exclude_none=True))
     if not scene:
         raise HTTPException(status_code=404, detail="Scene not found")
-    # Sync to memory (only significant updates, not canvas content)
-    if request.title or request.description:
-        parts = [f"Scene {scene.get('scene_number', '?')} updated"]
-        if request.title:
-            parts.append(request.title)
-        if request.description:
-            parts.append(request.description[:200])
-        await sync_to_memory(" | ".join(parts))
     return scene
 
 
@@ -1002,23 +1219,26 @@ class SceneReorderRequest(BaseModel):
 
 
 @app.put("/api/outline/scenes/{scene_id}/reorder")
-async def reorder_scene(scene_id: int, request: SceneReorderRequest) -> dict:
+async def reorder_scene(project_id: int, scene_id: int, request: SceneReorderRequest) -> dict:
     """Reorder a scene to a new position."""
-    scene = outline_db.reorder_scene(scene_id, request.new_scene_number)
+    scene = outline_db.reorder_scene(project_id, scene_id, request.new_scene_number)
     if not scene:
         raise HTTPException(status_code=404, detail="Scene not found")
     return scene
 
 
 @app.get("/api/outline")
-async def get_full_outline() -> dict:
-    """Get the complete outline (project + notes + characters + acts + scenes)."""
+async def get_full_outline(project_id: int) -> dict:
+    """Get the complete outline for a project."""
+    project = outline_db.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
     return {
-        "project": outline_db.get_project(),
-        "notes": outline_db.get_writer_notes(),
-        "characters": outline_db.get_characters(),
-        "acts": outline_db.get_acts(),
-        "scenes": outline_db.get_scenes()
+        "project": project,
+        "notes": outline_db.get_writer_notes(project_id) or {},
+        "characters": outline_db.get_characters(project_id),
+        "acts": outline_db.get_acts(project_id),
+        "scenes": outline_db.get_scenes(project_id)
     }
 
 
@@ -1031,15 +1251,16 @@ class ConversationRequest(BaseModel):
 
 
 @app.get("/api/conversations")
-async def list_conversations() -> list:
-    """List all conversations (without messages)."""
-    return outline_db.get_conversations()
+async def list_conversations(project_id: int) -> list:
+    """List all conversations for a project."""
+    return outline_db.get_conversations(project_id)
 
 
 @app.post("/api/conversations")
-async def create_conversation(request: ConversationRequest) -> dict:
-    """Create a new conversation."""
+async def create_conversation(project_id: int, request: ConversationRequest) -> dict:
+    """Create a new conversation in a project."""
     return outline_db.create_conversation(
+        project_id,
         title=request.title or "New Chat",
         messages=request.messages or [],
         active_buckets=request.active_buckets or []
