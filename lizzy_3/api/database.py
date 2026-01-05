@@ -42,11 +42,11 @@ class Database:
             conn.close()
 
     def initialize_schema(self) -> None:
-        """Create all tables."""
+        """Create all tables with multi-project support."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # Project metadata
+            # Projects table (can have multiple projects)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS project (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,32 +63,27 @@ class Database:
                 )
             """)
 
-            # Migration: add memory_bank_id if missing
-            cursor.execute("PRAGMA table_info(project)")
-            project_columns = [row[1] for row in cursor.fetchall()]
-            if 'memory_bank_id' not in project_columns:
-                cursor.execute("ALTER TABLE project ADD COLUMN memory_bank_id TEXT DEFAULT ''")
-            if 'phase' not in project_columns:
-                cursor.execute("ALTER TABLE project ADD COLUMN phase TEXT DEFAULT 'intake'")
-
-            # Writer notes
+            # Writer notes (per project)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS writer_notes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
                     theme TEXT DEFAULT '',
                     tone TEXT DEFAULT '',
                     comps TEXT DEFAULT '',
                     braindump TEXT DEFAULT '',
                     outline TEXT DEFAULT '[]',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
                 )
             """)
 
-            # Characters
+            # Characters (per project)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS characters (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
                     name TEXT NOT NULL DEFAULT '',
                     role TEXT DEFAULT '',
                     description TEXT DEFAULT '',
@@ -100,28 +95,32 @@ class Database:
                     relationships TEXT DEFAULT '',
                     sort_order INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
                 )
             """)
 
-            # Acts (story structure)
+            # Acts (per project)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS acts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
                     title TEXT NOT NULL DEFAULT '',
                     description TEXT DEFAULT '',
                     sort_order INTEGER DEFAULT 0,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
                 )
             """)
 
-            # Scenes (within acts)
+            # Scenes (per project, within acts)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS scenes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
                     act_id INTEGER,
-                    scene_number INTEGER NOT NULL UNIQUE,
+                    scene_number INTEGER NOT NULL,
                     title TEXT DEFAULT '',
                     description TEXT DEFAULT '',
                     characters TEXT DEFAULT '',
@@ -130,52 +129,51 @@ class Database:
                     canvas_content TEXT DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (act_id) REFERENCES acts(id) ON DELETE SET NULL
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE,
+                    FOREIGN KEY (act_id) REFERENCES acts(id) ON DELETE SET NULL,
+                    UNIQUE(project_id, scene_number)
                 )
             """)
 
-            # Migration: add canvas_content if missing
-            cursor.execute("PRAGMA table_info(scenes)")
-            columns = [row[1] for row in cursor.fetchall()]
-            if 'canvas_content' not in columns:
-                cursor.execute("ALTER TABLE scenes ADD COLUMN canvas_content TEXT DEFAULT ''")
-            if 'act_id' not in columns:
-                cursor.execute("ALTER TABLE scenes ADD COLUMN act_id INTEGER")
-
-            # Conversations (chat history with Syd)
+            # Conversations (per project)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
                     title TEXT DEFAULT 'New Chat',
                     messages TEXT DEFAULT '[]',
                     active_buckets TEXT DEFAULT '[]',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
                 )
             """)
 
-            # Migration: add active_buckets if missing
-            cursor.execute("PRAGMA table_info(conversations)")
-            conv_columns = [row[1] for row in cursor.fetchall()]
-            if 'active_buckets' not in conv_columns:
-                cursor.execute("ALTER TABLE conversations ADD COLUMN active_buckets TEXT DEFAULT '[]'")
-
-            # Create indices
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_number ON scenes(scene_number)")
+            # Create indices for performance
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_writer_notes_project ON writer_notes(project_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_characters_project ON characters(project_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_acts_project ON acts(project_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_project ON scenes(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_act ON scenes(act_id)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_acts_order ON acts(sort_order)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_characters_order ON characters(sort_order)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC)")
 
     # =========================================================================
-    # PROJECT METHODS
+    # PROJECT METHODS (Multi-project support)
     # =========================================================================
 
-    def get_project(self) -> Optional[Dict]:
-        """Get project metadata (single project per database)."""
+    def list_projects(self) -> List[Dict]:
+        """List all projects."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM project LIMIT 1")
+            cursor.execute("SELECT * FROM project ORDER BY updated_at DESC")
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_project(self, project_id: int) -> Optional[Dict]:
+        """Get a single project by ID."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM project WHERE id = ?", (project_id,))
             row = cursor.fetchone()
             if row:
                 project = dict(row)
@@ -183,81 +181,79 @@ class Database:
                 if not project.get('memory_bank_id'):
                     bank_id = f"lizzy-{uuid.uuid4().hex[:8]}"
                     cursor.execute("UPDATE project SET memory_bank_id = ? WHERE id = ?", (bank_id, project['id']))
-                    conn.commit()
                     project['memory_bank_id'] = bank_id
                 return project
-            # Create default project if none exists
-            bank_id = f"lizzy-{uuid.uuid4().hex[:8]}"
-            cursor.execute("INSERT INTO project (title, memory_bank_id) VALUES ('', ?)", (bank_id,))
-            cursor.execute("SELECT * FROM project LIMIT 1")
-            row = cursor.fetchone()
-            return dict(row) if row else None
+            return None
 
-    def reset_project(self) -> Optional[str]:
-        """Delete all project data (project, notes, characters, scenes).
-
-        Returns the old memory_bank_id so it can be cleared from Hindsight.
-        """
+    def create_project(self, title: str = "", logline: str = "", genre: str = "Romantic Comedy", use_template: bool = False) -> Dict:
+        """Create a new project and return it."""
+        bank_id = f"lizzy-{uuid.uuid4().hex[:8]}"
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            # Get the old memory bank ID before deleting
-            cursor.execute("SELECT memory_bank_id FROM project LIMIT 1")
-            row = cursor.fetchone()
-            old_bank_id = row['memory_bank_id'] if row else None
+            cursor.execute(
+                "INSERT INTO project (title, logline, genre, memory_bank_id) VALUES (?, ?, ?, ?)",
+                (title, logline, genre, bank_id)
+            )
+            project_id = cursor.lastrowid
 
-            cursor.execute("DELETE FROM project")
-            cursor.execute("DELETE FROM writer_notes")
-            cursor.execute("DELETE FROM characters")
-            cursor.execute("DELETE FROM scenes")
-            return old_bank_id
+        # Initialize writer notes for this project
+        self._create_writer_notes(project_id)
 
-    def update_project(self, **kwargs) -> Dict:
+        # Optionally create template (acts, scenes, characters)
+        if use_template:
+            self.initialize_scene_template(project_id)
+            self.initialize_character_template(project_id)
+
+        return self.get_project(project_id)
+
+    def update_project(self, project_id: int, **kwargs) -> Optional[Dict]:
         """Update project metadata."""
         allowed = ['title', 'title_locked', 'logline', 'logline_locked', 'genre', 'description', 'phase']
         updates = {k: v for k, v in kwargs.items() if k in allowed}
 
         if not updates:
-            return self.get_project()
+            return self.get_project(project_id)
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
-
-            # Ensure project exists with a bank ID
-            cursor.execute("SELECT id FROM project LIMIT 1")
-            row = cursor.fetchone()
-            if not row:
-                bank_id = f"lizzy-{uuid.uuid4().hex[:8]}"
-                cursor.execute("INSERT INTO project (title, memory_bank_id) VALUES ('', ?)", (bank_id,))
-                cursor.execute("SELECT id FROM project LIMIT 1")
-                row = cursor.fetchone()
-
-            project_id = row[0]
             set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
             set_clause += ", updated_at = CURRENT_TIMESTAMP"
             values = list(updates.values()) + [project_id]
-
             cursor.execute(f"UPDATE project SET {set_clause} WHERE id = ?", values)
 
-        return self.get_project()
+        return self.get_project(project_id)
+
+    def delete_project(self, project_id: int) -> Optional[str]:
+        """Delete a project and all its data. Returns memory_bank_id for cleanup."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Get memory bank ID before deleting
+            cursor.execute("SELECT memory_bank_id FROM project WHERE id = ?", (project_id,))
+            row = cursor.fetchone()
+            old_bank_id = row['memory_bank_id'] if row else None
+
+            # Delete project (CASCADE will delete related data)
+            cursor.execute("DELETE FROM project WHERE id = ?", (project_id,))
+            return old_bank_id if cursor.rowcount > 0 else None
 
     # =========================================================================
     # WRITER NOTES METHODS
     # =========================================================================
 
-    def get_writer_notes(self) -> Optional[Dict]:
-        """Get writer notes."""
+    def _create_writer_notes(self, project_id: int) -> None:
+        """Create default writer notes for a project (internal use)."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM writer_notes LIMIT 1")
+            cursor.execute("INSERT INTO writer_notes (project_id, theme) VALUES (?, '')", (project_id,))
+
+    def get_writer_notes(self, project_id: int) -> Optional[Dict]:
+        """Get writer notes for a project."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM writer_notes WHERE project_id = ?", (project_id,))
             row = cursor.fetchone()
-            if not row:
-                # Create default if none exists
-                cursor.execute("INSERT INTO writer_notes (theme) VALUES ('')")
-                cursor.execute("SELECT * FROM writer_notes LIMIT 1")
-                row = cursor.fetchone()
             if row:
                 result = dict(row)
-                # Parse outline JSON
                 try:
                     result['outline'] = json.loads(result.get('outline', '[]'))
                 except:
@@ -265,8 +261,8 @@ class Database:
                 return result
             return None
 
-    def update_writer_notes(self, **kwargs) -> Dict:
-        """Update writer notes."""
+    def update_writer_notes(self, project_id: int, **kwargs) -> Optional[Dict]:
+        """Update writer notes for a project."""
         allowed = ['theme', 'tone', 'comps', 'braindump', 'outline']
         updates = {}
 
@@ -278,33 +274,26 @@ class Database:
                     updates[k] = v
 
         if not updates:
-            return self.get_writer_notes()
+            return self.get_writer_notes(project_id)
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
-
-            # Ensure notes exist
-            cursor.execute("SELECT id FROM writer_notes LIMIT 1")
-            if not cursor.fetchone():
-                cursor.execute("INSERT INTO writer_notes (theme) VALUES ('')")
-
             set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
             set_clause += ", updated_at = CURRENT_TIMESTAMP"
-            values = list(updates.values())
+            values = list(updates.values()) + [project_id]
+            cursor.execute(f"UPDATE writer_notes SET {set_clause} WHERE project_id = ?", values)
 
-            cursor.execute(f"UPDATE writer_notes SET {set_clause} WHERE id = 1", values)
-
-        return self.get_writer_notes()
+        return self.get_writer_notes(project_id)
 
     # =========================================================================
     # CHARACTER METHODS
     # =========================================================================
 
-    def get_characters(self) -> List[Dict]:
-        """Get all characters sorted by order."""
+    def get_characters(self, project_id: int) -> List[Dict]:
+        """Get all characters for a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM characters ORDER BY sort_order, id")
+            cursor.execute("SELECT * FROM characters WHERE project_id = ? ORDER BY sort_order, id", (project_id,))
             return [dict(row) for row in cursor.fetchall()]
 
     def get_character(self, character_id: int) -> Optional[Dict]:
@@ -315,17 +304,18 @@ class Database:
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    def create_character(self, **kwargs) -> Dict:
-        """Create a new character."""
+    def create_character(self, project_id: int, **kwargs) -> Dict:
+        """Create a new character in a project."""
         allowed = ['name', 'role', 'description', 'arc', 'age', 'personality', 'flaw', 'backstory', 'relationships', 'sort_order']
         data = {k: v for k, v in kwargs.items() if k in allowed}
+        data['project_id'] = project_id
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
             # Get next sort order if not specified
             if 'sort_order' not in data:
-                cursor.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM characters")
+                cursor.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM characters WHERE project_id = ?", (project_id,))
                 data['sort_order'] = cursor.fetchone()[0]
 
             columns = ", ".join(data.keys())
@@ -365,11 +355,11 @@ class Database:
     # SCENE METHODS
     # =========================================================================
 
-    def get_scenes(self) -> List[Dict]:
-        """Get all scenes sorted by number."""
+    def get_scenes(self, project_id: int) -> List[Dict]:
+        """Get all scenes for a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM scenes ORDER BY scene_number")
+            cursor.execute("SELECT * FROM scenes WHERE project_id = ? ORDER BY scene_number", (project_id,))
             scenes = []
             for row in cursor.fetchall():
                 scene = dict(row)
@@ -395,10 +385,10 @@ class Database:
                 return scene
             return None
 
-    def create_scene(self, scene_number: int, **kwargs) -> Dict:
-        """Create a new scene."""
+    def create_scene(self, project_id: int, scene_number: int, **kwargs) -> Dict:
+        """Create a new scene in a project."""
         allowed = ['title', 'description', 'characters', 'tone', 'beats', 'canvas_content', 'act_id']
-        data = {'scene_number': scene_number}
+        data = {'project_id': project_id, 'scene_number': scene_number}
 
         for k, v in kwargs.items():
             if k in allowed:
@@ -449,13 +439,13 @@ class Database:
             cursor.execute("DELETE FROM scenes WHERE id = ?", (scene_id,))
             return cursor.rowcount > 0
 
-    def reorder_scene(self, scene_id: int, new_scene_number: int) -> Optional[Dict]:
-        """Move a scene to a new position, shifting other scenes as needed."""
+    def reorder_scene(self, project_id: int, scene_id: int, new_scene_number: int) -> Optional[Dict]:
+        """Move a scene to a new position within a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
             # Get the scene's current position
-            cursor.execute("SELECT scene_number FROM scenes WHERE id = ?", (scene_id,))
+            cursor.execute("SELECT scene_number FROM scenes WHERE id = ? AND project_id = ?", (scene_id, project_id))
             row = cursor.fetchone()
             if not row:
                 return None
@@ -467,51 +457,33 @@ class Database:
             # Temporarily set to -1 to avoid unique constraint issues
             cursor.execute("UPDATE scenes SET scene_number = -1 WHERE id = ?", (scene_id,))
 
-            # Shift scenes between old and new positions
+            # Shift scenes between old and new positions (within same project)
             if new_scene_number < old_number:
-                # Moving up: shift scenes in range [new, old) down by 1
                 cursor.execute("""
                     UPDATE scenes
                     SET scene_number = scene_number + 1
-                    WHERE scene_number >= ? AND scene_number < ?
-                """, (new_scene_number, old_number))
+                    WHERE project_id = ? AND scene_number >= ? AND scene_number < ?
+                """, (project_id, new_scene_number, old_number))
             else:
-                # Moving down: shift scenes in range (old, new] up by 1
                 cursor.execute("""
                     UPDATE scenes
                     SET scene_number = scene_number - 1
-                    WHERE scene_number > ? AND scene_number <= ?
-                """, (old_number, new_scene_number))
+                    WHERE project_id = ? AND scene_number > ? AND scene_number <= ?
+                """, (project_id, old_number, new_scene_number))
 
-            # Set the scene to its new position
-            cursor.execute(
-                "UPDATE scenes SET scene_number = ? WHERE id = ?",
-                (new_scene_number, scene_id)
-            )
+            cursor.execute("UPDATE scenes SET scene_number = ? WHERE id = ?", (new_scene_number, scene_id))
 
         return self.get_scene(scene_id)
-
-    def upsert_scene(self, scene_number: int, **kwargs) -> Dict:
-        """Insert or update a scene by scene_number."""
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT id FROM scenes WHERE scene_number = ?", (scene_number,))
-            row = cursor.fetchone()
-
-            if row:
-                return self.update_scene(row['id'], **kwargs)
-            else:
-                return self.create_scene(scene_number, **kwargs)
 
     # =========================================================================
     # ACT METHODS
     # =========================================================================
 
-    def get_acts(self) -> List[Dict]:
-        """Get all acts ordered by sort_order."""
+    def get_acts(self, project_id: int) -> List[Dict]:
+        """Get all acts for a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM acts ORDER BY sort_order, id")
+            cursor.execute("SELECT * FROM acts WHERE project_id = ? ORDER BY sort_order, id", (project_id,))
             return [dict(row) for row in cursor.fetchall()]
 
     def get_act(self, act_id: int) -> Optional[Dict]:
@@ -522,19 +494,19 @@ class Database:
             row = cursor.fetchone()
             return dict(row) if row else None
 
-    def create_act(self, title: str, description: str = '', sort_order: int = None) -> Dict:
-        """Create a new act."""
+    def create_act(self, project_id: int, title: str, description: str = '', sort_order: int = None) -> Dict:
+        """Create a new act in a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
             # Auto-assign sort_order if not provided
             if sort_order is None:
-                cursor.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM acts")
+                cursor.execute("SELECT COALESCE(MAX(sort_order), -1) + 1 FROM acts WHERE project_id = ?", (project_id,))
                 sort_order = cursor.fetchone()[0]
 
             cursor.execute(
-                "INSERT INTO acts (title, description, sort_order) VALUES (?, ?, ?)",
-                (title, description, sort_order)
+                "INSERT INTO acts (project_id, title, description, sort_order) VALUES (?, ?, ?, ?)",
+                (project_id, title, description, sort_order)
             )
             act_id = cursor.lastrowid
 
@@ -564,14 +536,14 @@ class Database:
             cursor.execute("DELETE FROM acts WHERE id = ?", (act_id,))
             return cursor.rowcount > 0
 
-    def get_scenes_by_act(self, act_id: int = None) -> List[Dict]:
-        """Get scenes for a specific act, or unassigned scenes if act_id is None."""
+    def get_scenes_by_act(self, project_id: int, act_id: int = None) -> List[Dict]:
+        """Get scenes for a specific act within a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             if act_id is None:
-                cursor.execute("SELECT * FROM scenes WHERE act_id IS NULL ORDER BY scene_number")
+                cursor.execute("SELECT * FROM scenes WHERE project_id = ? AND act_id IS NULL ORDER BY scene_number", (project_id,))
             else:
-                cursor.execute("SELECT * FROM scenes WHERE act_id = ? ORDER BY scene_number", (act_id,))
+                cursor.execute("SELECT * FROM scenes WHERE project_id = ? AND act_id = ? ORDER BY scene_number", (project_id, act_id))
             return [dict(row) for row in cursor.fetchall()]
 
     def assign_scene_to_act(self, scene_id: int, act_id: int = None) -> Optional[Dict]:
@@ -588,54 +560,77 @@ class Database:
     # TEMPLATE INITIALIZATION
     # =========================================================================
 
-    def initialize_scene_template(self) -> List[Dict]:
-        """Create 30 empty scenes for the beat sheet template."""
-        # Standard 30-beat romcom structure
-        beat_titles = [
-            "Opening Image",
-            "Theme Stated",
-            "Setup - Protagonist's World",
-            "Setup - The Flaw",
-            "Catalyst / Meet-Cute",
-            "Debate - Should They?",
-            "Break Into Two",
-            "B Story / Supporting Cast",
-            "Fun and Games - Falling",
-            "Fun and Games - The Date",
-            "Fun and Games - Getting Closer",
-            "Midpoint - The Kiss / Declaration",
-            "Bad Guys Close In - Doubts",
-            "Bad Guys Close In - External Pressure",
-            "Bad Guys Close In - Secrets Surface",
-            "All Is Lost - The Breakup",
-            "Dark Night of the Soul",
-            "Break Into Three - Realization",
-            "Gathering the Team",
-            "Finale - Storming the Castle",
-            "Finale - The Grand Gesture",
-            "Finale - Confronting the Flaw",
-            "Finale - The Choice",
-            "Final Image - Together",
-            "Tag Scene 1",
-            "Tag Scene 2",
-            "Tag Scene 3",
-            "Tag Scene 4",
-            "Tag Scene 5",
-            "Tag Scene 6"
+    def initialize_scene_template(self, project_id: int) -> List[Dict]:
+        """Create 4 acts with 30 scenes for a project."""
+
+        # Create the 4 acts first
+        acts_data = [
+            {"title": "Act 1 - Setup", "description": "Establish the world, introduce characters, catalyst/meet-cute, break into two"},
+            {"title": "Act 2A - Fun & Games", "description": "B-story, falling in love, getting closer, building to midpoint"},
+            {"title": "Act 2B - Complications", "description": "Doubts, external pressure, secrets, breakup, dark night of the soul"},
+            {"title": "Act 3 - Resolution", "description": "Realization, grand gesture, confronting flaws, final image"},
+        ]
+
+        act_ids = []
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            for i, act in enumerate(acts_data):
+                cursor.execute(
+                    "INSERT INTO acts (project_id, title, description, sort_order) VALUES (?, ?, ?, ?)",
+                    (project_id, act["title"], act["description"], i)
+                )
+                act_ids.append(cursor.lastrowid)
+
+        # Scene beats with act assignments
+        beats = [
+            # Act 1 - Setup (7 scenes)
+            (1, "Opening Image", act_ids[0]),
+            (2, "Theme Stated", act_ids[0]),
+            (3, "Setup - Protagonist's World", act_ids[0]),
+            (4, "Setup - The Flaw", act_ids[0]),
+            (5, "Catalyst / Meet-Cute", act_ids[0]),
+            (6, "Debate - Should They?", act_ids[0]),
+            (7, "Break Into Two", act_ids[0]),
+            # Act 2A - Fun & Games (5 scenes)
+            (8, "B Story / Supporting Cast", act_ids[1]),
+            (9, "Fun and Games - Falling", act_ids[1]),
+            (10, "Fun and Games - The Date", act_ids[1]),
+            (11, "Fun and Games - Getting Closer", act_ids[1]),
+            (12, "Midpoint - The Kiss / Declaration", act_ids[1]),
+            # Act 2B - Complications (6 scenes)
+            (13, "Bad Guys Close In - Doubts", act_ids[2]),
+            (14, "Bad Guys Close In - External Pressure", act_ids[2]),
+            (15, "Bad Guys Close In - Secrets Surface", act_ids[2]),
+            (16, "All Is Lost - The Breakup", act_ids[2]),
+            (17, "Dark Night of the Soul", act_ids[2]),
+            (18, "Break Into Three - Realization", act_ids[2]),
+            # Act 3 - Resolution (12 scenes)
+            (19, "Gathering the Team", act_ids[3]),
+            (20, "Finale - Storming the Castle", act_ids[3]),
+            (21, "Finale - The Grand Gesture", act_ids[3]),
+            (22, "Finale - Confronting the Flaw", act_ids[3]),
+            (23, "Finale - The Choice", act_ids[3]),
+            (24, "Final Image - Together", act_ids[3]),
+            (25, "Tag Scene 1", act_ids[3]),
+            (26, "Tag Scene 2", act_ids[3]),
+            (27, "Tag Scene 3", act_ids[3]),
+            (28, "Tag Scene 4", act_ids[3]),
+            (29, "Tag Scene 5", act_ids[3]),
+            (30, "Tag Scene 6", act_ids[3]),
         ]
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            for i, title in enumerate(beat_titles, 1):
+            for scene_num, title, act_id in beats:
                 cursor.execute(
-                    "INSERT OR IGNORE INTO scenes (scene_number, title, description) VALUES (?, ?, ?)",
-                    (i, title, "")
+                    "INSERT INTO scenes (project_id, scene_number, title, description, act_id) VALUES (?, ?, ?, ?, ?)",
+                    (project_id, scene_num, title, "", act_id)
                 )
 
-        return self.get_scenes()
+        return self.get_scenes(project_id)
 
-    def initialize_character_template(self) -> List[Dict]:
-        """Create 5 default character role slots."""
+    def initialize_character_template(self, project_id: int) -> List[Dict]:
+        """Create 5 default character role slots for a project."""
         character_roles = [
             {"name": "", "role": "Protagonist", "description": "The main character whose journey we follow."},
             {"name": "", "role": "Love Interest", "description": "The romantic counterpart to the protagonist."},
@@ -648,41 +643,24 @@ class Database:
             cursor = conn.cursor()
             for i, char in enumerate(character_roles):
                 cursor.execute(
-                    "INSERT INTO characters (name, role, description, sort_order) VALUES (?, ?, ?, ?)",
-                    (char["name"], char["role"], char["description"], i)
+                    "INSERT INTO characters (project_id, name, role, description, sort_order) VALUES (?, ?, ?, ?, ?)",
+                    (project_id, char["name"], char["role"], char["description"], i)
                 )
 
-        return self.get_characters()
-
-    def initialize_project_with_template(self, title: str = "", logline: str = "", genre: str = "Romantic Comedy") -> Dict:
-        """Create a new project with the full 30-scene + 5-character template."""
-        # Create project
-        self.update_project(title=title, logline=logline, genre=genre)
-
-        # Initialize writer notes
-        self.get_writer_notes()  # Creates default row
-
-        # Create scene template
-        self.initialize_scene_template()
-
-        # Create character template
-        self.initialize_character_template()
-
-        return {
-            "project": self.get_project(),
-            "scenes": self.get_scenes(),
-            "characters": self.get_characters()
-        }
+        return self.get_characters(project_id)
 
     # =========================================================================
     # CONVERSATION METHODS
     # =========================================================================
 
-    def get_conversations(self) -> List[Dict]:
-        """Get all conversations, most recent first."""
+    def get_conversations(self, project_id: int) -> List[Dict]:
+        """Get all conversations for a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT id, title, created_at, updated_at FROM conversations ORDER BY updated_at DESC")
+            cursor.execute(
+                "SELECT id, title, created_at, updated_at FROM conversations WHERE project_id = ? ORDER BY updated_at DESC",
+                (project_id,)
+            )
             return [dict(row) for row in cursor.fetchall()]
 
     def get_conversation(self, conversation_id: int) -> Optional[Dict]:
@@ -698,13 +676,13 @@ class Database:
                 return conv
             return None
 
-    def create_conversation(self, title: str = "New Chat", messages: List[Dict] = None, active_buckets: List[str] = None) -> Dict:
-        """Create a new conversation."""
+    def create_conversation(self, project_id: int, title: str = "New Chat", messages: List[Dict] = None, active_buckets: List[str] = None) -> Dict:
+        """Create a new conversation in a project."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "INSERT INTO conversations (title, messages, active_buckets) VALUES (?, ?, ?)",
-                (title, json.dumps(messages or []), json.dumps(active_buckets or []))
+                "INSERT INTO conversations (project_id, title, messages, active_buckets) VALUES (?, ?, ?, ?)",
+                (project_id, title, json.dumps(messages or []), json.dumps(active_buckets or []))
             )
             conv_id = cursor.lastrowid
         return self.get_conversation(conv_id)
