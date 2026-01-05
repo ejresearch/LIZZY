@@ -306,132 +306,148 @@
     }
 
     .scene-drag-handle:hover { opacity: 1; }
-    .scene-wrapper.dragging { opacity: 0.5; }
-    .scene-wrapper.dragging .scene-header { background: var(--bg-tertiary); }
-    .scene-wrapper.drag-over .scene-header { border-color: var(--accent); border-style: dashed; }
+    .tree-scene.dragging { opacity: 0.5; }
+    .tree-scene.drag-over { background: var(--bg-secondary); border-radius: 4px; }
+    /* ==================== TREE OUTLINE ==================== */
 
-    .scene-delete {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 0.25rem 0.5rem;
-      font-size: 0.875rem;
-      opacity: 0;
-      transition: opacity 0.2s, color 0.2s;
-    }
-
-    .list-item:hover .scene-delete { opacity: 0.6; }
-    .scene-delete:hover { opacity: 1 !important; color: #dc2626; }
-    .scene-header .scene-delete { opacity: 0; }
-
-    /* Scene detail panel (notebook view) */
-    .scene-wrapper {
-      margin-bottom: 0.5rem;
-    }
-    .scene-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.625rem 0.75rem;
-      background: var(--bg-secondary);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .scene-wrapper.expanded .scene-header {
-      border-radius: 6px 6px 0 0;
-      border-bottom: none;
-    }
-    .scene-header:hover { background: var(--bg-tertiary); }
-    .scene-header:hover .scene-drag-handle { opacity: 1; }
-    .scene-header:hover .scene-delete { opacity: 0.6; }
-    .scene-expand-icon {
-      color: var(--text-muted);
-      font-size: 0.625rem;
-      transition: transform 0.2s;
-      cursor: pointer;
-    }
-    .scene-wrapper.expanded .scene-expand-icon { transform: rotate(90deg); }
-    .scene-title-row {
-      flex: 1;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-    }
-    .scene-number {
-      font-weight: 600;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-    }
-    .scene-title {
-      font-weight: 500;
-      font-size: 0.8125rem;
-    }
-    .scene-detail {
+    /* Act notes */
+    .act-notes {
       display: none;
-      padding: 1rem;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-top: none;
-      border-radius: 0 0 6px 6px;
+      margin: 0.25rem 0 0.5rem 1.5rem;
     }
-    .scene-wrapper.expanded .scene-detail { display: block; }
-    .scene-detail .field-group {
-      margin-bottom: 0.75rem;
-    }
-    .scene-detail .field-group:last-child { margin-bottom: 0; }
-    .scene-detail label {
-      display: block;
-      font-size: 0.6875rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-bottom: 0.25rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .scene-detail input,
-    .scene-detail textarea {
+    .act-notes.expanded { display: block; }
+    .act-notes textarea {
       width: 100%;
+      min-height: 50px;
       padding: 0.5rem;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 0.25rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
       font-size: 0.8125rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .act-action-btn.notes, .act-action-btn.add {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.75rem;
+      opacity: 0.3;
+      transition: opacity 0.2s;
+    }
+    .act-action-btn.notes:hover, .act-action-btn.add:hover { opacity: 1; }
+    .act-action-btn.notes.has-notes { opacity: 0.7; }
+    .act-action-btn.add { color: var(--accent); font-weight: bold; font-size: 1rem; }
+
+    /* Tree scene row */
+    .tree-scene {
+      margin-left: 0.5rem;
+    }
+    .tree-scene-row {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.375rem 0;
+    }
+    .tree-toggle {
+      cursor: pointer;
+      font-size: 0.625rem;
+      color: var(--text-muted);
+      width: 1rem;
+      text-align: center;
+      user-select: none;
+    }
+    .tree-toggle.empty { visibility: hidden; }
+    .tree-scene.collapsed .tree-toggle { transform: rotate(-90deg); }
+    .tree-scene.collapsed .tree-beats { display: none; }
+
+    .tree-title-input {
+      flex: 1;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+    }
+    .tree-title-input:focus {
+      outline: none;
       background: var(--bg-secondary);
     }
-    .scene-detail textarea { min-height: 60px; resize: vertical; }
-    .scene-detail .beats-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
+    .tree-title-input.scene-title-input {
+      font-weight: 500;
     }
-    .scene-detail .beat-item {
-      display: flex;
-      gap: 0.5rem;
-      align-items: flex-start;
-    }
-    .scene-detail .beat-item input {
-      flex: 1;
-    }
-    .scene-detail .beat-remove {
+
+    .tree-notes-btn, .tree-add-btn, .tree-delete-btn {
       background: none;
       border: none;
-      color: var(--text-muted);
       cursor: pointer;
+      opacity: 0.3;
+      transition: opacity 0.2s;
       padding: 0.25rem;
-    }
-    .scene-detail .beat-remove:hover { color: #dc2626; }
-    .scene-detail .add-beat-btn {
       font-size: 0.75rem;
-      color: var(--accent);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.25rem 0;
-      margin-top: 0.25rem;
     }
-    .scene-detail .add-beat-btn:hover { text-decoration: underline; }
+    .tree-notes-btn:hover, .tree-add-btn:hover { opacity: 1; }
+    .tree-delete-btn:hover { opacity: 1; color: #dc2626; }
+    .tree-notes-btn.has-notes { opacity: 0.7; }
+    .tree-add-btn { color: var(--accent); font-weight: bold; }
+
+    /* Tree notes (scene and beat) */
+    .tree-notes {
+      display: none;
+      margin-left: 2rem;
+      margin-bottom: 0.25rem;
+    }
+    .tree-notes.expanded { display: block; }
+    .tree-notes textarea {
+      width: 100%;
+      min-height: 40px;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    /* Tree beats container */
+    .tree-beats {
+      margin-left: 1.5rem;
+      border-left: 1px solid var(--border);
+      padding-left: 0.5rem;
+    }
+
+    /* Tree beat row */
+    .tree-beat {
+      margin: 0.125rem 0;
+    }
+    .tree-beat-row {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0;
+    }
+    .tree-indent {
+      width: 0.5rem;
+    }
+    .tree-bullet {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+    .tree-beat .tree-title-input {
+      font-size: 0.8125rem;
+      font-weight: normal;
+    }
+    .tree-beat .tree-notes {
+      margin-left: 1.5rem;
+    }
+    .tree-beat .tree-notes textarea {
+      min-height: 30px;
+      font-size: 0.75rem;
+    }
     .scene-detail-actions {
       display: flex;
       gap: 0.5rem;
@@ -1826,7 +1842,10 @@
         // Characters
         renderCharacters(data.characters || []);
 
-        // Acts and Scenes
+        // Store beats
+        currentBeats = data.beats || [];
+
+        // Acts and Scenes (with beats)
         renderActsAndScenes(data.acts || [], data.scenes || []);
 
       } catch (e) {
@@ -1848,9 +1867,10 @@
       `).join('');
     }
 
-    // Store acts for reference
+    // Store acts, scenes, beats for reference
     let currentActs = [];
     let currentScenes = [];
+    let currentBeats = [];
 
     function renderActsAndScenes(acts, scenes) {
       currentActs = acts || [];
@@ -1893,6 +1913,8 @@
       acts.forEach(act => {
         const actScenes = scenesByAct[act.id] || [];
         const emptyState = `<div class="act-empty" onclick="addSceneToAct(${act.id})">+ Add scene to ${act.title}</div>`;
+        const actNotes = act.description || '';
+        const hasNotes = actNotes.trim().length > 0;
 
         html += `
           <div class="act-section" data-act-id="${act.id}">
@@ -1903,8 +1925,13 @@
                 <span class="act-scene-count">${actScenes.length} scene${actScenes.length !== 1 ? 's' : ''}</span>
               </div>
               <div class="act-actions">
+                <button class="act-action-btn notes ${hasNotes ? 'has-notes' : ''}" onclick="event.stopPropagation(); toggleActNotes(${act.id})" title="Act notes">📝</button>
+                <button class="act-action-btn add" onclick="event.stopPropagation(); addSceneToAct(${act.id})" title="Add scene">+</button>
                 <button class="act-action-btn delete" onclick="event.stopPropagation(); deleteAct(${act.id}, '${act.title.replace(/'/g, "\\'")}')" title="Delete act">&times;</button>
               </div>
+            </div>
+            <div class="act-notes" id="act-notes-${act.id}">
+              <textarea placeholder="Notes for this act..." onchange="updateActNotes(${act.id}, this.value)">${actNotes}</textarea>
             </div>
             <div class="act-scenes">
               ${actScenes.length === 0 ? emptyState : actScenes.map(s => renderSceneItem(s)).join('')}
@@ -1956,52 +1983,48 @@
     }
 
     function renderSceneItem(s) {
-      const beats = s.beats || [];
-      const beatsHtml = beats.map((b, i) => `
-        <div class="beat-item">
-          <input type="text" value="${(b || '').replace(/"/g, '&quot;')}" onchange="updateSceneBeat(${s.id}, ${i}, this.value)" placeholder="Beat ${i + 1}...">
-          <button class="beat-remove" onclick="removeSceneBeat(${s.id}, ${i})">&times;</button>
-        </div>
-      `).join('');
+      // Get beats for this scene from currentBeats
+      const sceneBeats = currentBeats.filter(b => b.scene_id === s.id).sort((a, b) => a.sort_order - b.sort_order);
+      const sceneNotes = s.description || '';
+      const hasSceneNotes = sceneNotes.trim().length > 0;
+
+      // Beats rendered in tree structure
+      const beatsHtml = sceneBeats.map(beat => {
+        const beatNotes = beat.description || '';
+        const hasBeatNotes = beatNotes.trim().length > 0;
+        return `
+          <div class="tree-beat" data-beat-id="${beat.id}">
+            <div class="tree-beat-row">
+              <span class="tree-indent"></span>
+              <span class="tree-bullet">•</span>
+              <input type="text" class="tree-title-input" value="${(beat.title || '').replace(/"/g, '&quot;')}"
+                     onchange="updateBeat(${beat.id}, 'title', this.value)" placeholder="Beat...">
+              <button class="tree-notes-btn ${hasBeatNotes ? 'has-notes' : ''}" onclick="toggleBeatNotes(${beat.id})" title="Notes">📝</button>
+              <button class="tree-delete-btn" onclick="deleteBeat(${beat.id})">&times;</button>
+            </div>
+            <div class="tree-notes" id="beat-notes-${beat.id}">
+              <textarea placeholder="Notes..." onchange="updateBeat(${beat.id}, 'description', this.value)">${beatNotes}</textarea>
+            </div>
+          </div>
+        `;
+      }).join('');
 
       return `
-        <div class="scene-wrapper" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}" data-act-id="${s.act_id || ''}">
-          <div class="scene-header">
+        <div class="tree-scene" draggable="true" data-scene-id="${s.id}" data-scene-number="${s.scene_number}" data-act-id="${s.act_id || ''}">
+          <div class="tree-scene-row">
             <span class="scene-drag-handle" title="Drag to reorder">⋮⋮</span>
-            <span class="scene-expand-icon" onclick="toggleSceneDetail(${s.id})">▶</span>
-            <div class="scene-title-row" onclick="toggleSceneDetail(${s.id})">
-              <span class="scene-number">${s.scene_number}.</span>
-              <span class="scene-title">${s.title || 'Untitled'}</span>
-            </div>
-            <button class="scene-delete" onclick="event.stopPropagation(); deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')" title="Delete">&times;</button>
+            <span class="tree-toggle ${sceneBeats.length > 0 ? '' : 'empty'}" onclick="toggleSceneBeats(${s.id})">▼</span>
+            <input type="text" class="tree-title-input scene-title-input" value="${(s.title || '').replace(/"/g, '&quot;')}"
+                   onchange="updateSceneField(${s.id}, 'title', this.value)" placeholder="Scene ${s.scene_number}...">
+            <button class="tree-notes-btn ${hasSceneNotes ? 'has-notes' : ''}" onclick="toggleSceneNotes(${s.id})" title="Notes">📝</button>
+            <button class="tree-add-btn" onclick="createBeat(${s.id})" title="Add beat">+</button>
+            <button class="tree-delete-btn" onclick="deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')">&times;</button>
           </div>
-          <div class="scene-detail">
-            <div class="field-group">
-              <label>Title</label>
-              <input type="text" value="${(s.title || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'title', this.value)" placeholder="Scene title...">
-            </div>
-            <div class="field-group">
-              <label>Description</label>
-              <textarea onchange="updateSceneField(${s.id}, 'description', this.value)" placeholder="What happens in this scene...">${s.description || ''}</textarea>
-            </div>
-            <div class="field-group">
-              <label>Beats</label>
-              <div class="beats-list" id="beats-${s.id}">
-                ${beatsHtml || '<div class="beat-item"><input type="text" onchange="updateSceneBeat('+s.id+', 0, this.value)" placeholder="First beat..."></div>'}
-              </div>
-              <button class="add-beat-btn" onclick="addSceneBeat(${s.id})">+ Add beat</button>
-            </div>
-            <div class="field-group">
-              <label>Characters</label>
-              <input type="text" value="${(s.characters || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'characters', this.value)" placeholder="Who's in this scene...">
-            </div>
-            <div class="field-group">
-              <label>Tone</label>
-              <input type="text" value="${(s.tone || '').replace(/"/g, '&quot;')}" onchange="updateSceneField(${s.id}, 'tone', this.value)" placeholder="e.g., tense, comedic, romantic...">
-            </div>
-            <div class="scene-detail-actions">
-              <button class="btn-sm" onclick="openSceneInCanvas(${s.id})">Write in Canvas</button>
-            </div>
+          <div class="tree-notes" id="scene-notes-${s.id}">
+            <textarea placeholder="Notes for this scene..." onchange="updateSceneField(${s.id}, 'description', this.value)">${sceneNotes}</textarea>
+          </div>
+          <div class="tree-beats" id="beats-${s.id}">
+            ${beatsHtml}
           </div>
         </div>
       `;
@@ -2019,18 +2042,19 @@
       }
     }
 
-    function toggleSceneDetail(sceneId) {
-      const wrapper = document.querySelector(`.scene-wrapper[data-scene-id="${sceneId}"]`);
-      if (wrapper) {
-        wrapper.classList.toggle('expanded');
-      }
-    }
-
     let sceneUpdateTimeout = {};
     async function updateSceneField(sceneId, field, value) {
       // Update local state
       const scene = currentScenes.find(s => s.id === sceneId);
       if (scene) scene[field] = value;
+
+      // Update notes indicator if description changed
+      if (field === 'description') {
+        const toggle = document.querySelector(`.tree-scene[data-scene-id="${sceneId}"] .tree-notes-btn`);
+        if (toggle) {
+          toggle.classList.toggle('has-notes', value.trim().length > 0);
+        }
+      }
 
       // Debounced save
       clearTimeout(sceneUpdateTimeout[sceneId]);
@@ -2041,87 +2065,164 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ [field]: value })
           });
-          // Update title display if changed
-          if (field === 'title') {
-            const titleEl = document.querySelector(`.scene-wrapper[data-scene-id="${sceneId}"] .scene-title`);
-            if (titleEl) titleEl.textContent = value || 'Untitled';
-          }
         } catch (e) {
           console.error('Failed to update scene:', e);
         }
       }, 500);
     }
 
-    async function updateSceneBeat(sceneId, index, value) {
-      const scene = currentScenes.find(s => s.id === sceneId);
-      if (!scene) return;
+    // ==================== BEAT CRUD ====================
 
-      if (!scene.beats) scene.beats = [];
-      scene.beats[index] = value;
+    let beatUpdateTimeout = {};
+
+    async function createBeat(sceneId) {
+      try {
+        const res = await fetch(`${API_BASE}/api/outline/scenes/${sceneId}/beats?project_id=${currentProjectId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: '', description: '' })
+        });
+        const newBeat = await res.json();
+        currentBeats.push(newBeat);
+
+        // Re-render scene to show new beat
+        const sceneEl = document.querySelector(`.tree-scene[data-scene-id="${sceneId}"]`);
+        const scene = currentScenes.find(s => s.id === sceneId);
+        if (sceneEl && scene) {
+          sceneEl.outerHTML = renderSceneItem(scene);
+          // Focus on the new beat input
+          const newSceneEl = document.querySelector(`.tree-scene[data-scene-id="${sceneId}"]`);
+          if (newSceneEl) {
+            const beatInputs = newSceneEl.querySelectorAll('.tree-beat .tree-title-input');
+            if (beatInputs.length > 0) {
+              beatInputs[beatInputs.length - 1].focus();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Failed to create beat:', e);
+      }
+    }
+
+    async function updateBeat(beatId, field, value) {
+      // Update local state
+      const beat = currentBeats.find(b => b.id === beatId);
+      if (beat) beat[field] = value;
 
       // Debounced save
-      clearTimeout(sceneUpdateTimeout[`${sceneId}-beats`]);
-      sceneUpdateTimeout[`${sceneId}-beats`] = setTimeout(async () => {
+      clearTimeout(beatUpdateTimeout[beatId]);
+      beatUpdateTimeout[beatId] = setTimeout(async () => {
         try {
-          await fetch(`${API_BASE}/api/outline/scenes/${sceneId}`, {
+          await fetch(`${API_BASE}/api/outline/beats/${beatId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ beats: scene.beats.filter(b => b) })
+            body: JSON.stringify({ [field]: value })
           });
+          // Update notes indicator if description changed
+          if (field === 'description') {
+            const toggle = document.querySelector(`.tree-beat[data-beat-id="${beatId}"] .tree-notes-btn`);
+            if (toggle) {
+              toggle.classList.toggle('has-notes', value.trim().length > 0);
+            }
+          }
         } catch (e) {
-          console.error('Failed to update beats:', e);
+          console.error('Failed to update beat:', e);
         }
       }, 500);
     }
 
-    function addSceneBeat(sceneId) {
-      const scene = currentScenes.find(s => s.id === sceneId);
-      if (!scene) return;
+    async function deleteBeat(beatId) {
+      const beat = currentBeats.find(b => b.id === beatId);
+      if (!beat) return;
 
-      if (!scene.beats) scene.beats = [];
-      scene.beats.push('');
+      try {
+        await fetch(`${API_BASE}/api/outline/beats/${beatId}`, { method: 'DELETE' });
+        currentBeats = currentBeats.filter(b => b.id !== beatId);
 
-      const container = document.getElementById(`beats-${sceneId}`);
-      if (container) {
-        const index = scene.beats.length - 1;
-        const beatHtml = `
-          <div class="beat-item">
-            <input type="text" onchange="updateSceneBeat(${sceneId}, ${index}, this.value)" placeholder="Beat ${index + 1}...">
-            <button class="beat-remove" onclick="removeSceneBeat(${sceneId}, ${index})">&times;</button>
-          </div>
-        `;
-        container.insertAdjacentHTML('beforeend', beatHtml);
-        container.lastElementChild.querySelector('input').focus();
+        // Remove beat from DOM
+        const beatEl = document.querySelector(`.tree-beat[data-beat-id="${beatId}"]`);
+        if (beatEl) {
+          beatEl.remove();
+        }
+
+        // Update toggle visibility if no beats left
+        const sceneId = beat.scene_id;
+        const sceneEl = document.querySelector(`.tree-scene[data-scene-id="${sceneId}"]`);
+        if (sceneEl) {
+          const beatCount = currentBeats.filter(b => b.scene_id === sceneId).length;
+          const toggle = sceneEl.querySelector('.tree-toggle');
+          if (toggle && beatCount === 0) {
+            toggle.classList.add('empty');
+          }
+        }
+      } catch (e) {
+        console.error('Failed to delete beat:', e);
       }
     }
 
-    async function removeSceneBeat(sceneId, index) {
-      const scene = currentScenes.find(s => s.id === sceneId);
-      if (!scene || !scene.beats) return;
+    // ==================== TREE TOGGLES ====================
 
-      scene.beats.splice(index, 1);
-
-      // Re-render beats
-      const container = document.getElementById(`beats-${sceneId}`);
-      if (container) {
-        container.innerHTML = scene.beats.map((b, i) => `
-          <div class="beat-item">
-            <input type="text" value="${(b || '').replace(/"/g, '&quot;')}" onchange="updateSceneBeat(${sceneId}, ${i}, this.value)" placeholder="Beat ${i + 1}...">
-            <button class="beat-remove" onclick="removeSceneBeat(${sceneId}, ${i})">&times;</button>
-          </div>
-        `).join('') || `<div class="beat-item"><input type="text" onchange="updateSceneBeat(${sceneId}, 0, this.value)" placeholder="First beat..."></div>`;
+    function toggleSceneBeats(sceneId) {
+      const sceneEl = document.querySelector(`.tree-scene[data-scene-id="${sceneId}"]`);
+      if (sceneEl) {
+        sceneEl.classList.toggle('collapsed');
       }
+    }
 
-      // Save
-      try {
-        await fetch(`${API_BASE}/api/outline/scenes/${sceneId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ beats: scene.beats })
-        });
-      } catch (e) {
-        console.error('Failed to update beats:', e);
+    function toggleBeatNotes(beatId) {
+      const notesEl = document.getElementById(`beat-notes-${beatId}`);
+      if (notesEl) {
+        notesEl.classList.toggle('expanded');
+        if (notesEl.classList.contains('expanded')) {
+          notesEl.querySelector('textarea').focus();
+        }
       }
+    }
+
+    function toggleActNotes(actId) {
+      const notesEl = document.getElementById(`act-notes-${actId}`);
+      if (notesEl) {
+        notesEl.classList.toggle('expanded');
+        if (notesEl.classList.contains('expanded')) {
+          notesEl.querySelector('textarea').focus();
+        }
+      }
+    }
+
+    function toggleSceneNotes(sceneId) {
+      const notesEl = document.getElementById(`scene-notes-${sceneId}`);
+      if (notesEl) {
+        notesEl.classList.toggle('expanded');
+        if (notesEl.classList.contains('expanded')) {
+          notesEl.querySelector('textarea').focus();
+        }
+      }
+    }
+
+    let actUpdateTimeout = {};
+    async function updateActNotes(actId, value) {
+      // Update local state
+      const act = currentActs.find(a => a.id === actId);
+      if (act) act.description = value;
+
+      // Debounced save
+      clearTimeout(actUpdateTimeout[actId]);
+      actUpdateTimeout[actId] = setTimeout(async () => {
+        try {
+          await fetch(`${API_BASE}/api/outline/acts/${actId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: value })
+          });
+          // Update notes indicator
+          const toggle = document.querySelector(`.act-section[data-act-id="${actId}"] .act-action-btn.notes`);
+          if (toggle) {
+            toggle.classList.toggle('has-notes', value.trim().length > 0);
+          }
+        } catch (e) {
+          console.error('Failed to update act notes:', e);
+        }
+      }, 500);
     }
 
     async function addAct() {
@@ -2462,7 +2563,7 @@
 
     function setupSceneDragAndDrop() {
       const container = document.getElementById('actsList');
-      const items = container.querySelectorAll('.scene-wrapper');
+      const items = container.querySelectorAll('.tree-scene');
       let draggedItem = null;
 
       items.forEach(item => {
@@ -2475,7 +2576,7 @@
 
         item.addEventListener('dragend', () => {
           item.classList.remove('dragging');
-          container.querySelectorAll('.scene-wrapper').forEach(i => i.classList.remove('drag-over'));
+          container.querySelectorAll('.tree-scene').forEach(i => i.classList.remove('drag-over'));
           draggedItem = null;
         });
 

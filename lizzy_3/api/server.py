@@ -157,6 +157,12 @@ class SceneRequest(BaseModel):
     act_id: Optional[int] = None
 
 
+class BeatRequest(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    sort_order: Optional[int] = None
+
+
 class ActRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
@@ -393,17 +399,18 @@ OUTLINE_TOOLS = [
         "type": "function",
         "function": {
             "name": "create_scene",
-            "description": "Create a new scene in the outline",
+            "description": "Create a new scene in the outline. Use act_id to place it in the correct act. Scene number auto-increments if not provided.",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "scene_number": {"type": "integer", "description": "Scene number/position"},
+                    "scene_number": {"type": "integer", "description": "Scene number/position (auto-increments if omitted)"},
                     "title": {"type": "string", "description": "Scene title or slug line (e.g., INT. COFFEE SHOP - DAY)"},
-                    "description": {"type": "string", "description": "What happens in this scene"},
+                    "description": {"type": "string", "description": "What happens in this scene (scene notes)"},
                     "characters": {"type": "string", "description": "Characters in scene (comma-separated)"},
-                    "tone": {"type": "string", "description": "Scene tone/mood"}
+                    "tone": {"type": "string", "description": "Scene tone/mood"},
+                    "act_id": {"type": "integer", "description": "ID of the act this scene belongs to (use get_outline to see act IDs)"}
                 },
-                "required": ["scene_number", "title"]
+                "required": ["title"]
             }
         }
     },
@@ -429,7 +436,7 @@ OUTLINE_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_outline",
-            "description": "Get the current full outline (project, characters, scenes) to see what exists",
+            "description": "Get the current full outline (project, characters, acts, scenes, beats) to see what exists and get IDs",
             "parameters": {"type": "object", "properties": {}}
         }
     },
@@ -447,6 +454,96 @@ OUTLINE_TOOLS = [
                     }
                 },
                 "required": ["scene_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "create_beat",
+            "description": "Create a beat (story moment) within a scene. Beats are the granular moments that make up a scene.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "scene_id": {"type": "integer", "description": "ID of the scene this beat belongs to"},
+                    "title": {"type": "string", "description": "Short beat title (e.g., 'Coffee spill', 'Awkward introduction')"},
+                    "description": {"type": "string", "description": "Notes about this beat - what happens, how it should feel"}
+                },
+                "required": ["scene_id", "title"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_beat",
+            "description": "Update an existing beat by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "beat_id": {"type": "integer", "description": "Beat ID to update"},
+                    "title": {"type": "string", "description": "Beat title"},
+                    "description": {"type": "string", "description": "Beat notes"}
+                },
+                "required": ["beat_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_beat",
+            "description": "Delete a beat by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "beat_id": {"type": "integer", "description": "Beat ID to delete"}
+                },
+                "required": ["beat_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_character",
+            "description": "Delete a character by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "character_id": {"type": "integer", "description": "Character ID to delete"}
+                },
+                "required": ["character_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_scene",
+            "description": "Delete a scene by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "scene_id": {"type": "integer", "description": "Scene ID to delete"}
+                },
+                "required": ["scene_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_notes",
+            "description": "Update writer notes (theme, tone, comps, braindump)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "theme": {"type": "string", "description": "Core theme(s)"},
+                    "tone": {"type": "string", "description": "Tonal description"},
+                    "comps": {"type": "string", "description": "Comparable films"},
+                    "braindump": {"type": "string", "description": "Free-form notes"}
+                }
             }
         }
     }
@@ -565,6 +662,15 @@ async def generate_scene_prose(
     characters = outline_db.get_characters(project_id)
     char_summary = ", ".join([f"{c['name']} ({c.get('role', 'unknown')})" for c in characters[:5]]) if characters else "No characters defined"
 
+    # Get act context if scene belongs to an act
+    act_context = ""
+    if scene.get('act_id'):
+        act = outline_db.get_act(scene['act_id'])
+        if act:
+            act_context = f"Act: {act.get('title', 'Untitled')}"
+            if act.get('description'):
+                act_context += f"\nAct notes: {act['description']}"
+
     # Get previous scene for continuity
     all_scenes = outline_db.get_scenes(project_id)
     scene_index = next((i for i, s in enumerate(all_scenes) if s['id'] == scene_id), -1)
@@ -597,8 +703,9 @@ async def generate_scene_prose(
 
     # Build the prompt (like legacy write.py)
     prompt = f"""**SCENE {scene.get('scene_number', '?')}: {scene.get('title', 'Untitled')}**
+{act_context}
 
-Description: {scene.get('description', 'No description')}
+Scene notes: {scene.get('description', 'No description')}
 Characters in scene: {scene.get('characters', char_summary)}
 Tone: {scene.get('tone', 'romantic comedy')}
 
@@ -607,14 +714,16 @@ Tone: {scene.get('tone', 'romantic comedy')}
 
 """
 
-    # Add beats if available
-    if scene.get('beats'):
-        try:
-            beats = json.loads(scene['beats']) if isinstance(scene['beats'], str) else scene['beats']
-            if beats:
-                prompt += f"**KEY BEATS:**\n" + "\n".join([f"• {b}" for b in beats]) + "\n\n"
-        except:
-            pass
+    # Add beats from database (with notes)
+    beats = outline_db.get_beats(scene_id)
+    if beats:
+        beat_lines = []
+        for beat in beats:
+            beat_text = f"• {beat.get('title', 'Untitled beat')}"
+            if beat.get('description'):
+                beat_text += f"\n  Notes: {beat['description']}"
+            beat_lines.append(beat_text)
+        prompt += f"**KEY BEATS:**\n" + "\n".join(beat_lines) + "\n\n"
 
     # Add continuity context
     if previous_content:
@@ -688,7 +797,11 @@ def execute_outline_tool(name: str, args: dict, project_id: int) -> dict:
             return result or {"error": "Character not found"}
 
         elif name == "create_scene":
-            scene_num = args.pop("scene_number")
+            scene_num = args.pop("scene_number", None)
+            if scene_num is None:
+                # Auto-generate next scene number
+                existing_scenes = outline_db.get_scenes(project_id)
+                scene_num = max([s.get('scene_number', 0) for s in existing_scenes], default=0) + 1
             return outline_db.create_scene(project_id, scene_num, **args)
 
         elif name == "update_scene":
@@ -706,12 +819,45 @@ def execute_outline_tool(name: str, args: dict, project_id: int) -> dict:
                 return {"success": True, "scene_id": scene_id, "elements_count": len(elements)}
             return {"error": "Scene not found"}
 
+        elif name == "create_beat":
+            scene_id = args.pop("scene_id")
+            return outline_db.create_beat(project_id, scene_id, **args)
+
+        elif name == "update_beat":
+            beat_id = args.pop("beat_id")
+            result = outline_db.update_beat(beat_id, **args)
+            return result or {"error": "Beat not found"}
+
+        elif name == "delete_beat":
+            beat_id = args.pop("beat_id")
+            if outline_db.delete_beat(beat_id):
+                return {"success": True, "deleted_beat_id": beat_id}
+            return {"error": "Beat not found"}
+
         elif name == "get_outline":
             return {
                 "project": outline_db.get_project(project_id),
                 "characters": outline_db.get_characters(project_id),
-                "scenes": outline_db.get_scenes(project_id)
+                "acts": outline_db.get_acts(project_id),
+                "scenes": outline_db.get_scenes(project_id),
+                "beats": outline_db.get_beats_by_project(project_id)
             }
+
+        elif name == "delete_character":
+            char_id = args.get("character_id")
+            if outline_db.delete_character(char_id):
+                return {"success": True, "deleted_character_id": char_id}
+            return {"error": "Character not found"}
+
+        elif name == "delete_scene":
+            scene_id = args.get("scene_id")
+            if outline_db.delete_scene(scene_id):
+                return {"success": True, "deleted_scene_id": scene_id}
+            return {"error": "Scene not found"}
+
+        elif name == "update_notes":
+            result = outline_db.update_writer_notes(project_id, **args)
+            return result or {"error": "Failed to update notes"}
 
         else:
             return {"error": f"Unknown tool: {name}"}
@@ -810,8 +956,12 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
 You have tools to edit the project outline and write scenes. Use them when the writer asks you to:
 - Create or update characters
 - Create or update scenes (metadata like title, description, beats)
+- Create beats within scenes (the granular story moments)
 - Set the project title, logline, or description
 - WRITE actual screenplay content using write_scene
+
+IMPORTANT: Before creating scenes or beats, ALWAYS call get_outline first to see existing act IDs and scene IDs.
+Act names like "Act 1" don't equal act_id=1. Use the actual id values from get_outline.
 
 WRITING SCENES with write_scene:
 When asked to "write", "draft", or "flesh out" a scene, just call write_scene(scene_id).
@@ -948,14 +1098,14 @@ Character and scene IDs are shown in brackets like [id=5]."""
 
 
 @app.post("/api/reflect")
-async def trigger_reflection() -> dict:
+async def trigger_reflection(project_id: int) -> dict:
     """
     Trigger Hindsight reflection at end of session.
 
     Analyzes memories to form new connections, opinions, and observations
     about the project and user preferences.
     """
-    bank_id = get_memory_bank_id()
+    bank_id = get_memory_bank_id(project_id)
     try:
         await hindsight_client.areflect(bank_id=bank_id)
         print(f"Reflection completed for bank: {bank_id}")
@@ -1227,6 +1377,64 @@ async def reorder_scene(project_id: int, scene_id: int, request: SceneReorderReq
     return scene
 
 
+# --- Beat Endpoints ---
+
+@app.get("/api/outline/scenes/{scene_id}/beats")
+async def get_beats(scene_id: int) -> list:
+    """Get all beats for a scene."""
+    return outline_db.get_beats(scene_id)
+
+
+@app.post("/api/outline/scenes/{scene_id}/beats")
+async def create_beat(project_id: int, scene_id: int, request: BeatRequest) -> dict:
+    """Create a new beat in a scene."""
+    return outline_db.create_beat(
+        project_id=project_id,
+        scene_id=scene_id,
+        title=request.title or "",
+        description=request.description or ""
+    )
+
+
+@app.get("/api/outline/beats/{beat_id}")
+async def get_beat(beat_id: int) -> dict:
+    """Get a single beat."""
+    beat = outline_db.get_beat(beat_id)
+    if not beat:
+        raise HTTPException(status_code=404, detail="Beat not found")
+    return beat
+
+
+@app.put("/api/outline/beats/{beat_id}")
+async def update_beat(beat_id: int, request: BeatRequest) -> dict:
+    """Update a beat."""
+    beat = outline_db.update_beat(beat_id, **request.model_dump(exclude_none=True))
+    if not beat:
+        raise HTTPException(status_code=404, detail="Beat not found")
+    return beat
+
+
+@app.delete("/api/outline/beats/{beat_id}")
+async def delete_beat(beat_id: int) -> dict:
+    """Delete a beat."""
+    if outline_db.delete_beat(beat_id):
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Beat not found")
+
+
+class BeatReorderRequest(BaseModel):
+    new_sort_order: int
+
+
+@app.put("/api/outline/beats/{beat_id}/reorder")
+async def reorder_beat(beat_id: int, request: BeatReorderRequest) -> dict:
+    """Reorder a beat within its scene."""
+    beat = outline_db.reorder_beat(beat_id, request.new_sort_order)
+    if not beat:
+        raise HTTPException(status_code=404, detail="Beat not found")
+    return beat
+
+
 @app.get("/api/outline")
 async def get_full_outline(project_id: int) -> dict:
     """Get the complete outline for a project."""
@@ -1238,7 +1446,8 @@ async def get_full_outline(project_id: int) -> dict:
         "notes": outline_db.get_writer_notes(project_id) or {},
         "characters": outline_db.get_characters(project_id),
         "acts": outline_db.get_acts(project_id),
-        "scenes": outline_db.get_scenes(project_id)
+        "scenes": outline_db.get_scenes(project_id),
+        "beats": outline_db.get_beats_by_project(project_id)
     }
 
 

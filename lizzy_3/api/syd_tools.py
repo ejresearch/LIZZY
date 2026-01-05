@@ -410,6 +410,80 @@ WRITE_SCENE = {
 }
 
 # =============================================================================
+# BEAT TOOLS
+# =============================================================================
+
+CREATE_BEAT = {
+    "type": "function",
+    "function": {
+        "name": "create_beat",
+        "description": "Create a new beat within a scene. Beats are story moments or actions within a scene. Use when breaking down a scene into smaller moments.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "integer",
+                    "description": "ID of the scene to add the beat to"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "Short title for the beat (e.g., 'Awkward introduction', 'Coffee spill')"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Notes about this beat - what happens, why it matters, how it should feel"
+                }
+            },
+            "required": ["scene_id"]
+        }
+    }
+}
+
+UPDATE_BEAT = {
+    "type": "function",
+    "function": {
+        "name": "update_beat",
+        "description": "Update an existing beat. Use when refining beat details or notes.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "beat_id": {
+                    "type": "integer",
+                    "description": "ID of the beat to update"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "New title for the beat"
+                },
+                "description": {
+                    "type": "string",
+                    "description": "Updated notes for this beat"
+                }
+            },
+            "required": ["beat_id"]
+        }
+    }
+}
+
+DELETE_BEAT = {
+    "type": "function",
+    "function": {
+        "name": "delete_beat",
+        "description": "Delete a beat. Use when user explicitly says to remove a beat.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "beat_id": {
+                    "type": "integer",
+                    "description": "ID of the beat to delete"
+                }
+            },
+            "required": ["beat_id"]
+        }
+    }
+}
+
+# =============================================================================
 # ALL TOOLS
 # =============================================================================
 
@@ -426,6 +500,10 @@ SYD_TOOLS = [
     UPDATE_SCENE,
     DELETE_SCENE,
     WRITE_SCENE,
+    # Beat tools
+    CREATE_BEAT,
+    UPDATE_BEAT,
+    DELETE_BEAT,
 ]
 
 

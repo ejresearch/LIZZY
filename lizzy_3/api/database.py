@@ -32,6 +32,8 @@ class Database:
         """Context manager for database connections."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        # Enable foreign key constraints for CASCADE deletes to work
+        conn.execute("PRAGMA foreign_keys = ON")
         try:
             yield conn
             conn.commit()
@@ -135,6 +137,21 @@ class Database:
                 )
             """)
 
+            # Beats (per scene, first-class entities with notes)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS beats (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
+                    scene_id INTEGER NOT NULL,
+                    title TEXT DEFAULT '',
+                    description TEXT DEFAULT '',
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE,
+                    FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE CASCADE
+                )
+            """)
+
             # Conversations (per project)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS conversations (
@@ -155,6 +172,8 @@ class Database:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_acts_project ON acts(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_project ON scenes(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_act ON scenes(act_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_beats_project ON beats(project_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_beats_scene ON beats(scene_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC)")
 
@@ -363,10 +382,8 @@ class Database:
             scenes = []
             for row in cursor.fetchall():
                 scene = dict(row)
-                try:
-                    scene['beats'] = json.loads(scene.get('beats', '[]'))
-                except:
-                    scene['beats'] = []
+                # Remove legacy beats column from result (now using beats table)
+                scene.pop('beats', None)
                 scenes.append(scene)
             return scenes
 
@@ -378,24 +395,20 @@ class Database:
             row = cursor.fetchone()
             if row:
                 scene = dict(row)
-                try:
-                    scene['beats'] = json.loads(scene.get('beats', '[]'))
-                except:
-                    scene['beats'] = []
+                # Remove legacy beats column from result (now using beats table)
+                scene.pop('beats', None)
                 return scene
             return None
 
     def create_scene(self, project_id: int, scene_number: int, **kwargs) -> Dict:
         """Create a new scene in a project."""
-        allowed = ['title', 'description', 'characters', 'tone', 'beats', 'canvas_content', 'act_id']
+        # Note: 'beats' removed - now using separate beats table
+        allowed = ['title', 'description', 'characters', 'tone', 'canvas_content', 'act_id']
         data = {'project_id': project_id, 'scene_number': scene_number}
 
         for k, v in kwargs.items():
             if k in allowed:
-                if k == 'beats' and isinstance(v, list):
-                    data[k] = json.dumps(v)
-                else:
-                    data[k] = v
+                data[k] = v
 
         with self.get_connection() as conn:
             cursor = conn.cursor()
@@ -409,15 +422,13 @@ class Database:
 
     def update_scene(self, scene_id: int, **kwargs) -> Optional[Dict]:
         """Update a scene."""
-        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'beats', 'canvas_content', 'act_id']
+        # Note: 'beats' removed - now using separate beats table
+        allowed = ['scene_number', 'title', 'description', 'characters', 'tone', 'canvas_content', 'act_id']
         updates = {}
 
         for k, v in kwargs.items():
             if k in allowed:
-                if k == 'beats' and isinstance(v, list):
-                    updates[k] = json.dumps(v)
-                else:
-                    updates[k] = v
+                updates[k] = v
 
         if not updates:
             return self.get_scene(scene_id)
@@ -555,6 +566,106 @@ class Database:
                 (act_id, scene_id)
             )
         return self.get_scene(scene_id)
+
+    # =========================================================================
+    # BEAT METHODS
+    # =========================================================================
+
+    def get_beats(self, scene_id: int) -> List[Dict]:
+        """Get all beats for a scene, ordered by sort_order."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM beats WHERE scene_id = ? ORDER BY sort_order, id",
+                (scene_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_beats_by_project(self, project_id: int) -> List[Dict]:
+        """Get all beats for a project, ordered by scene and sort_order."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM beats WHERE project_id = ? ORDER BY scene_id, sort_order, id",
+                (project_id,)
+            )
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_beat(self, beat_id: int) -> Optional[Dict]:
+        """Get a single beat by ID."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM beats WHERE id = ?", (beat_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def create_beat(self, project_id: int, scene_id: int, title: str = "", description: str = "") -> Dict:
+        """Create a new beat in a scene."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            # Get next sort_order for this scene
+            cursor.execute(
+                "SELECT COALESCE(MAX(sort_order), -1) + 1 FROM beats WHERE scene_id = ?",
+                (scene_id,)
+            )
+            next_order = cursor.fetchone()[0]
+
+            cursor.execute(
+                "INSERT INTO beats (project_id, scene_id, title, description, sort_order) VALUES (?, ?, ?, ?, ?)",
+                (project_id, scene_id, title, description, next_order)
+            )
+            beat_id = cursor.lastrowid
+        return self.get_beat(beat_id)
+
+    def update_beat(self, beat_id: int, **kwargs) -> Optional[Dict]:
+        """Update a beat's fields."""
+        allowed = ['title', 'description', 'sort_order']
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+
+        if not updates:
+            return self.get_beat(beat_id)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+            values = list(updates.values()) + [beat_id]
+            cursor.execute(f"UPDATE beats SET {set_clause} WHERE id = ?", values)
+
+        return self.get_beat(beat_id)
+
+    def delete_beat(self, beat_id: int) -> bool:
+        """Delete a beat."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM beats WHERE id = ?", (beat_id,))
+            return cursor.rowcount > 0
+
+    def reorder_beat(self, beat_id: int, new_sort_order: int) -> Optional[Dict]:
+        """Move a beat to a new position within its scene."""
+        beat = self.get_beat(beat_id)
+        if not beat:
+            return None
+
+        scene_id = beat['scene_id']
+        old_order = beat['sort_order']
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            if new_sort_order > old_order:
+                # Moving down: shift beats between old and new up
+                cursor.execute(
+                    "UPDATE beats SET sort_order = sort_order - 1 WHERE scene_id = ? AND sort_order > ? AND sort_order <= ?",
+                    (scene_id, old_order, new_sort_order)
+                )
+            else:
+                # Moving up: shift beats between new and old down
+                cursor.execute(
+                    "UPDATE beats SET sort_order = sort_order + 1 WHERE scene_id = ? AND sort_order >= ? AND sort_order < ?",
+                    (scene_id, new_sort_order, old_order)
+                )
+            cursor.execute("UPDATE beats SET sort_order = ? WHERE id = ?", (new_sort_order, beat_id))
+
+        return self.get_beat(beat_id)
 
     # =========================================================================
     # TEMPLATE INITIALIZATION
