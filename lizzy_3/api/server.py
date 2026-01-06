@@ -344,10 +344,13 @@ OUTLINE_TOOLS = [
         "type": "function",
         "function": {
             "name": "update_project",
-            "description": "Update project metadata (title, logline, genre, description)",
+            "description": "Update project metadata including idea, title, logline, and description",
             "parameters": {
                 "type": "object",
                 "properties": {
+                    "idea_spark": {"type": "string", "description": "The core idea - a situation, character, or 'what if'"},
+                    "idea_feeling": {"type": "string", "description": "What emotion should it evoke"},
+                    "idea_inspirations": {"type": "string", "description": "Comparable movies, books, real life inspirations"},
                     "title": {"type": "string", "description": "Project title"},
                     "logline": {"type": "string", "description": "One-sentence story summary"},
                     "genre": {"type": "string", "description": "Genre (e.g., Romantic Comedy, Drama)"},
@@ -534,16 +537,45 @@ OUTLINE_TOOLS = [
     {
         "type": "function",
         "function": {
-            "name": "update_notes",
-            "description": "Update writer notes (theme, tone, comps, braindump)",
+            "name": "create_note",
+            "description": "Create a new note document for the project",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "theme": {"type": "string", "description": "Core theme(s)"},
-                    "tone": {"type": "string", "description": "Tonal description"},
-                    "comps": {"type": "string", "description": "Comparable films"},
-                    "braindump": {"type": "string", "description": "Free-form notes"}
-                }
+                    "title": {"type": "string", "description": "Note title"},
+                    "content": {"type": "string", "description": "Note content"}
+                },
+                "required": ["title"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_note",
+            "description": "Update an existing note by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "note_id": {"type": "integer", "description": "Note ID to update"},
+                    "title": {"type": "string", "description": "Note title"},
+                    "content": {"type": "string", "description": "Note content"}
+                },
+                "required": ["note_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_note",
+            "description": "Delete a note by ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "note_id": {"type": "integer", "description": "Note ID to delete"}
+                },
+                "required": ["note_id"]
             }
         }
     }
@@ -840,7 +872,8 @@ def execute_outline_tool(name: str, args: dict, project_id: int) -> dict:
                 "characters": outline_db.get_characters(project_id),
                 "acts": outline_db.get_acts(project_id),
                 "scenes": outline_db.get_scenes(project_id),
-                "beats": outline_db.get_beats_by_project(project_id)
+                "beats": outline_db.get_beats_by_project(project_id),
+                "notes": outline_db.get_notes(project_id)
             }
 
         elif name == "delete_character":
@@ -855,9 +888,19 @@ def execute_outline_tool(name: str, args: dict, project_id: int) -> dict:
                 return {"success": True, "deleted_scene_id": scene_id}
             return {"error": "Scene not found"}
 
-        elif name == "update_notes":
-            result = outline_db.update_writer_notes(project_id, **args)
-            return result or {"error": "Failed to update notes"}
+        elif name == "create_note":
+            return outline_db.create_note(project_id, **args)
+
+        elif name == "update_note":
+            note_id = args.pop("note_id")
+            result = outline_db.update_note(note_id, **args)
+            return result or {"error": "Note not found"}
+
+        elif name == "delete_note":
+            note_id = args.get("note_id")
+            if outline_db.delete_note(note_id):
+                return {"success": True, "deleted_note_id": note_id}
+            return {"error": "Note not found"}
 
         else:
             return {"error": f"Unknown tool: {name}"}
@@ -911,19 +954,59 @@ async def expert_chat(request: ExpertChatRequest) -> dict:
     def get_outline_context():
         try:
             project = outline_db.get_project(project_id)
+            notes = outline_db.get_notes(project_id)
             characters = outline_db.get_characters(project_id)
+            acts = outline_db.get_acts(project_id)
             scenes = outline_db.get_scenes(project_id)
+            beats = outline_db.get_beats_by_project(project_id)
 
             parts = []
-            if project and (project.get('title') or project.get('logline')):
-                parts.append(f"Project: {project.get('title', 'Untitled')} - {project.get('logline', '')}")
+
+            # Project basics
+            if project:
+                proj_info = f"Project: {project.get('title', 'Untitled')}"
+                if project.get('logline'):
+                    proj_info += f"\nLogline: {project['logline']}"
+                parts.append(proj_info)
+
+            # Idea (if any)
+            idea_parts = []
+            if project and project.get('idea_spark'):
+                idea_parts.append(f"Core idea: {project['idea_spark']}")
+            if project and project.get('idea_feeling'):
+                idea_parts.append(f"Feeling: {project['idea_feeling']}")
+            if project and project.get('idea_inspirations'):
+                idea_parts.append(f"Inspirations: {project['idea_inspirations']}")
+            if idea_parts:
+                parts.append("Idea:\n" + "\n".join(idea_parts))
+
+            # Notes (doc-style notes)
+            if notes:
+                note_lines = [f"- [note_id={n['id']}] {n['title']}" for n in notes[:10]]
+                parts.append("Notes:\n" + "\n".join(note_lines))
+
+            # Characters
             if characters:
                 char_list = [f"- [id={c['id']}] {c['name'] or 'Unnamed'} ({c['role'] or 'no role'})" for c in characters[:8]]
                 parts.append(f"Characters:\n" + "\n".join(char_list))
-            if scenes:
-                scene_list = [f"- [id={s['id']}] {s['scene_number']}. {s['title']}" for s in scenes if s.get('title')][:12]
-                if scene_list:
-                    parts.append(f"Scenes:\n" + "\n".join(scene_list))
+
+            # Acts and Scenes with beats
+            if acts or scenes:
+                outline_lines = []
+                for act in acts:
+                    outline_lines.append(f"▼ [act_id={act['id']}] {act['title']}")
+                    act_scenes = [s for s in scenes if s.get('act_id') == act['id']]
+                    for s in act_scenes[:10]:
+                        scene_beats = [b for b in beats if b['scene_id'] == s['id']]
+                        beat_info = f" ({len(scene_beats)} beats)" if scene_beats else ""
+                        outline_lines.append(f"  - [scene_id={s['id']}] {s['scene_number']}. {s['title']}{beat_info}")
+                # Unassigned scenes
+                unassigned = [s for s in scenes if not s.get('act_id')]
+                for s in unassigned[:5]:
+                    outline_lines.append(f"- [scene_id={s['id']}] {s['scene_number']}. {s['title']}")
+                if outline_lines:
+                    parts.append("Outline:\n" + "\n".join(outline_lines))
+
             return "\n\n".join(parts) if parts else ""
         except Exception as e:
             print(f"Outline fetch failed: {e}")
@@ -1207,8 +1290,65 @@ async def get_writer_notes(project_id: int) -> dict:
 
 @app.put("/api/outline/notes")
 async def update_writer_notes(project_id: int, request: WriterNotesUpdateRequest) -> dict:
-    """Update writer notes for a project."""
+    """Update writer notes for a project (LEGACY)."""
     return outline_db.update_writer_notes(project_id, **request.model_dump(exclude_none=True)) or {}
+
+
+# --- Notes (flexible doc-style with metadata tags) ---
+
+class NoteRequest(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    act_id: Optional[int] = None
+    scene_id: Optional[int] = None
+    beat_id: Optional[int] = None
+    character_id: Optional[int] = None
+
+
+@app.get("/api/notes")
+async def get_notes(project_id: int) -> list:
+    """Get all notes for a project."""
+    return outline_db.get_notes(project_id)
+
+
+@app.post("/api/notes")
+async def create_note(project_id: int, request: NoteRequest) -> dict:
+    """Create a new note."""
+    return outline_db.create_note(
+        project_id,
+        title=request.title or "Untitled Note",
+        content=request.content or "",
+        act_id=request.act_id,
+        scene_id=request.scene_id,
+        beat_id=request.beat_id,
+        character_id=request.character_id
+    )
+
+
+@app.get("/api/notes/{note_id}")
+async def get_note(note_id: int) -> dict:
+    """Get a single note."""
+    note = outline_db.get_note(note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return note
+
+
+@app.put("/api/notes/{note_id}")
+async def update_note(note_id: int, request: NoteRequest) -> dict:
+    """Update a note."""
+    result = outline_db.update_note(note_id, **request.model_dump(exclude_none=True))
+    if not result:
+        raise HTTPException(status_code=404, detail="Note not found")
+    return result
+
+
+@app.delete("/api/notes/{note_id}")
+async def delete_note(note_id: int) -> dict:
+    """Delete a note."""
+    if outline_db.delete_note(note_id):
+        return {"success": True}
+    raise HTTPException(status_code=404, detail="Note not found")
 
 
 @app.get("/api/outline/characters")

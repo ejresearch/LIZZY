@@ -58,6 +58,9 @@ class Database:
                     logline_locked INTEGER DEFAULT 0,
                     genre TEXT DEFAULT 'Romantic Comedy',
                     description TEXT DEFAULT '',
+                    idea_spark TEXT DEFAULT '',
+                    idea_feeling TEXT DEFAULT '',
+                    idea_inspirations TEXT DEFAULT '',
                     phase TEXT DEFAULT 'intake',
                     memory_bank_id TEXT DEFAULT '',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -65,7 +68,7 @@ class Database:
                 )
             """)
 
-            # Writer notes (per project)
+            # Writer notes - LEGACY (keeping for migration)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS writer_notes (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +81,28 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE
+                )
+            """)
+
+            # Notes (flexible doc-style notes per project, can be tagged to story elements)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS notes (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    project_id INTEGER NOT NULL,
+                    title TEXT DEFAULT 'Untitled Note',
+                    content TEXT DEFAULT '',
+                    act_id INTEGER,
+                    scene_id INTEGER,
+                    beat_id INTEGER,
+                    character_id INTEGER,
+                    sort_order INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (project_id) REFERENCES project(id) ON DELETE CASCADE,
+                    FOREIGN KEY (act_id) REFERENCES acts(id) ON DELETE SET NULL,
+                    FOREIGN KEY (scene_id) REFERENCES scenes(id) ON DELETE SET NULL,
+                    FOREIGN KEY (beat_id) REFERENCES beats(id) ON DELETE SET NULL,
+                    FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE SET NULL
                 )
             """)
 
@@ -168,6 +193,7 @@ class Database:
 
             # Create indices for performance
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_writer_notes_project ON writer_notes(project_id)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_notes_project ON notes(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_characters_project ON characters(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_acts_project ON acts(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_scenes_project ON scenes(project_id)")
@@ -176,6 +202,27 @@ class Database:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_beats_scene ON beats(scene_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_project ON conversations(project_id)")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_conversations_updated ON conversations(updated_at DESC)")
+
+            # Migration: Add idea columns to existing project tables
+            try:
+                cursor.execute("ALTER TABLE project ADD COLUMN idea_spark TEXT DEFAULT ''")
+            except:
+                pass  # Column already exists
+            try:
+                cursor.execute("ALTER TABLE project ADD COLUMN idea_feeling TEXT DEFAULT ''")
+            except:
+                pass
+            try:
+                cursor.execute("ALTER TABLE project ADD COLUMN idea_inspirations TEXT DEFAULT ''")
+            except:
+                pass
+
+            # Migration: Add metadata columns to notes table
+            for col in ['act_id', 'scene_id', 'beat_id', 'character_id']:
+                try:
+                    cursor.execute(f"ALTER TABLE notes ADD COLUMN {col} INTEGER")
+                except:
+                    pass
 
     # =========================================================================
     # PROJECT METHODS (Multi-project support)
@@ -227,7 +274,8 @@ class Database:
 
     def update_project(self, project_id: int, **kwargs) -> Optional[Dict]:
         """Update project metadata."""
-        allowed = ['title', 'title_locked', 'logline', 'logline_locked', 'genre', 'description', 'phase']
+        allowed = ['title', 'title_locked', 'logline', 'logline_locked', 'genre', 'description',
+                   'idea_spark', 'idea_feeling', 'idea_inspirations', 'phase']
         updates = {k: v for k, v in kwargs.items() if k in allowed}
 
         if not updates:
@@ -303,6 +351,61 @@ class Database:
             cursor.execute(f"UPDATE writer_notes SET {set_clause} WHERE project_id = ?", values)
 
         return self.get_writer_notes(project_id)
+
+    # =========================================================================
+    # NOTES METHODS (flexible doc-style notes)
+    # =========================================================================
+
+    def get_notes(self, project_id: int) -> List[Dict]:
+        """Get all notes for a project."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM notes WHERE project_id = ? ORDER BY sort_order, id", (project_id,))
+            return [dict(row) for row in cursor.fetchall()]
+
+    def get_note(self, note_id: int) -> Optional[Dict]:
+        """Get a single note."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM notes WHERE id = ?", (note_id,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    def create_note(self, project_id: int, title: str = "Untitled Note", content: str = "",
+                    act_id: int = None, scene_id: int = None, beat_id: int = None, character_id: int = None) -> Dict:
+        """Create a new note with optional metadata tags."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO notes (project_id, title, content, act_id, scene_id, beat_id, character_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (project_id, title, content, act_id, scene_id, beat_id, character_id)
+            )
+            note_id = cursor.lastrowid
+        return self.get_note(note_id)
+
+    def update_note(self, note_id: int, **kwargs) -> Optional[Dict]:
+        """Update a note."""
+        allowed = ['title', 'content', 'sort_order', 'act_id', 'scene_id', 'beat_id', 'character_id']
+        updates = {k: v for k, v in kwargs.items() if k in allowed}
+
+        if not updates:
+            return self.get_note(note_id)
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+            set_clause += ", updated_at = CURRENT_TIMESTAMP"
+            values = list(updates.values()) + [note_id]
+            cursor.execute(f"UPDATE notes SET {set_clause} WHERE id = ?", values)
+
+        return self.get_note(note_id)
+
+    def delete_note(self, note_id: int) -> bool:
+        """Delete a note."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM notes WHERE id = ?", (note_id,))
+            return cursor.rowcount > 0
 
     # =========================================================================
     # CHARACTER METHODS

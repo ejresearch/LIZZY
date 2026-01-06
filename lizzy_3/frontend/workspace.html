@@ -274,6 +274,205 @@
 
     .btn-sm:hover { border-color: var(--text-muted); }
 
+    /* Notes panel layout */
+    .notes-grid-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 0.5rem;
+    }
+    .notes-grid {
+      display: contents;
+    }
+    .note-card {
+      width: 160px;
+      height: 140px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      overflow: hidden;
+    }
+    .note-card:hover {
+      border-color: var(--text-muted);
+    }
+    .note-card-title {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+    .note-card-preview {
+      font-size: 0.6875rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 5;
+      -webkit-box-orient: vertical;
+    }
+    .note-add-card {
+      width: 160px;
+      height: 140px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s;
+    }
+    .note-add-card:hover { border-color: var(--text-muted); }
+    .note-add-icon {
+      font-size: 1.5rem;
+      color: var(--text-muted);
+    }
+
+    /* Note Modal */
+    .note-modal-content {
+      width: 500px;
+      max-width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      font-size: 1.25rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      line-height: 1;
+      padding: 0;
+      z-index: 1;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .note-modal-title {
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      padding: 0.25rem 0;
+      margin-bottom: 0.75rem;
+      margin-right: 2rem;
+      width: calc(100% - 2rem);
+      color: var(--text-primary);
+    }
+    .note-modal-title:hover { border-bottom-color: var(--border); }
+    .note-modal-title:focus { outline: none; border-bottom-color: var(--accent); }
+    .note-modal-title::placeholder { color: var(--text-muted); font-weight: 400; }
+    .note-modal-textarea {
+      flex: 1;
+      min-height: 200px;
+      border: none;
+      background: transparent;
+      resize: none;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      color: var(--text-primary);
+    }
+    .note-modal-textarea:focus { outline: none; }
+    .note-modal-textarea::placeholder { color: var(--text-muted); }
+    .note-modal-footer {
+      margin-top: auto;
+      padding-top: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .note-metadata {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .note-tag-select {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.6875rem;
+      border: 1px solid var(--border);
+      border-radius: 0.25rem;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      cursor: pointer;
+      min-width: 70px;
+    }
+    .note-tag-select:focus { outline: none; border-color: var(--accent); }
+    .note-item {
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      cursor: pointer;
+      margin-bottom: 0.25rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .note-item:hover { background: var(--bg-tertiary); }
+    .note-item.active { background: var(--accent-bg); color: var(--accent); }
+    .note-item .delete-btn {
+      opacity: 0;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0 0.25rem;
+    }
+    .note-item:hover .delete-btn { opacity: 1; }
+    .note-item .delete-btn:hover { color: #e53e3e; }
+    .note-editor-content {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 0.5rem;
+    }
+    .note-title-input {
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-bottom: 1px solid transparent;
+      background: transparent;
+      color: var(--text-primary);
+      padding: 0.25rem 0;
+      margin-bottom: 0.75rem;
+      width: 100%;
+    }
+    .note-title-input:hover { border-bottom-color: var(--border); }
+    .note-title-input:focus { outline: none; border-bottom-color: var(--accent); }
+    .note-content-textarea {
+      flex: 1;
+      min-height: 300px;
+      border: none;
+      padding: 0;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      resize: none;
+      background: transparent;
+      color: var(--text-primary);
+    }
+    .note-content-textarea:focus { outline: none; }
+    .note-actions {
+      margin-top: auto;
+      padding-top: 0.5rem;
+    }
+    .btn-delete-subtle {
+      padding: 0.25rem 0;
+      font-size: 0.6875rem;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .btn-delete-subtle:hover { color: #dc2626; }
+
     .list-item {
       padding: 0.625rem 0.75rem;
       border: 1px solid var(--border);
@@ -284,6 +483,7 @@
     }
 
     .list-item:hover { border-color: var(--text-muted); }
+    .list-item.selected { border-color: var(--accent); background: var(--bg-secondary); }
 
     .list-item-name { font-size: 0.8125rem; font-weight: 500; }
     .list-item-meta { font-size: 0.6875rem; color: var(--text-muted); margin-top: 0.125rem; }
@@ -1307,10 +1507,10 @@
       <input type="text" class="project-name-input" id="projectNameInput" onblur="saveProjectName()" onkeydown="if(event.key==='Enter')saveProjectName()" style="display:none;">
       <div class="progress-indicator">
         <div class="progress-dots">
-          <span class="progress-dot" id="dotIdea" title="Idea (title/logline)"></span>
-          <span class="progress-dot" id="dotCharacters" title="Characters"></span>
-          <span class="progress-dot" id="dotStructure" title="Structure (scenes)"></span>
-          <span class="progress-dot" id="dotDrafts" title="Drafts"></span>
+          <span class="progress-dot" id="dotIdea" title="Getting Started → Ideas Forming"></span>
+          <span class="progress-dot" id="dotCharacters" title="Characters defined"></span>
+          <span class="progress-dot" id="dotStructure" title="Brainstorm & Outline"></span>
+          <span class="progress-dot" id="dotDrafts" title="First Draft"></span>
         </div>
         <span class="progress-label" id="progressLabel">Getting started</span>
       </div>
@@ -1327,11 +1527,10 @@
     <!-- Left Panel: Outline -->
     <div class="panel-left" id="panelLeft">
       <div class="outline-tabs">
-        <div class="outline-tab" data-tab="idea">Idea</div>
         <div class="outline-tab active" data-tab="project">Project</div>
+        <div class="outline-tab" data-tab="scenes">Outline</div>
         <div class="outline-tab" data-tab="notes">Notes</div>
         <div class="outline-tab" data-tab="characters">Characters</div>
-        <div class="outline-tab" data-tab="scenes">Outline</div>
         <div class="outline-tab" data-tab="canvas">Canvas</div>
         <div class="outline-tab" data-tab="memory">Memory</div>
       </div>
@@ -1348,28 +1547,38 @@
             <textarea id="logline" placeholder="A one-sentence summary..."></textarea>
           </div>
           <div class="form-group">
-            <label>Description</label>
-            <textarea id="description" placeholder="Longer synopsis..."></textarea>
+            <label>The Idea</label>
+            <textarea id="ideaSpark" placeholder="What's the core idea? A situation, a character, a 'what if'..." onchange="updateProjectField('idea_spark', this.value)"></textarea>
+          </div>
+          <div class="form-group">
+            <label>The Feeling</label>
+            <textarea id="ideaFeeling" placeholder="What emotion should it evoke?" onchange="updateProjectField('idea_feeling', this.value)"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Inspirations</label>
+            <textarea id="ideaInspirations" placeholder="Movies, books, real life moments..." onchange="updateProjectField('idea_inspirations', this.value)"></textarea>
           </div>
         </div>
 
         <!-- Notes Tab -->
         <div class="tab-panel" id="panel-notes">
-          <div class="form-group">
-            <label>Theme</label>
-            <textarea id="theme" placeholder="What is this story really about?"></textarea>
+          <div class="notes-grid-container">
+            <div id="notesGrid" class="notes-grid"></div>
+            <button class="note-add-card" onclick="addNote()">
+              <span class="note-add-icon">+</span>
+            </button>
           </div>
-          <div class="form-group">
-            <label>Tone</label>
-            <input type="text" id="tone" placeholder="e.g., witty, grounded, warm">
-          </div>
-          <div class="form-group">
-            <label>Comps</label>
-            <input type="text" id="comps" placeholder="e.g., When Harry Met Sally meets The Proposal">
-          </div>
-          <div class="form-group">
-            <label>Braindump</label>
-            <textarea id="braindump" placeholder="Random ideas, fragments, notes..."></textarea>
+        </div>
+
+        <!-- Note Modal -->
+        <div class="modal hidden" id="noteModal">
+          <div class="modal-content note-modal-content">
+            <button class="modal-close" onclick="closeNoteModal()">&times;</button>
+            <input type="text" id="noteModalTitle" class="note-modal-title" placeholder="Note title..." oninput="updateNoteFromModal('title', this.value)">
+            <textarea id="noteModalContent" class="note-modal-textarea" placeholder="Write your note..." oninput="updateNoteFromModal('content', this.value)"></textarea>
+            <div class="note-modal-footer">
+              <button class="btn-delete-subtle" onclick="deleteNoteFromModal()">Delete note</button>
+            </div>
           </div>
         </div>
 
@@ -1462,33 +1671,6 @@
           </div>
         </div>
 
-        <!-- Idea Tab - Quick capture for the spark -->
-        <div class="tab-panel" id="panel-idea">
-          <div class="intake-header">
-            <h2>Capture the spark</h2>
-            <p>Jot down whatever's in your head. Or just talk to Syd.</p>
-          </div>
-
-          <div class="intake-field">
-            <label>The Idea</label>
-            <textarea id="ideaSpark" placeholder="What's the core idea? A situation, a character, a 'what if'..."></textarea>
-          </div>
-
-          <div class="intake-field">
-            <label>The Feeling</label>
-            <textarea id="ideaFeeling" placeholder="What emotion should it evoke?"></textarea>
-          </div>
-
-          <div class="intake-field">
-            <label>Inspirations</label>
-            <textarea id="ideaInspirations" placeholder="Movies, books, real life moments..."></textarea>
-          </div>
-
-          <div class="intake-progress">
-            <button class="next-phase-btn" onclick="saveIdeaToNotes()">Save to Notes</button>
-            <p class="phase-hint">These notes flow into your braindump</p>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1640,57 +1822,14 @@
       }
 
       // Update label based on state
-      if (projectState.scenesWithContent >= 10) {
-        label.textContent = 'Writing';
-      } else if (projectState.sceneCount >= 10) {
-        label.textContent = 'Structured';
-      } else if (projectState.characterCount >= 2) {
-        label.textContent = 'Developing';
-      } else if (projectState.hasTitle || projectState.hasLogline) {
-        label.textContent = 'Has an idea';
+      if (projectState.scenesWithContent > 0) {
+        label.textContent = 'First Draft';
+      } else if (projectState.sceneCount > 0) {
+        label.textContent = 'Brainstorm & Outline';
+      } else if (projectState.hasTitle || projectState.hasLogline || projectState.characterCount > 0) {
+        label.textContent = 'Ideas Forming';
       } else {
-        label.textContent = 'Getting started';
-      }
-    }
-
-    async function saveIdeaToNotes() {
-      const spark = document.getElementById('ideaSpark')?.value || '';
-      const feeling = document.getElementById('ideaFeeling')?.value || '';
-      const inspirations = document.getElementById('ideaInspirations')?.value || '';
-
-      // Get existing braindump and append
-      let braindump = document.getElementById('braindump')?.value || '';
-
-      let newContent = '';
-      if (spark) newContent += `**The Spark:** ${spark}\n\n`;
-      if (feeling) newContent += `**The Feeling:** ${feeling}\n\n`;
-      if (inspirations) newContent += `**Inspirations:** ${inspirations}\n\n`;
-
-      if (newContent) {
-        braindump = newContent + (braindump ? '---\n\n' + braindump : '');
-
-        try {
-          await fetch(`${API_BASE}/api/outline/notes?project_id=${currentProjectId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ braindump })
-          });
-
-          // Update the braindump textarea
-          document.getElementById('braindump').value = braindump;
-
-          // Clear the idea fields
-          document.getElementById('ideaSpark').value = '';
-          document.getElementById('ideaFeeling').value = '';
-          document.getElementById('ideaInspirations').value = '';
-
-          // Switch to notes tab to show them
-          switchToTab('notes');
-
-          addSystemMessage('Ideas saved to notes');
-        } catch (e) {
-          console.error('Failed to save idea:', e);
-        }
+        label.textContent = 'Getting Started';
       }
     }
 
@@ -1814,6 +1953,11 @@
           document.getElementById('description').value = data.project.description || '';
           document.getElementById('projectName').textContent = data.project.title || 'Untitled';
 
+          // Idea tab fields
+          document.getElementById('ideaSpark').value = data.project.idea_spark || '';
+          document.getElementById('ideaFeeling').value = data.project.idea_feeling || '';
+          document.getElementById('ideaInspirations').value = data.project.idea_inspirations || '';
+
           // Update project state
           projectState.hasTitle = !!(data.project.title && data.project.title.trim());
           projectState.hasLogline = !!(data.project.logline && data.project.logline.trim());
@@ -1832,12 +1976,7 @@
         updateProjectProgress();
 
         // Notes
-        if (data.notes) {
-          document.getElementById('theme').value = data.notes.theme || '';
-          document.getElementById('tone').value = data.notes.tone || '';
-          document.getElementById('comps').value = data.notes.comps || '';
-          document.getElementById('braindump').value = data.notes.braindump || '';
-        }
+        await loadNotes();
 
         // Characters
         renderCharacters(data.characters || []);
@@ -1854,6 +1993,7 @@
     }
 
     function renderCharacters(characters) {
+      window.currentCharacters = characters;  // Store globally for note dropdowns
       const container = document.getElementById('charactersList');
       if (characters.length === 0) {
         container.innerHTML = '<div class="empty-list">No characters yet</div>';
@@ -1867,10 +2007,12 @@
       `).join('');
     }
 
-    // Store acts, scenes, beats for reference
+    // Store acts, scenes, beats, notes for reference
     let currentActs = [];
     let currentScenes = [];
     let currentBeats = [];
+    let currentNotes = [];
+    let selectedNoteId = null;
 
     function renderActsAndScenes(acts, scenes) {
       currentActs = acts || [];
@@ -1985,13 +2127,9 @@
     function renderSceneItem(s) {
       // Get beats for this scene from currentBeats
       const sceneBeats = currentBeats.filter(b => b.scene_id === s.id).sort((a, b) => a.sort_order - b.sort_order);
-      const sceneNotes = s.description || '';
-      const hasSceneNotes = sceneNotes.trim().length > 0;
 
       // Beats rendered in tree structure
       const beatsHtml = sceneBeats.map(beat => {
-        const beatNotes = beat.description || '';
-        const hasBeatNotes = beatNotes.trim().length > 0;
         return `
           <div class="tree-beat" data-beat-id="${beat.id}">
             <div class="tree-beat-row">
@@ -1999,11 +2137,7 @@
               <span class="tree-bullet">•</span>
               <input type="text" class="tree-title-input" value="${(beat.title || '').replace(/"/g, '&quot;')}"
                      onchange="updateBeat(${beat.id}, 'title', this.value)" placeholder="Beat...">
-              <button class="tree-notes-btn ${hasBeatNotes ? 'has-notes' : ''}" onclick="toggleBeatNotes(${beat.id})" title="Notes">📝</button>
               <button class="tree-delete-btn" onclick="deleteBeat(${beat.id})">&times;</button>
-            </div>
-            <div class="tree-notes" id="beat-notes-${beat.id}">
-              <textarea placeholder="Notes..." onchange="updateBeat(${beat.id}, 'description', this.value)">${beatNotes}</textarea>
             </div>
           </div>
         `;
@@ -2016,12 +2150,8 @@
             <span class="tree-toggle ${sceneBeats.length > 0 ? '' : 'empty'}" onclick="toggleSceneBeats(${s.id})">▼</span>
             <input type="text" class="tree-title-input scene-title-input" value="${(s.title || '').replace(/"/g, '&quot;')}"
                    onchange="updateSceneField(${s.id}, 'title', this.value)" placeholder="Scene ${s.scene_number}...">
-            <button class="tree-notes-btn ${hasSceneNotes ? 'has-notes' : ''}" onclick="toggleSceneNotes(${s.id})" title="Notes">📝</button>
             <button class="tree-add-btn" onclick="createBeat(${s.id})" title="Add beat">+</button>
             <button class="tree-delete-btn" onclick="deleteScene(${s.id}, '${(s.title || 'Untitled').replace(/'/g, "\\'")}')">&times;</button>
-          </div>
-          <div class="tree-notes" id="scene-notes-${s.id}">
-            <textarea placeholder="Notes for this scene..." onchange="updateSceneField(${s.id}, 'description', this.value)">${sceneNotes}</textarea>
           </div>
           <div class="tree-beats" id="beats-${s.id}">
             ${beatsHtml}
@@ -2380,16 +2510,36 @@
       });
     }
 
+    // Debounced project field updates
+    let projectUpdateTimeout = {};
+    async function updateProjectField(field, value) {
+      clearTimeout(projectUpdateTimeout[field]);
+      projectUpdateTimeout[field] = setTimeout(async () => {
+        try {
+          await fetch(`${API_BASE}/api/projects/${currentProjectId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: value })
+          });
+        } catch (e) {
+          console.error('Failed to update project field:', e);
+        }
+      }, 500);
+    }
+
     async function saveOutline() {
       try {
-        // Save project
+        // Save project (including idea fields)
         await fetch(`${API_BASE}/api/projects/${currentProjectId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: document.getElementById('title').value,
             logline: document.getElementById('logline').value,
-            description: document.getElementById('description').value
+            description: document.getElementById('description').value,
+            idea_spark: document.getElementById('ideaSpark').value,
+            idea_feeling: document.getElementById('ideaFeeling').value,
+            idea_inspirations: document.getElementById('ideaInspirations').value
           })
         });
 
@@ -2518,6 +2668,112 @@
         alert('Failed to delete character');
       }
     }
+
+    // ========== NOTES FUNCTIONS ==========
+
+    async function loadNotes() {
+      try {
+        const res = await fetch(`${API_BASE}/api/notes?project_id=${currentProjectId}`);
+        if (!res.ok) throw new Error('Failed to load notes');
+        currentNotes = await res.json();
+        renderNotesGrid();
+      } catch (e) {
+        console.error('Load notes error:', e);
+        currentNotes = [];
+        renderNotesGrid();
+      }
+    }
+
+    function renderNotesGrid() {
+      const container = document.getElementById('notesGrid');
+      container.innerHTML = currentNotes.map(note => `
+        <div class="note-card" onclick="openNoteModal(${note.id})">
+          <div class="note-card-title">${escapeHtml(note.title) || 'Untitled'}</div>
+          <div class="note-card-preview">${escapeHtml(note.content) || ''}</div>
+        </div>
+      `).join('');
+    }
+
+    async function addNote() {
+      try {
+        const res = await fetch(`${API_BASE}/api/notes?project_id=${currentProjectId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: '', content: '' })
+        });
+        if (!res.ok) throw new Error('Failed to create note');
+        const note = await res.json();
+        currentNotes.unshift(note);
+        renderNotesGrid();
+        openNoteModal(note.id);
+      } catch (e) {
+        console.error('Create note error:', e);
+        alert('Failed to create note');
+      }
+    }
+
+    function openNoteModal(noteId) {
+      selectedNoteId = noteId;
+      const note = currentNotes.find(n => n.id === noteId);
+      if (!note) return;
+
+      document.getElementById('noteModalTitle').value = note.title || '';
+      document.getElementById('noteModalContent').value = note.content || '';
+      document.getElementById('noteModal').classList.remove('hidden');
+      document.getElementById('noteModalTitle').focus();
+    }
+
+    function closeNoteModal() {
+      document.getElementById('noteModal').classList.add('hidden');
+      selectedNoteId = null;
+      renderNotesGrid();
+    }
+
+    let noteUpdateTimeout = {};
+    function updateNoteFromModal(field, value) {
+      if (!selectedNoteId) return;
+
+      const note = currentNotes.find(n => n.id === selectedNoteId);
+      if (note) note[field] = value;
+
+      clearTimeout(noteUpdateTimeout[`${selectedNoteId}-${field}`]);
+      noteUpdateTimeout[`${selectedNoteId}-${field}`] = setTimeout(async () => {
+        try {
+          await fetch(`${API_BASE}/api/notes/${selectedNoteId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: value })
+          });
+        } catch (e) {
+          console.error('Update note error:', e);
+        }
+      }, 500);
+    }
+
+    async function deleteNoteFromModal() {
+      if (!selectedNoteId) return;
+      if (!confirm('Delete this note?')) return;
+
+      try {
+        await fetch(`${API_BASE}/api/notes/${selectedNoteId}`, { method: 'DELETE' });
+        currentNotes = currentNotes.filter(n => n.id !== selectedNoteId);
+        closeNoteModal();
+      } catch (e) {
+        console.error('Delete note error:', e);
+        alert('Failed to delete note');
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Close note modal on backdrop click
+    document.getElementById('noteModal').addEventListener('click', (e) => {
+      if (e.target.id === 'noteModal') closeNoteModal();
+    });
 
     // Close modal on backdrop click
     document.getElementById('characterModal').addEventListener('click', (e) => {
