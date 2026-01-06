@@ -775,14 +775,15 @@ class Database:
     # =========================================================================
 
     def initialize_scene_template(self, project_id: int) -> List[Dict]:
-        """Create 4 acts with 30 scenes for a project."""
+        """Create 5 acts (Plot Pyramid) with 30 scenes for a project."""
 
-        # Create the 4 acts first
+        # Create the 5 acts based on Freytag's Pyramid
         acts_data = [
-            {"title": "Act 1 - Setup", "description": "Establish the world, introduce characters, catalyst/meet-cute, break into two"},
-            {"title": "Act 2A - Fun & Games", "description": "B-story, falling in love, getting closer, building to midpoint"},
-            {"title": "Act 2B - Complications", "description": "Doubts, external pressure, secrets, breakup, dark night of the soul"},
-            {"title": "Act 3 - Resolution", "description": "Realization, grand gesture, confronting flaws, final image"},
+            {"title": "Exposition", "description": "Introduce the world, characters, and status quo. Plant the seeds of what's to come."},
+            {"title": "Rising Action", "description": "Complications build, stakes increase, characters are tested. The journey deepens."},
+            {"title": "Climax", "description": "The turning point. Maximum tension, the moment everything changes."},
+            {"title": "Falling Action", "description": "Consequences unfold, characters respond to the climax, racing toward resolution."},
+            {"title": "Resolution", "description": "New equilibrium established. Loose ends tied, final image, emotional payoff."},
         ]
 
         act_ids = []
@@ -795,42 +796,43 @@ class Database:
                 )
                 act_ids.append(cursor.lastrowid)
 
-        # Scene beats with act assignments
+        # Scene beats with act assignments (6 scenes per act = 30 total)
         beats = [
-            # Act 1 - Setup (7 scenes)
+            # Exposition (6 scenes)
             (1, "Opening Image", act_ids[0]),
-            (2, "Theme Stated", act_ids[0]),
-            (3, "Setup - Protagonist's World", act_ids[0]),
-            (4, "Setup - The Flaw", act_ids[0]),
-            (5, "Catalyst / Meet-Cute", act_ids[0]),
-            (6, "Debate - Should They?", act_ids[0]),
-            (7, "Break Into Two", act_ids[0]),
-            # Act 2A - Fun & Games (5 scenes)
-            (8, "B Story / Supporting Cast", act_ids[1]),
-            (9, "Fun and Games - Falling", act_ids[1]),
-            (10, "Fun and Games - The Date", act_ids[1]),
-            (11, "Fun and Games - Getting Closer", act_ids[1]),
-            (12, "Midpoint - The Kiss / Declaration", act_ids[1]),
-            # Act 2B - Complications (6 scenes)
-            (13, "Bad Guys Close In - Doubts", act_ids[2]),
-            (14, "Bad Guys Close In - External Pressure", act_ids[2]),
-            (15, "Bad Guys Close In - Secrets Surface", act_ids[2]),
-            (16, "All Is Lost - The Breakup", act_ids[2]),
+            (2, "Ordinary World", act_ids[0]),
+            (3, "Character Introduction", act_ids[0]),
+            (4, "Theme Stated", act_ids[0]),
+            (5, "The Inciting Incident", act_ids[0]),
+            (6, "The Question / Debate", act_ids[0]),
+            # Rising Action (6 scenes)
+            (7, "Crossing the Threshold", act_ids[1]),
+            (8, "New World / Fun & Games", act_ids[1]),
+            (9, "Building Connection", act_ids[1]),
+            (10, "B-Story Develops", act_ids[1]),
+            (11, "Stakes Rise", act_ids[1]),
+            (12, "Midpoint Shift", act_ids[1]),
+            # Climax (6 scenes)
+            (13, "Complications Mount", act_ids[2]),
+            (14, "Secrets Revealed", act_ids[2]),
+            (15, "The Crisis Point", act_ids[2]),
+            (16, "All Is Lost", act_ids[2]),
             (17, "Dark Night of the Soul", act_ids[2]),
-            (18, "Break Into Three - Realization", act_ids[2]),
-            # Act 3 - Resolution (12 scenes)
-            (19, "Gathering the Team", act_ids[3]),
-            (20, "Finale - Storming the Castle", act_ids[3]),
-            (21, "Finale - The Grand Gesture", act_ids[3]),
-            (22, "Finale - Confronting the Flaw", act_ids[3]),
-            (23, "Finale - The Choice", act_ids[3]),
-            (24, "Final Image - Together", act_ids[3]),
-            (25, "Tag Scene 1", act_ids[3]),
-            (26, "Tag Scene 2", act_ids[3]),
-            (27, "Tag Scene 3", act_ids[3]),
-            (28, "Tag Scene 4", act_ids[3]),
-            (29, "Tag Scene 5", act_ids[3]),
-            (30, "Tag Scene 6", act_ids[3]),
+            (18, "The Decision", act_ids[2]),
+            # Falling Action (6 scenes)
+            (19, "New Direction", act_ids[3]),
+            (20, "Racing to Resolution", act_ids[3]),
+            (21, "Overcoming Obstacles", act_ids[3]),
+            (22, "The Grand Gesture", act_ids[3]),
+            (23, "Final Confrontation", act_ids[3]),
+            (24, "The Choice", act_ids[3]),
+            # Resolution (6 scenes)
+            (25, "New Equilibrium", act_ids[4]),
+            (26, "Relationship Affirmed", act_ids[4]),
+            (27, "Loose Ends", act_ids[4]),
+            (28, "Character Growth Shown", act_ids[4]),
+            (29, "Final Image", act_ids[4]),
+            (30, "Tag / Epilogue", act_ids[4]),
         ]
 
         with self.get_connection() as conn:

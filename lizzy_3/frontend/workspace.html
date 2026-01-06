@@ -2027,7 +2027,7 @@
             <h4>Structure your story</h4>
             <p>Add acts to organize your scenes, or start with individual scenes.</p>
             <div class="scenes-hint-actions">
-              <button class="scenes-hint-btn primary" onclick="createStandardActs()">Start with 3 Acts</button>
+              <button class="scenes-hint-btn primary" onclick="createStandardActs()">Start with Plot Pyramid</button>
               <button class="scenes-hint-btn secondary" onclick="addScene()">Add a Scene</button>
             </div>
           </div>
@@ -2103,21 +2103,21 @@
 
     async function createStandardActs() {
       try {
-        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: 'Act 1 - Setup' })
-        });
-        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: 'Act 2 - Confrontation' })
-        });
-        await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: 'Act 3 - Resolution' })
-        });
+        // Create 5 acts based on Plot Pyramid (Freytag's Pyramid)
+        const acts = [
+          { title: 'Exposition', description: 'Introduce the world, characters, and status quo.' },
+          { title: 'Rising Action', description: 'Complications build, stakes increase, characters are tested.' },
+          { title: 'Climax', description: 'The turning point. Maximum tension, everything changes.' },
+          { title: 'Falling Action', description: 'Consequences unfold, racing toward resolution.' },
+          { title: 'Resolution', description: 'New equilibrium. Loose ends tied, emotional payoff.' }
+        ];
+        for (const act of acts) {
+          await fetch(`${API_BASE}/api/outline/acts?project_id=${currentProjectId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(act)
+          });
+        }
         await loadOutline();
       } catch (e) {
         console.error('Failed to create acts:', e);
